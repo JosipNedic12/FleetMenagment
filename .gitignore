@@ -3,3 +3,4 @@ bin/
 obj/
 *.user
 appsettings.Development.json
+fleetmenagment.API/appsettings.json
