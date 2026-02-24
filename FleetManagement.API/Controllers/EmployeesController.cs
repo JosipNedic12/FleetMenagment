@@ -1,6 +1,7 @@
 ﻿using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Interfaces;
 using FleetManagement.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FleetManagement.API.Controllers;
@@ -13,6 +14,7 @@ public class EmployeesController : ControllerBase
     public EmployeesController(IEmployeeRepository repo) => _repo = repo;
 
     [HttpGet]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<EmployeeDto>>> GetAll()
     {
         var employees = await _repo.GetAllAsync();
@@ -20,6 +22,7 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<EmployeeDto>> GetById(int id)
     {
         var employee = await _repo.GetByIdAsync(id);
@@ -28,6 +31,7 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<EmployeeDto>> Create(CreateEmployeeDto dto)
     {
         if (await _repo.EmailExistsAsync(dto.Email))
@@ -47,6 +51,7 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPatch("{id}")]
+    [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<EmployeeDto>> Update(int id, UpdateEmployeeDto dto)
     {
         var updated = await _repo.UpdateAsync(id, new Employee
@@ -61,6 +66,7 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _repo.DeleteAsync(id);

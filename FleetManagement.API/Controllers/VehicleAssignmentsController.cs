@@ -1,6 +1,7 @@
 ﻿using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Interfaces;
 using FleetManagement.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FleetManagement.API.Controllers;
@@ -13,6 +14,7 @@ public class VehicleAssignmentsController : ControllerBase
     public VehicleAssignmentsController(IVehicleAssignmentRepository repo) => _repo = repo;
 
     [HttpGet]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<VehicleAssignmentDto>>> GetAll(
         [FromQuery] bool activeOnly = false)
     {
@@ -21,6 +23,7 @@ public class VehicleAssignmentsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<VehicleAssignmentDto>> GetById(int id)
     {
         var assignment = await _repo.GetByIdAsync(id);
@@ -29,6 +32,7 @@ public class VehicleAssignmentsController : ControllerBase
     }
 
     [HttpGet("vehicle/{vehicleId}")]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<VehicleAssignmentDto>>> GetByVehicle(int vehicleId)
     {
         var assignments = await _repo.GetByVehicleIdAsync(vehicleId);
@@ -36,6 +40,7 @@ public class VehicleAssignmentsController : ControllerBase
     }
 
     [HttpGet("driver/{driverId}")]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<VehicleAssignmentDto>>> GetByDriver(int driverId)
     {
         var assignments = await _repo.GetByDriverIdAsync(driverId);
@@ -43,6 +48,7 @@ public class VehicleAssignmentsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<VehicleAssignmentDto>> Create(CreateVehicleAssignmentDto dto)
     {
         if (await _repo.VehicleHasActiveAssignmentAsync(dto.VehicleId))
@@ -62,6 +68,7 @@ public class VehicleAssignmentsController : ControllerBase
     }
 
     [HttpPatch("{id}")]
+    [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<VehicleAssignmentDto>> Update(int id, UpdateVehicleAssignmentDto dto)
     {
         var updated = await _repo.UpdateAsync(id, new UpdateAssignmentData(
@@ -74,6 +81,7 @@ public class VehicleAssignmentsController : ControllerBase
     }
 
     [HttpPost("{id}/end")]
+    [Authorize(Roles = "Admin,FleetManager")]
     public async Task<IActionResult> End(int id)
     {
         var result = await _repo.EndAssignmentAsync(id);

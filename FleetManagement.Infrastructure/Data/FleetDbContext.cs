@@ -20,7 +20,7 @@ public class FleetDbContext : DbContext
     public DbSet<Driver> Drivers { get; set; }
     public DbSet<DriverLicenseCategory> DriverLicenseCategories { get; set; }
     public DbSet<DcLicenseCategory> LicenseCategories { get; set; }
-
+    public DbSet<AppUser> AppUsers { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("fleet");
@@ -181,6 +181,26 @@ public class FleetDbContext : DbContext
             entity.HasOne(e => e.Driver)
                   .WithMany()
                   .HasForeignKey(e => e.DriverId);
+        });
+
+        modelBuilder.Entity<AppUser>(entity =>
+        {
+            entity.ToTable("app_user");
+            entity.HasKey(e => e.UserId);
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.EmployeeId).HasColumnName("employee_id");
+            entity.Property(e => e.Username).HasColumnName("username");
+            entity.Property(e => e.PasswordHash).HasColumnName("password_hash");
+            entity.Property(e => e.Role).HasColumnName("role");
+            entity.Property(e => e.IsActive).HasColumnName("is_active");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.LastLoginAt).HasColumnName("last_login_at");
+
+            entity.HasIndex(e => e.Username).IsUnique();
+
+            entity.HasOne(e => e.Employee)
+                  .WithMany()
+                  .HasForeignKey(e => e.EmployeeId);
         });
     }
 }

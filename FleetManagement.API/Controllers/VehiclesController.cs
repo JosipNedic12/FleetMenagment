@@ -1,6 +1,7 @@
 ﻿using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Interfaces;
 using FleetManagement.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FleetManagement.API.Controllers;
@@ -18,6 +19,7 @@ public class VehiclesController : ControllerBase
 
     // GET api/v1/vehicles
     [HttpGet]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<VehicleDto>>> GetAll()
     {
         var vehicles = await _repo.GetAllAsync();
@@ -26,6 +28,7 @@ public class VehiclesController : ControllerBase
 
     // GET api/v1/vehicles/5
     [HttpGet("{id}")]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<VehicleDto>> GetById(int id)
     {
         var vehicle = await _repo.GetByIdAsync(id);
@@ -35,6 +38,7 @@ public class VehiclesController : ControllerBase
 
     // POST api/v1/vehicles
     [HttpPost]
+    [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<VehicleDto>> Create(CreateVehicleDto dto)
     {
         // Check for duplicate registration or VIN
@@ -63,6 +67,7 @@ public class VehiclesController : ControllerBase
 
     // PATCH api/v1/vehicles/5
     [HttpPatch("{id}")]
+    [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<VehicleDto>> Update(int id, UpdateVehicleDto dto)
     {
         var updated = await _repo.UpdateAsync(id, new Vehicle
@@ -78,6 +83,7 @@ public class VehiclesController : ControllerBase
 
     // DELETE api/v1/vehicles/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _repo.DeleteAsync(id);

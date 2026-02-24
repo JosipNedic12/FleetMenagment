@@ -1,6 +1,7 @@
 ﻿using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Interfaces;
 using FleetManagement.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FleetManagement.API.Controllers;
@@ -13,6 +14,7 @@ public class DriversController : ControllerBase
     public DriversController(IDriverRepository repo) => _repo = repo;
 
     [HttpGet]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<DriverDto>>> GetAll()
     {
         var drivers = await _repo.GetAllAsync();
@@ -20,6 +22,7 @@ public class DriversController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<DriverDto>> GetById(int id)
     {
         var driver = await _repo.GetByIdAsync(id);
@@ -28,6 +31,7 @@ public class DriversController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<DriverDto>> Create(CreateDriverDto dto)
     {
         if (await _repo.LicenseNumberExistsAsync(dto.LicenseNumber))
@@ -46,6 +50,7 @@ public class DriversController : ControllerBase
     }
 
     [HttpPatch("{id}")]
+    [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<DriverDto>> Update(int id, UpdateDriverDto dto)
     {
         var updated = await _repo.UpdateAsync(id, new Driver
@@ -60,6 +65,7 @@ public class DriversController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await _repo.DeleteAsync(id);

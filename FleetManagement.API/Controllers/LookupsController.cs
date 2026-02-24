@@ -1,5 +1,6 @@
 ﻿using FleetManagement.Application.DTOs;
 using FleetManagement.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,6 +56,7 @@ public class LookupsController : ControllerBase
 
     // GET api/v1/fuel-types
     [HttpGet("fuel-types")]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<FuelTypeDto>>> GetFuelTypes()
     {
         var fuelTypes = await _context.FuelTypes
