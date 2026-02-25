@@ -85,6 +85,11 @@ builder.Services.AddScoped<IVendorRepository, VendorRepository>();
 builder.Services.AddScoped<IMaintenanceOrderRepository, MaintenanceOrderRepository>();
 builder.Services.AddScoped<IFuelCardRepository, FuelCardRepository>();
 builder.Services.AddScoped<IFuelTransactionRepository, FuelTransactionRepository>();
+builder.Services.AddScoped<IInsurancePolicyRepository, InsurancePolicyRepository>();
+builder.Services.AddScoped<IRegistrationRecordRepository, RegistrationRecordRepository>();
+builder.Services.AddScoped<IFineRepository, FineRepository>();
+builder.Services.AddScoped<IAccidentRepository, AccidentRepository>();
+builder.Services.AddScoped<IInspectionRepository, InspectionRepository>();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

@@ -1,4 +1,5 @@
-﻿// Add this to AuthDtos.cs
+﻿// FleetManagement.Application/DTOs/ChangePasswordDto.cs
+namespace FleetManagement.Application.DTOs;
 
 public class ChangePasswordDto
 {

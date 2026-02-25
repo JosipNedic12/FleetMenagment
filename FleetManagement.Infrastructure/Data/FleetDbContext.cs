@@ -28,6 +28,12 @@ public class FleetDbContext : DbContext
     public DbSet<DcMaintenanceType> MaintenanceTypes { get; set; }
     public DbSet<FuelCard> FuelCards { get; set; }
     public DbSet<FuelTransaction> FuelTransactions { get; set; }
+    public DbSet<InsurancePolicy> InsurancePolicies => Set<InsurancePolicy>();
+    public DbSet<RegistrationRecord> RegistrationRecords => Set<RegistrationRecord>();
+    public DbSet<Fine> Fines => Set<Fine>();
+    public DbSet<Accident> Accidents => Set<Accident>();
+    public DbSet<Inspection> Inspections => Set<Inspection>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("fleet");
@@ -363,7 +369,103 @@ public class FleetDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(e => e.FuelTypeId);
         });
+        modelBuilder.Entity<InsurancePolicy>(entity =>
+        {
+            entity.ToTable("insurance_policy", "fleet");
+            entity.HasKey(e => e.PolicyId);
+            entity.Property(e => e.PolicyId).HasColumnName("policy_id");
+            entity.Property(e => e.VehicleId).HasColumnName("vehicle_id");
+            entity.Property(e => e.PolicyNumber).HasColumnName("policy_number");
+            entity.Property(e => e.Insurer).HasColumnName("insurer");
+            entity.Property(e => e.ValidFrom).HasColumnName("valid_from");
+            entity.Property(e => e.ValidTo).HasColumnName("valid_to");
+            entity.Property(e => e.Premium).HasColumnName("premium");
+            entity.Property(e => e.CoverageNotes).HasColumnName("coverage_notes");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.ModifiedAt).HasColumnName("modified_at");
+            entity.Property(e => e.ModifiedBy).HasColumnName("modified_by");
 
+            entity.HasOne(e => e.Vehicle)
+                  .WithMany()
+                  .HasForeignKey(e => e.VehicleId);
+        });
+        modelBuilder.Entity<RegistrationRecord>(entity =>
+        {
+            entity.ToTable("registration_record", "fleet");
+            entity.HasKey(e => e.RegistrationId);
+            entity.Property(e => e.RegistrationId).HasColumnName("registration_id");
+            entity.Property(e => e.VehicleId).HasColumnName("vehicle_id");
+            entity.Property(e => e.RegistrationNumber).HasColumnName("registration_number");
+            entity.Property(e => e.ValidFrom).HasColumnName("valid_from");
+            entity.Property(e => e.ValidTo).HasColumnName("valid_to");
+            entity.Property(e => e.Fee).HasColumnName("fee");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.ModifiedAt).HasColumnName("modified_at");
+            entity.Property(e => e.ModifiedBy).HasColumnName("modified_by");
 
+            entity.HasOne(e => e.Vehicle).WithMany().HasForeignKey(e => e.VehicleId);
+        });
+        modelBuilder.Entity<Fine>(entity =>
+        {
+            entity.ToTable("fine", "fleet");
+            entity.HasKey(e => e.FineId);
+            entity.Property(e => e.FineId).HasColumnName("fine_id");
+            entity.Property(e => e.VehicleId).HasColumnName("vehicle_id");
+            entity.Property(e => e.DriverId).HasColumnName("driver_id");
+            entity.Property(e => e.OccurredAt).HasColumnName("occurred_at");
+            entity.Property(e => e.Amount).HasColumnName("amount");
+            entity.Property(e => e.Reason).HasColumnName("reason");
+            entity.Property(e => e.PaidAt).HasColumnName("paid_at");
+            entity.Property(e => e.PaymentMethod).HasColumnName("payment_method");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.ModifiedAt).HasColumnName("modified_at");
+            entity.Property(e => e.ModifiedBy).HasColumnName("modified_by");
+
+            entity.HasOne(e => e.Vehicle).WithMany().HasForeignKey(e => e.VehicleId);
+            entity.HasOne(e => e.Driver).WithMany().HasForeignKey(e => e.DriverId);
+        });
+        modelBuilder.Entity<Accident>(entity =>
+        {
+            entity.ToTable("accident", "fleet");
+            entity.HasKey(e => e.AccidentId);
+            entity.Property(e => e.AccidentId).HasColumnName("accident_id");
+            entity.Property(e => e.VehicleId).HasColumnName("vehicle_id");
+            entity.Property(e => e.DriverId).HasColumnName("driver_id");
+            entity.Property(e => e.OccurredAt).HasColumnName("occurred_at");
+            entity.Property(e => e.Severity).HasColumnName("severity");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.DamageEstimate).HasColumnName("damage_estimate");
+            entity.Property(e => e.PoliceReport).HasColumnName("police_report");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.ModifiedAt).HasColumnName("modified_at");
+            entity.Property(e => e.ModifiedBy).HasColumnName("modified_by");
+
+            entity.HasOne(e => e.Vehicle).WithMany().HasForeignKey(e => e.VehicleId);
+            entity.HasOne(e => e.Driver).WithMany().HasForeignKey(e => e.DriverId);
+        });
+
+        modelBuilder.Entity<Inspection>(entity =>
+        {
+            entity.ToTable("inspection", "fleet");
+            entity.HasKey(e => e.InspectionId);
+            entity.Property(e => e.InspectionId).HasColumnName("inspection_id");
+            entity.Property(e => e.VehicleId).HasColumnName("vehicle_id");
+            entity.Property(e => e.InspectedAt).HasColumnName("inspected_at");
+            entity.Property(e => e.ValidTo).HasColumnName("valid_to");
+            entity.Property(e => e.Result).HasColumnName("result");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+            entity.Property(e => e.OdometerKm).HasColumnName("odometer_km");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+
+            entity.HasOne(e => e.Vehicle).WithMany().HasForeignKey(e => e.VehicleId);
+        });
     }
 }
