@@ -283,17 +283,20 @@ export class FuelTransactionApiService extends ApiService {
 export class OdometerLogApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getAll(): Observable<OdometerLog[]> {
+    return this.get<OdometerLog[]>('odometerlogs');
+  }
   getByVehicle(vehicleId: number): Observable<OdometerLog[]> {
-    return this.get<OdometerLog[]>(`v1/odometerlogs/vehicle/${vehicleId}`);
+    return this.get<OdometerLog[]>(`odometerlogs/vehicle/${vehicleId}`);
   }
   getById(id: number): Observable<OdometerLog> {
-    return this.get<OdometerLog>(`v1/odometerlogs/${id}`);
+    return this.get<OdometerLog>(`odometerlogs/${id}`);
   }
   create(dto: CreateOdometerLogDto): Observable<OdometerLog> {
-    return this.post<OdometerLog>('v1/odometerlogs', dto);
+    return this.post<OdometerLog>('odometerlogs', dto);
   }
   deleteById(id: number): Observable<void> {
-    return super.delete<void>(`v1/odometerlogs/${id}`);
+    return super.delete<void>(`odometerlogs/${id}`);
   }
 }
 

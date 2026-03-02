@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace FleetManagement.API.Controllers;
 
 [ApiController]
-[Route("api/v1")]
+[Route("api")]
 public class LookupsController : ControllerBase
 {
     private readonly FleetDbContext _context;

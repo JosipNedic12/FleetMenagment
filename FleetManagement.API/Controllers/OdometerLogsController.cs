@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FleetManagement.API.Controllers;
 
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/[controller]")]
 public class OdometerLogsController : ControllerBase
 {
     private readonly IOdometerLogRepository _repo;

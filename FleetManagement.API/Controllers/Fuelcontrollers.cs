@@ -10,7 +10,7 @@ namespace FleetManagement.API.Controllers;
 // FuelCardsController
 // -------------------------------------------------------
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/[controller]")]
 public class FuelCardsController : ControllerBase
 {
     private readonly IFuelCardRepository _repo;
@@ -104,7 +104,7 @@ public class FuelCardsController : ControllerBase
 // FuelTransactionsController
 // -------------------------------------------------------
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/[controller]")]
 public class FuelTransactionsController : ControllerBase
 {
     private readonly IFuelTransactionRepository _repo;

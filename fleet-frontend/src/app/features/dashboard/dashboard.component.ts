@@ -2,7 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { InsurancePolicyApiService, RegistrationApiService, InspectionApiService, FineApiService, AccidentApiService } from '../../core/auth/feature-api.services';
+import { VehicleApiService, MaintenanceOrderApiService, OdometerLogApiService, InsurancePolicyApiService, RegistrationApiService, InspectionApiService, FineApiService, AccidentApiService } from '../../core/auth/feature-api.services';
 
 interface StatCard {
   label: string;
@@ -29,7 +29,7 @@ interface StatCard {
 
       @if (loading()) {
         <div class="loading-grid">
-          @for (i of [1,2,3,4,5]; track i) {
+          @for (i of [1,2,3,4,5,6,7,8]; track i) {
             <div class="stat-skeleton"></div>
           }
         </div>
@@ -115,6 +115,9 @@ export class DashboardComponent implements OnInit {
   cards   = signal<StatCard[]>([]);
 
   constructor(
+    private vehicleApi: VehicleApiService,
+    private maintenanceApi: MaintenanceOrderApiService,
+    private odometerApi: OdometerLogApiService,
     private insuranceApi: InsurancePolicyApiService,
     private registrationApi: RegistrationApiService,
     private inspectionApi: InspectionApiService,
@@ -124,6 +127,9 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     forkJoin({
+      vehicles:     this.vehicleApi.getAll(),
+      maintenance:  this.maintenanceApi.getAll(),
+      odometer:     this.odometerApi.getAll(),
       insurance:    this.insuranceApi.getAll(),
       registration: this.registrationApi.getAll(),
       inspections:  this.inspectionApi.getAll(),
@@ -131,14 +137,23 @@ export class DashboardComponent implements OnInit {
       accidents:    this.accidentApi.getAll()
     }).subscribe({
       next: (data) => {
-        const unpaidFines = data.fines.filter(f => !f.isPaid).length;
-        const expiredIns  = data.insurance.filter(i => !i.isActive).length;
+        const now = new Date();
+        const thisMonth = (d: string) => { const dt = new Date(d); return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth(); };
+
+        const activeVehicles = data.vehicles.filter(v => v.status === 'active').length;
+        const openOrders     = data.maintenance.filter(o => o.status === 'open' || o.status === 'in_progress').length;
+        const kmThisMonth    = data.odometer.filter(o => thisMonth(o.logDate)).reduce((sum, o) => sum + o.odometerKm, 0);
+        const unpaidFines    = data.fines.filter(f => !f.isPaid).length;
+        const expiredIns     = data.insurance.filter(i => !i.isActive).length;
 
         this.cards.set([
-          { label: 'Insurance Policies', value: data.insurance.length,    sub: `${expiredIns} expired`,           route: '/insurance',    icon: '🛡', accent: '#3b82f6' },
+          { label: 'Vehicles',           value: data.vehicles.length,     sub: `${activeVehicles} active`,        route: '/vehicles',      icon: '🚗', accent: '#10b981' },
+          { label: 'Open Orders',        value: openOrders,               sub: 'Maintenance in progress',         route: '/maintenance',   icon: '🔧', accent: '#f97316' },
+          { label: 'KM This Month',      value: kmThisMonth,              sub: 'From odometer logs',              route: '/odometer',      icon: '📍', accent: '#6366f1' },
+          { label: 'Insurance Policies', value: data.insurance.length,    sub: `${expiredIns} expired`,           route: '/insurance',     icon: '🛡', accent: '#3b82f6' },
           { label: 'Registrations',      value: data.registration.length, sub: 'Active records',                  route: '/registration',  icon: '📋', accent: '#8b5cf6' },
           { label: 'Inspections',        value: data.inspections.length,  sub: 'Total inspections',               route: '/inspections',   icon: '🔍', accent: '#06b6d4' },
-          { label: 'Fines',             value: data.fines.length,        sub: `${unpaidFines} unpaid`,           route: '/fines',         icon: '⚠', accent: '#f59e0b' },
+          { label: 'Fines',              value: data.fines.length,        sub: `${unpaidFines} unpaid`,           route: '/fines',         icon: '⚠', accent: '#f59e0b' },
           { label: 'Accidents',          value: data.accidents.length,    sub: 'Reported incidents',              route: '/accidents',     icon: '🚨', accent: '#ef4444' },
         ]);
         this.loading.set(false);
