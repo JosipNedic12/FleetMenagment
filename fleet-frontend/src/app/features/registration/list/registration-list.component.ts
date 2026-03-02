@@ -160,7 +160,7 @@ export class RegistrationListComponent implements OnInit {
   confirmDelete(row: RegistrationRecord): void { this.deleteTarget = row; }
   doDelete(): void {
     if (!this.deleteTarget) return;
-    this.api.delete(this.deleteTarget.registrationId).subscribe({ next: () => { this.load(); this.deleteTarget = null; } });
+    this.api.deleteById(this.deleteTarget.registrationId).subscribe({ next: () => { this.load(); this.deleteTarget = null; } });
   }
   closeForm(): void { this.showForm = false; this.editId = null; this.form = this.emptyForm(); this.formError.set(''); }
   private emptyForm(): CreateRegistrationRecordDto { return { vehicleId: 0, registrationNumber: '', validFrom: '', validTo: '' }; }

@@ -2,8 +2,7 @@ import { Component, computed } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { inject } from '@angular/core';
-import { AuthService } from '../../core/auth/auth.service';
-
+import { AuthService } from '../../../core/auth/auth.service';
 interface NavItem { label: string; route: string; icon: string; }
 
 @Component({
@@ -33,8 +32,14 @@ interface NavItem { label: string; route: string; icon: string; }
         <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
           <span class="nav-icon">⊞</span><span>Dashboard</span>
         </a>
+        <div class="nav-section-label">Fleet</div>
+        @for (item of fleetItems; track item.route) {
+          <a [routerLink]="item.route" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">{{ item.icon }}</span><span>{{ item.label }}</span>
+          </a>
+        }
         <div class="nav-section-label">Compliance</div>
-        @for (item of navItems; track item.route) {
+        @for (item of complianceItems; track item.route) {
           <a [routerLink]="item.route" routerLinkActive="active" class="nav-item">
             <span class="nav-icon">{{ item.icon }}</span><span>{{ item.label }}</span>
           </a>
@@ -70,7 +75,16 @@ interface NavItem { label: string; route: string; icon: string; }
 export class SidebarComponent {
   auth = inject(AuthService);
 
-  navItems: NavItem[] = [
+  fleetItems: NavItem[] = [
+    { label: 'Vehicles',     route: '/vehicles',    icon: '🚗' },
+    { label: 'Drivers',      route: '/drivers',     icon: '👤' },
+    { label: 'Assignments',  route: '/assignments', icon: '🔗' },
+    { label: 'Maintenance',  route: '/maintenance', icon: '🔧' },
+    { label: 'Fuel',         route: '/fuel',        icon: '⛽' },
+    { label: 'Odometer',     route: '/odometer',    icon: '📍' },
+  ];
+
+  complianceItems: NavItem[] = [
     { label: 'Insurance',    route: '/insurance',    icon: '🛡' },
     { label: 'Registration', route: '/registration', icon: '📋' },
     { label: 'Inspections',  route: '/inspections',  icon: '🔍' },

@@ -231,7 +231,7 @@ export class AccidentsListComponent implements OnInit {
   confirmDelete(row: Accident): void { this.deleteTarget = row; }
   doDelete(): void {
     if (!this.deleteTarget) return;
-    this.api.delete(this.deleteTarget.accidentId).subscribe({
+    this.api.deleteById(this.deleteTarget.accidentId).subscribe({
       next: () => { this.load(); this.deleteTarget = null; }
     });
   }

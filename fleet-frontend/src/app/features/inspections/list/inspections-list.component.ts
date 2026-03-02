@@ -169,7 +169,7 @@ export class InspectionsListComponent implements OnInit {
   confirmDelete(row: Inspection): void { this.deleteTarget = row; }
   doDelete(): void {
     if (!this.deleteTarget) return;
-    this.api.delete(this.deleteTarget.inspectionId).subscribe({ next: () => { this.load(); this.deleteTarget = null; } });
+    this.api.deleteById(this.deleteTarget.inspectionId).subscribe({ next: () => { this.load(); this.deleteTarget = null; } });
   }
   closeForm(): void { this.showForm = false; this.editId = null; this.form = this.emptyForm(); this.formError.set(''); }
   private emptyForm(): CreateInspectionDto { return { vehicleId: 0, inspectedAt: '', result: 'passed' }; }

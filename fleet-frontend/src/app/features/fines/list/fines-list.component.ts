@@ -243,7 +243,7 @@ export class FinesListComponent implements OnInit {
   confirmDelete(row: Fine): void { this.deleteTarget = row; }
   doDelete(): void {
     if (!this.deleteTarget) return;
-    this.api.delete(this.deleteTarget.fineId).subscribe({ next: () => { this.load(); this.deleteTarget = null; } });
+    this.api.deleteById(this.deleteTarget.fineId).subscribe({ next: () => { this.load(); this.deleteTarget = null; } });
   }
 
   closeForm(): void { this.showForm = false; this.editId = null; this.form = this.emptyForm(); this.formError.set(''); }

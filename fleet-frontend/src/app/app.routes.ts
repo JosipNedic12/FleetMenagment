@@ -22,6 +22,38 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
       },
+      // ── Fleet core ──
+      {
+        path: 'vehicles',
+        loadComponent: () =>
+          import('./features/vehicles/list/vehicles-list.component').then(m => m.VehiclesListComponent)
+      },
+      {
+        path: 'drivers',
+        loadComponent: () =>
+          import('./features/drivers/list/drivers-list.component').then(m => m.DriversListComponent)
+      },
+      {
+        path: 'assignments',
+        loadComponent: () =>
+          import('./features/assignments/list/assignments-list.component').then(m => m.AssignmentsListComponent)
+      },
+      {
+        path: 'maintenance',
+        loadComponent: () =>
+          import('./features/maintenance/list/maintenance-list.component').then(m => m.MaintenanceListComponent)
+      },
+      {
+        path: 'fuel',
+        loadComponent: () =>
+          import('./features/fuel/list/fuel-list.component').then(m => m.FuelListComponent)
+      },
+      {
+        path: 'odometer',
+        loadComponent: () =>
+          import('./features/odometer/list/odometer-list.component').then(m => m.OdometerListComponent)
+      },
+      // ── Compliance ──
       {
         path: 'insurance',
         loadComponent: () =>

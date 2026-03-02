@@ -2,8 +2,8 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthApiService } from '../../core/auth/feature-api.services';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthApiService } from '../../../core/auth/feature-api.services';
+import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
   selector: 'app-login',

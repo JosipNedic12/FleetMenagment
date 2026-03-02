@@ -233,7 +233,7 @@ export class InsuranceListComponent implements OnInit {
 
   doDelete(): void {
     if (!this.deleteTarget) return;
-    this.api.delete(this.deleteTarget.policyId).subscribe({
+    this.api.deleteById(this.deleteTarget.policyId).subscribe({
       next: () => { this.load(); this.deleteTarget = null; },
       error: ()  => { this.deleteTarget = null; }
     });
