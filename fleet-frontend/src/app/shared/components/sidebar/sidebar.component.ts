@@ -33,6 +33,9 @@ interface NavItem { label: string; route: string; icon: string; }
         <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
           <span class="nav-icon">⊞</span><span>Dashboard</span>
         </a>
+        <a routerLink="/reports" routerLinkActive="active" class="nav-item">
+          <span class="nav-icon">📊</span><span>Reports</span>
+        </a>
         <div class="nav-section-label">Fleet</div>
         @for (item of fleetItems; track item.route) {
           <a [routerLink]="item.route" routerLinkActive="active" class="nav-item">
