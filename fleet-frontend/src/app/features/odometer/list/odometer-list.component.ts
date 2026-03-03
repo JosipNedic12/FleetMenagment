@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { OdometerLogApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
@@ -107,12 +107,14 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
     />
   `,
   styles: [`
-    .empty-state { text-align:center; padding:60px; color:var(--text-muted); font-size:15px; }
-    .notes-cell { max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .modal-sub { font-size:13px; color:var(--text-muted); margin:-4px 0 16px; }
   `]
 })
 export class OdometerListComponent implements OnInit {
+  private api = inject(OdometerLogApiService);
+  private vehicleApi = inject(VehicleApiService);
+  auth = inject(AuthService);
+
   logs     = signal<OdometerLog[]>([]);
   vehicles = signal<Vehicle[]>([]);
   loading = signal(false); saving = signal(false); formError = signal('');
@@ -123,12 +125,6 @@ export class OdometerListComponent implements OnInit {
 
   selectedVehicle = computed(() => this.vehicles().find(v => v.vehicleId === this.selectedVehicleId));
   sortedLogs = computed(() => [...this.logs()].sort((a, b) => b.odometerKm - a.odometerKm));
-
-  constructor(
-    private api: OdometerLogApiService,
-    private vehicleApi: VehicleApiService,
-    public auth: AuthService
-  ) {}
 
   ngOnInit(): void {
     this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v));
@@ -172,7 +168,8 @@ export class OdometerListComponent implements OnInit {
   doDelete(): void {
     if (!this.deleteTarget) return;
     this.api.deleteById(this.deleteTarget.logId).subscribe({
-      next: () => { this.onVehicleChange(this.selectedVehicleId); this.deleteTarget = null; }
+      next: () => { this.onVehicleChange(this.selectedVehicleId); this.deleteTarget = null; },
+      error: () => { this.deleteTarget = null; }
     });
   }
 }

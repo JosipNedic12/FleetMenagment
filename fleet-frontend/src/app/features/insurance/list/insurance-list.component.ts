@@ -1,6 +1,5 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { InsurancePolicyApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
 import { InsurancePolicy, CreateInsurancePolicyDto, Vehicle } from '../../../core/models/models';
@@ -12,7 +11,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 @Component({
   selector: 'app-insurance-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
   template: `
     <div class="page">
       <!-- Header -->
@@ -22,7 +21,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
           <p class="page-subtitle">{{ filtered().length }} records</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [(ngModel)]="search" placeholder="Search vehicle, insurer, policy#…" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search vehicle, insurer, policy#…" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="showForm = true">
             + New Policy
           </button>
@@ -151,13 +150,17 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
   styles: []
 })
 export class InsuranceListComponent implements OnInit {
+  private api = inject(InsurancePolicyApiService);
+  private vehicleApi = inject(VehicleApiService);
+  auth = inject(AuthService);
+
   policies = signal<InsurancePolicy[]>([]);
   vehicles = signal<Vehicle[]>([]);
   loading  = signal(true);
   saving   = signal(false);
   formError = signal('');
 
-  search   = '';
+  search   = signal('');
   showForm = false;
   editId: number | null = null;
   deleteTarget: InsurancePolicy | null = null;
@@ -170,7 +173,7 @@ export class InsuranceListComponent implements OnInit {
     let list = this.policies();
     if (this.filter() === 'active')  list = list.filter(p => p.isActive);
     if (this.filter() === 'expired') list = list.filter(p => !p.isActive);
-    const q = this.search.toLowerCase();
+    const q = this.search().toLowerCase();
     if (q) list = list.filter(p =>
       p.registrationNumber.toLowerCase().includes(q) ||
       p.insurer.toLowerCase().includes(q) ||
@@ -178,12 +181,6 @@ export class InsuranceListComponent implements OnInit {
     );
     return list;
   });
-
-  constructor(
-    private api: InsurancePolicyApiService,
-    private vehicleApi: VehicleApiService,
-    public auth: AuthService
-  ) {}
 
   ngOnInit(): void {
     this.load();

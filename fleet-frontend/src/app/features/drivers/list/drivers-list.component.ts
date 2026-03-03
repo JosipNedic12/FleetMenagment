@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -21,7 +21,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
           <p class="page-subtitle">{{ filtered().length }} drivers · {{ expiredCount() }} expired licenses</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [(ngModel)]="search" placeholder="Search name, license#…" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search name, license#…" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreate()">+ Add Driver</button>
         </div>
       </div>
@@ -187,15 +187,19 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
     .cat-chip { display:inline-block; background:#e0f2fe; color:#0369a1; border-radius:4px; padding:1px 6px; font-size:11px; font-weight:600; margin:0 2px; }
     .checkbox-group { display:flex; flex-wrap:wrap; gap:8px; }
     .checkbox-label { display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; }
-    .mono { font-family:monospace; }
   `]
 })
 export class DriversListComponent implements OnInit {
+  private api = inject(DriverApiService);
+  private employeeApi = inject(EmployeeApiService);
+  private lookupApi = inject(LookupApiService);
+  auth = inject(AuthService);
+
   drivers          = signal<Driver[]>([]);
   employees        = signal<Employee[]>([]);
   licenseCategories = signal<LicenseCategoryDto[]>([]);
   loading = signal(true); saving = signal(false); formError = signal('');
-  search = ''; showCreate = false; showEdit = false;
+  search = signal(''); showCreate = false; showEdit = false;
   editId: number | null = null;
   deleteTarget: Driver | null = null;
   filter = signal<'all' | 'valid' | 'expired'>('all');
@@ -210,20 +214,13 @@ export class DriversListComponent implements OnInit {
     let list = this.drivers();
     if (this.filter() === 'valid')   list = list.filter(d => !d.licenseExpired);
     if (this.filter() === 'expired') list = list.filter(d => d.licenseExpired);
-    const q = this.search.toLowerCase();
+    const q = this.search().toLowerCase();
     if (q) list = list.filter(d =>
       d.fullName.toLowerCase().includes(q) ||
       d.licenseNumber.toLowerCase().includes(q)
     );
     return list;
   });
-
-  constructor(
-    private api: DriverApiService,
-    private employeeApi: EmployeeApiService,
-    private lookupApi: LookupApiService,
-    public auth: AuthService
-  ) {}
 
   ngOnInit(): void {
     this.load();
@@ -301,7 +298,8 @@ export class DriversListComponent implements OnInit {
   doDelete(): void {
     if (!this.deleteTarget) return;
     this.api.deleteById(this.deleteTarget.driverId).subscribe({
-      next: () => { this.load(); this.deleteTarget = null; }
+      next: () => { this.load(); this.deleteTarget = null; },
+      error: () => { this.deleteTarget = null; }
     });
   }
 

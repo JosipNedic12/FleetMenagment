@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VehicleAssignmentApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
@@ -20,7 +20,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
           <p class="page-subtitle">{{ filtered().length }} assignments · {{ activeCount() }} active</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [(ngModel)]="search" placeholder="Search vehicle, driver…" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search vehicle, driver…" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreate()">+ Assign Vehicle</button>
         </div>
       </div>
@@ -160,14 +160,19 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
       (cancelled)="deleteTarget = null"
     />
   `,
-  styles: [`.notes-cell { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .mono { font-family:monospace; } .btn-icon.warning { color:#d97706; } small { color:var(--text-muted); font-size:11px; }`]
+  styles: [`.btn-icon.warning { color:#d97706; } small { color:var(--text-muted); font-size:11px; }`]
 })
 export class AssignmentsListComponent implements OnInit {
+  private api = inject(VehicleAssignmentApiService);
+  private vehicleApi = inject(VehicleApiService);
+  private driverApi = inject(DriverApiService);
+  auth = inject(AuthService);
+
   assignments = signal<VehicleAssignment[]>([]);
   vehicles    = signal<Vehicle[]>([]);
   drivers     = signal<Driver[]>([]);
   loading = signal(true); saving = signal(false); formError = signal('');
-  search = ''; showCreate = false; showEdit = false;
+  search = signal(''); showCreate = false; showEdit = false;
   editId: number | null = null;
   deleteTarget: VehicleAssignment | null = null;
   filter = signal<'all' | 'active' | 'ended'>('all');
@@ -180,20 +185,13 @@ export class AssignmentsListComponent implements OnInit {
     let list = this.assignments();
     if (this.filter() === 'active') list = list.filter(a => a.isActive);
     if (this.filter() === 'ended')  list = list.filter(a => !a.isActive);
-    const q = this.search.toLowerCase();
+    const q = this.search().toLowerCase();
     if (q) list = list.filter(a =>
       a.registrationNumber.toLowerCase().includes(q) ||
       a.driverFullName.toLowerCase().includes(q)
     );
     return list;
   });
-
-  constructor(
-    private api: VehicleAssignmentApiService,
-    private vehicleApi: VehicleApiService,
-    private driverApi: DriverApiService,
-    public auth: AuthService
-  ) {}
 
   ngOnInit(): void {
     this.load();
@@ -247,14 +245,15 @@ export class AssignmentsListComponent implements OnInit {
   closeEdit(): void { this.showEdit = false; this.editId = null; this.formError.set(''); }
 
   endAssignment(row: VehicleAssignment): void {
-    this.api.end(row.assignmentId).subscribe({ next: () => this.load() });
+    this.api.end(row.assignmentId).subscribe({ next: () => this.load(), error: () => {} });
   }
 
   confirmDelete(row: VehicleAssignment): void { this.deleteTarget = row; }
   doDelete(): void {
     if (!this.deleteTarget) return;
     this.api.deleteById(this.deleteTarget.assignmentId).subscribe({
-      next: () => { this.load(); this.deleteTarget = null; }
+      next: () => { this.load(); this.deleteTarget = null; },
+      error: () => { this.deleteTarget = null; }
     });
   }
 

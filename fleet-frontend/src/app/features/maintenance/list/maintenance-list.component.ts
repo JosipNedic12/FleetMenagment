@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MaintenanceOrderApiService, VehicleApiService, VendorApiService, LookupApiService } from '../../../core/auth/feature-api.services';
@@ -27,7 +27,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
           <p class="page-subtitle">{{ filtered().length }} orders · {{ openCount() }} open</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [(ngModel)]="search" placeholder="Search vehicle, vendor…" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search vehicle, vendor…" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreate()">+ New Order</button>
         </div>
       </div>
@@ -91,7 +91,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
                           <span class="item-chip">
                             {{ item.maintenanceTypeName }}
                             ({{ item.totalCost | currency:'EUR':'symbol':'1.0-0' }})
-                            <button *hasRole="['Admin','FleetManager']" class="item-del" title="Remove" (click)="deleteItem(item, row)">×</button>
+                            <button *hasRole="['Admin','FleetManager']" class="item-del" title="Remove" (click)="deleteItem(item)">×</button>
                           </span>
                         }
                       </div>
@@ -137,7 +137,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
               <label>Odometer (km)</label>
               <input type="number" [(ngModel)]="createForm.odometerKm" [readonly]="true" />
             </div>
-            <<div class="form-group span-2">
+            <div class="form-group span-2">
               <label>Description *</label>
               <textarea [(ngModel)]="createForm.description" rows="3" placeholder="Describe the maintenance needed…"></textarea>
             </div>
@@ -278,18 +278,23 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
     .items-list { display:flex; flex-wrap:wrap; gap:6px; }
     .item-chip { background:#e0f2fe; color:#0369a1; border-radius:4px; padding:2px 8px; font-size:12px; display:flex; align-items:center; gap:4px; }
     .item-del { background:none; border:none; cursor:pointer; color:#ef4444; font-size:14px; padding:0; line-height:1; }
-    .mono { font-family:monospace; }
     .btn-danger { background:#ef4444; color:white; border:none; border-radius:8px; padding:8px 16px; font-size:14px; cursor:pointer; }
     .btn-danger:hover { background:#dc2626; }
   `]
 })
 export class MaintenanceListComponent implements OnInit {
+  private api = inject(MaintenanceOrderApiService);
+  private vehicleApi = inject(VehicleApiService);
+  private vendorApi = inject(VendorApiService);
+  private lookupApi = inject(LookupApiService);
+  auth = inject(AuthService);
+
   orders = signal<MaintenanceOrder[]>([]);
   vehicles = signal<Vehicle[]>([]);
   vendors = signal<Vendor[]>([]);
   maintenanceTypes = signal<MaintenanceTypeDto[]>([]);
   loading = signal(true); saving = signal(false); formError = signal('');
-  search = ''; showCreate = false; showEdit = false;
+  search = signal(''); showCreate = false; showEdit = false;
   showClose = false; showCancel = false; showAddItem = false;
   editId: number | null = null;
   actionId: number | null = null;
@@ -306,21 +311,13 @@ export class MaintenanceListComponent implements OnInit {
   filtered = computed(() => {
     let list = this.orders();
     if (this.filter() !== 'all') list = list.filter(o => o.status === this.filter());
-    const q = this.search.toLowerCase();
+    const q = this.search().toLowerCase();
     if (q) list = list.filter(o =>
       o.registrationNumber.toLowerCase().includes(q) ||
       (o.vendorName ?? '').toLowerCase().includes(q)
     );
     return list;
   });
-
-  constructor(
-    private api: MaintenanceOrderApiService,
-    private vehicleApi: VehicleApiService,
-    private vendorApi: VendorApiService,
-    private lookupApi: LookupApiService,
-    public auth: AuthService
-  ) { }
 
   ngOnInit(): void {
     this.load();
@@ -368,7 +365,6 @@ export class MaintenanceListComponent implements OnInit {
     ...this.createForm,
     scheduledAt: new Date(this.createForm.scheduledAt).toISOString()
   };
-  console.log('PAYLOAD:', JSON.stringify(payload));
   this.api.create(payload).subscribe({
     next: () => { this.load(); this.closeCreate(); this.saving.set(false); },
     error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
@@ -392,7 +388,7 @@ export class MaintenanceListComponent implements OnInit {
   closeEdit(): void { this.showEdit = false; this.editId = null; this.formError.set(''); }
 
   startOrder(row: MaintenanceOrder): void {
-    this.api.start(row.orderId).subscribe({ next: () => this.load() });
+    this.api.start(row.orderId).subscribe({ next: () => this.load(), error: () => {} });
   }
 
   openClose(row: MaintenanceOrder): void {
@@ -433,15 +429,16 @@ export class MaintenanceListComponent implements OnInit {
     });
   }
 
-  deleteItem(item: MaintenanceItem, order: MaintenanceOrder): void {
-    this.api.deleteItem(item.itemId).subscribe({ next: () => this.load() });
+  deleteItem(item: MaintenanceItem): void {
+    this.api.deleteItem(item.itemId).subscribe({ next: () => this.load(), error: () => {} });
   }
 
   confirmDelete(row: MaintenanceOrder): void { this.deleteTarget = row; }
   doDelete(): void {
     if (!this.deleteTarget) return;
     this.api.deleteById(this.deleteTarget.orderId).subscribe({
-      next: () => { this.load(); this.deleteTarget = null; }
+      next: () => { this.load(); this.deleteTarget = null; },
+      error: () => { this.deleteTarget = null; }
     });
   }
 }

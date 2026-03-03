@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import {
@@ -275,11 +275,6 @@ interface ComplianceRow {
     </div>
   `,
   styles: [`
-    .page { padding: 32px; max-width: 1200px; }
-    .page-header { margin-bottom: 24px; }
-    .page-title { font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
-    .page-subtitle { font-size: 14px; color: var(--text-muted); margin: 0; }
-
     .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: #f8fafc; border-radius: 10px; padding: 4px; width: fit-content; }
     .tab { padding: 8px 16px; border: none; background: none; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
     .tab:hover { background: white; color: var(--text-primary); }

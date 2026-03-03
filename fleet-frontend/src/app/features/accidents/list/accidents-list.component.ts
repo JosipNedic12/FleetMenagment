@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccidentApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
@@ -20,7 +20,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
           <p class="page-subtitle">{{ filtered().length }} incidents reported</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [(ngModel)]="search" placeholder="Search vehicle, description…" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search vehicle, description…" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="showForm = true">+ Report Accident</button>
         </div>
       </div>
@@ -153,7 +153,6 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
     />
   `,
   styles: [`
-    .notes-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .total-warning {
       background: #fff7ed; border: 1px solid #fed7aa;
       border-radius: 8px; padding: 10px 14px;
@@ -166,7 +165,7 @@ export class AccidentsListComponent implements OnInit {
   vehicles  = signal<Vehicle[]>([]);
   drivers   = signal<Driver[]>([]);
   loading = signal(true); saving = signal(false); formError = signal('');
-  search = ''; showForm = false; editId: number | null = null;
+  search = signal(''); showForm = false; editId: number | null = null;
   deleteTarget: Accident | null = null;
   filter = signal<'all' | 'minor' | 'major' | 'total'>('all');
   form: CreateAccidentDto = this.emptyForm();
@@ -174,7 +173,7 @@ export class AccidentsListComponent implements OnInit {
   filtered = computed(() => {
     let list = this.accidents();
     if (this.filter() !== 'all') list = list.filter(a => a.severity === this.filter());
-    const q = this.search.toLowerCase();
+    const q = this.search().toLowerCase();
     if (q) list = list.filter(a =>
       a.registrationNumber.toLowerCase().includes(q) ||
       a.description.toLowerCase().includes(q)
@@ -232,7 +231,8 @@ export class AccidentsListComponent implements OnInit {
   doDelete(): void {
     if (!this.deleteTarget) return;
     this.api.deleteById(this.deleteTarget.accidentId).subscribe({
-      next: () => { this.load(); this.deleteTarget = null; }
+      next: () => { this.load(); this.deleteTarget = null; },
+      error: () => { this.deleteTarget = null; }
     });
   }
   closeForm(): void { this.showForm = false; this.editId = null; this.form = this.emptyForm(); this.formError.set(''); }

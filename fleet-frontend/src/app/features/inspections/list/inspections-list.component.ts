@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InspectionApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
@@ -20,7 +20,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
           <p class="page-subtitle">{{ filtered().length }} records</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [(ngModel)]="search" placeholder="Search vehicle…" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search vehicle…" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="showForm = true">+ Add Inspection</button>
         </div>
       </div>
@@ -124,13 +124,13 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 
     <app-confirm-modal [visible]="!!deleteTarget" title="Delete Inspection" message="Delete this inspection record?" (confirmed)="doDelete()" (cancelled)="deleteTarget = null" />
   `,
-  styles: [`.notes-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }`]
+  styles: []
 })
 export class InspectionsListComponent implements OnInit {
   inspections = signal<Inspection[]>([]);
   vehicles    = signal<Vehicle[]>([]);
   loading = signal(true); saving = signal(false); formError = signal('');
-  search = ''; showForm = false; editId: number | null = null;
+  search = signal(''); showForm = false; editId: number | null = null;
   deleteTarget: Inspection | null = null;
   filter = signal<'all' | 'passed' | 'failed' | 'conditional'>('all');
   form: CreateInspectionDto = this.emptyForm();
@@ -138,7 +138,7 @@ export class InspectionsListComponent implements OnInit {
   filtered = computed(() => {
     let list = this.inspections();
     if (this.filter() !== 'all') list = list.filter(i => i.result === this.filter());
-    const q = this.search.toLowerCase();
+    const q = this.search().toLowerCase();
     if (q) list = list.filter(i => i.registrationNumber.toLowerCase().includes(q));
     return list;
   });
@@ -169,7 +169,7 @@ export class InspectionsListComponent implements OnInit {
   confirmDelete(row: Inspection): void { this.deleteTarget = row; }
   doDelete(): void {
     if (!this.deleteTarget) return;
-    this.api.deleteById(this.deleteTarget.inspectionId).subscribe({ next: () => { this.load(); this.deleteTarget = null; } });
+    this.api.deleteById(this.deleteTarget.inspectionId).subscribe({ next: () => { this.load(); this.deleteTarget = null; }, error: () => { this.deleteTarget = null; } });
   }
   closeForm(): void { this.showForm = false; this.editId = null; this.form = this.emptyForm(); this.formError.set(''); }
   private emptyForm(): CreateInspectionDto { return { vehicleId: 0, inspectedAt: '', result: 'passed' }; }

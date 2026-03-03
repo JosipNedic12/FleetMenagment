@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FineApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
@@ -20,7 +20,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
           <p class="page-subtitle">{{ filtered().length }} records · {{ unpaidCount() }} unpaid</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [(ngModel)]="search" placeholder="Search vehicle, reason…" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search vehicle, reason…" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="showForm = true">
             + Record Fine
           </button>
@@ -178,7 +178,7 @@ export class FinesListComponent implements OnInit {
   saving   = signal(false);
   formError = signal('');
 
-  search   = '';
+  search   = signal('');
   showForm = false;
   editId: number | null = null;
   deleteTarget: Fine | null = null;
@@ -193,7 +193,7 @@ export class FinesListComponent implements OnInit {
     let list = this.fines();
     if (this.filter() === 'unpaid') list = list.filter(f => !f.isPaid);
     if (this.filter() === 'paid')   list = list.filter(f => f.isPaid);
-    const q = this.search.toLowerCase();
+    const q = this.search().toLowerCase();
     if (q) list = list.filter(f => f.registrationNumber.toLowerCase().includes(q) || f.reason.toLowerCase().includes(q));
     return list;
   });
@@ -243,7 +243,7 @@ export class FinesListComponent implements OnInit {
   confirmDelete(row: Fine): void { this.deleteTarget = row; }
   doDelete(): void {
     if (!this.deleteTarget) return;
-    this.api.deleteById(this.deleteTarget.fineId).subscribe({ next: () => { this.load(); this.deleteTarget = null; } });
+    this.api.deleteById(this.deleteTarget.fineId).subscribe({ next: () => { this.load(); this.deleteTarget = null; }, error: () => { this.deleteTarget = null; } });
   }
 
   closeForm(): void { this.showForm = false; this.editId = null; this.form = this.emptyForm(); this.formError.set(''); }

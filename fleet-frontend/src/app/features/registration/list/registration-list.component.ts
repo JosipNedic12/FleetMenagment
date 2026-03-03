@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RegistrationApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
@@ -20,7 +20,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
           <p class="page-subtitle">{{ filtered().length }} records</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [(ngModel)]="search" placeholder="Search vehicle, reg #…" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search vehicle, reg #…" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="showForm = true">+ New Record</button>
         </div>
       </div>
@@ -121,7 +121,7 @@ export class RegistrationListComponent implements OnInit {
   records  = signal<RegistrationRecord[]>([]);
   vehicles = signal<Vehicle[]>([]);
   loading = signal(true); saving = signal(false); formError = signal('');
-  search = ''; showForm = false; editId: number | null = null;
+  search = signal(''); showForm = false; editId: number | null = null;
   deleteTarget: RegistrationRecord | null = null;
   filter = signal<'all' | 'active' | 'expired'>('all');
   form: CreateRegistrationRecordDto = this.emptyForm();
@@ -130,7 +130,7 @@ export class RegistrationListComponent implements OnInit {
     let list = this.records();
     if (this.filter() === 'active')  list = list.filter(r => r.isActive);
     if (this.filter() === 'expired') list = list.filter(r => !r.isActive);
-    const q = this.search.toLowerCase();
+    const q = this.search().toLowerCase();
     if (q) list = list.filter(r => r.vehicleRegistrationNumber.toLowerCase().includes(q) || r.registrationNumber.toLowerCase().includes(q));
     return list;
   });
@@ -160,7 +160,7 @@ export class RegistrationListComponent implements OnInit {
   confirmDelete(row: RegistrationRecord): void { this.deleteTarget = row; }
   doDelete(): void {
     if (!this.deleteTarget) return;
-    this.api.deleteById(this.deleteTarget.registrationId).subscribe({ next: () => { this.load(); this.deleteTarget = null; } });
+    this.api.deleteById(this.deleteTarget.registrationId).subscribe({ next: () => { this.load(); this.deleteTarget = null; }, error: () => { this.deleteTarget = null; } });
   }
   closeForm(): void { this.showForm = false; this.editId = null; this.form = this.emptyForm(); this.formError.set(''); }
   private emptyForm(): CreateRegistrationRecordDto { return { vehicleId: 0, registrationNumber: '', validFrom: '', validTo: '' }; }

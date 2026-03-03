@@ -1,17 +1,15 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { EmployeeApiService } from '../../../core/auth/feature-api.services';
 import { Employee } from '../../../core/models/models';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
-import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 
 @Component({
   selector: 'app-users-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BadgeComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, BadgeComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -20,7 +18,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
           <p class="page-subtitle">{{ filtered().length }} employees · Admin only</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [(ngModel)]="search" placeholder="Search name, email…" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search name, email…" />
         </div>
       </div>
 
@@ -123,7 +121,6 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
     </div>
   `,
   styles: [`
-    .mono { font-family: 'DM Mono', monospace; font-size: 13px; }
     .row-actions { display: flex; gap: 6px; }
     .action-btn {
       width: 32px; height: 32px;
@@ -138,14 +135,6 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
     .action-btn:hover { background: #f8fafc; border-color: var(--brand); }
 
     /* ── Detail Modal ──────────────────────────────────────── */
-    .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.4);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 1000;
-      animation: fadeIn 0.15s ease;
-    }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .detail-modal {
       background: white;
       border-radius: 14px;
@@ -232,13 +221,13 @@ export class UsersListComponent implements OnInit {
 
   employees = signal<Employee[]>([]);
   loading = signal(true);
-  search = '';
+  search = signal('');
   filter = signal<'all' | 'active' | 'inactive'>('all');
   detailEmployee: Employee | null = null;
 
   filtered = computed(() => {
     let list = this.employees();
-    const q = this.search.toLowerCase().trim();
+    const q = this.search().toLowerCase().trim();
     if (q) {
       list = list.filter(e =>
         `${e.firstName} ${e.lastName}`.toLowerCase().includes(q) ||

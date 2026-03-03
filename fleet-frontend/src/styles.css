@@ -299,3 +299,8 @@ body {
   font-size: 13px;
   margin-top: 12px;
 }
+
+/* ─── Shared Utility Classes ─────────────────────────────────────────────── */
+.mono { font-family: 'DM Mono', monospace; font-size: 13px; }
+.notes-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.empty-state { text-align: center; padding: 60px; color: var(--text-muted); font-size: 15px; }

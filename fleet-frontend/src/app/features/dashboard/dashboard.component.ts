@@ -1,9 +1,14 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { NgChartsModule } from 'ng2-charts';
+import { Chart, ChartData, ChartOptions, registerables } from 'chart.js';
 import { VehicleApiService, MaintenanceOrderApiService, OdometerLogApiService, InsurancePolicyApiService, RegistrationApiService, InspectionApiService, FineApiService, AccidentApiService, FuelTransactionApiService } from '../../core/auth/feature-api.services';
 import { OdometerLog } from '../../core/models/models';
+
+Chart.register(...registerables);
+
 interface StatCard {
   label: string;
   value: number;
@@ -16,7 +21,7 @@ interface StatCard {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, NgChartsModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -33,6 +38,11 @@ interface StatCard {
             <div class="stat-skeleton"></div>
           }
         </div>
+        <div class="charts-grid">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="chart-skeleton"></div>
+          }
+        </div>
       } @else {
         <div class="stats-grid">
           @for (card of cards(); track card.label) {
@@ -47,22 +57,69 @@ interface StatCard {
           }
         </div>
 
-        <!-- Quick links -->
-        <div class="section-title">Quick Actions</div>
-        <div class="quick-links">
-          @for (card of cards(); track card.label) {
-            <a [routerLink]="card.route" class="quick-link">
-              <span>{{ card.icon }}</span>
-              <span>View {{ card.label }}</span>
-              <span class="arrow">→</span>
-            </a>
-          }
+        <div class="section-title">Analytics</div>
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <span class="chart-card-title">⛽ Fuel Cost / Month</span>
+              <span class="chart-card-sub">Last 6 months (EUR)</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas baseChart
+                [data]="fuelChartData()"
+                [options]="barOptions"
+                type="bar">
+              </canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <span class="chart-card-title">🔧 Maintenance Cost / Month</span>
+              <span class="chart-card-sub">Last 6 months (EUR)</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas baseChart
+                [data]="maintChartData()"
+                [options]="barOptions"
+                type="bar">
+              </canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <span class="chart-card-title">🚗 Vehicle Status</span>
+              <span class="chart-card-sub">Current fleet breakdown</span>
+            </div>
+            <div class="chart-wrap chart-wrap--doughnut">
+              <canvas baseChart
+                [data]="statusChartData()"
+                [options]="doughnutOptions"
+                type="doughnut">
+              </canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <span class="chart-card-title">⚠ Accidents &amp; Fines</span>
+              <span class="chart-card-sub">Monthly count – last 6 months</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas baseChart
+                [data]="trendChartData()"
+                [options]="lineOptions"
+                type="line">
+              </canvas>
+            </div>
+          </div>
         </div>
       }
     </div>
   `,
   styles: [`
-    .page { padding: 32px; max-width: 1100px; }
+    .page { padding: 32px; max-width: 1200px; }
     .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; }
     .page-title { font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
     .page-subtitle { font-size: 14px; color: var(--text-muted); margin: 0; }
@@ -94,25 +151,107 @@ interface StatCard {
 
     .loading-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; margin-bottom: 32px; }
     .stat-skeleton { height: 120px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200%; border-radius: 12px; animation: shimmer 1.4s infinite; }
+    .chart-skeleton { height: 280px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200%; border-radius: 12px; animation: shimmer 1.4s infinite; }
     @keyframes shimmer { to { background-position: -200% 0; } }
 
-    .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 12px; }
-    .quick-links { display: flex; flex-direction: column; gap: 8px; max-width: 500px; }
-    .quick-link {
-      display: flex; align-items: center; gap: 12px;
-      background: white; border-radius: 8px; padding: 12px 16px;
-      text-decoration: none; color: var(--text-secondary);
-      font-size: 14px; font-weight: 500;
-      border: 1.5px solid #f1f5f9;
-      transition: all 0.15s;
+    .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 16px; }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
     }
-    .quick-link:hover { border-color: var(--brand); color: var(--brand); }
-    .arrow { margin-left: auto; opacity: 0.4; }
+
+    .chart-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px 24px;
+      border: 1.5px solid #f1f5f9;
+    }
+
+    .chart-card-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .chart-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .chart-card-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 220px;
+    }
+
+    .chart-wrap--doughnut {
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @media (max-width: 768px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
   `]
 })
 export class DashboardComponent implements OnInit {
   loading = signal(true);
   cards = signal<StatCard[]>([]);
+
+  fuelChartData = signal<ChartData<'bar'>>({ labels: [], datasets: [] });
+  maintChartData = signal<ChartData<'bar'>>({ labels: [], datasets: [] });
+  statusChartData = signal<ChartData<'doughnut'>>({ labels: [], datasets: [] });
+  trendChartData = signal<ChartData<'line'>>({ labels: [], datasets: [] });
+
+  barOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${(ctx.parsed.y ?? 0).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} EUR`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+      y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } } }
+    }
+  };
+
+  doughnutOptions: ChartOptions<'doughnut'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
+    },
+    cutout: '60%'
+  };
+
+  lineOptions: ChartOptions<'line'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } },
+      tooltip: { mode: 'index', intersect: false }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+      y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 }, stepSize: 1 }, beginAtZero: true }
+    }
+  };
 
   constructor(
     private vehicleApi: VehicleApiService,
@@ -150,6 +289,7 @@ export class DashboardComponent implements OnInit {
         const fuelCostThisMonth = data.fuel
           .filter(t => thisMonth(t.postedAt))
           .reduce((sum, t) => sum + (t.totalCost ?? 0), 0);
+
         this.cards.set([
           { label: 'Vehicles', value: data.vehicles.length, sub: `${activeVehicles} active`, route: '/vehicles', icon: '🚗', accent: '#10b981' },
           { label: 'Open Orders', value: openOrders, sub: 'Maintenance in progress', route: '/maintenance', icon: '🔧', accent: '#f97316' },
@@ -161,6 +301,72 @@ export class DashboardComponent implements OnInit {
           { label: 'Accidents', value: data.accidents.length, sub: 'Reported incidents', route: '/accidents', icon: '🚨', accent: '#ef4444' },
           { label: 'Fuel Cost This Month', value: fuelCostThisMonth, sub: 'EUR spent on fuel', route: '/fuel', icon: '⛽', accent: '#14b8a6' },
         ]);
+
+        // ── Charts ────────────────────────────────────────────────
+        const labels = last6MonthLabels();
+
+        this.fuelChartData.set({
+          labels,
+          datasets: [{
+            label: 'Fuel Cost (EUR)',
+            data: bucketByMonth(data.fuel, t => t.postedAt, t => t.totalCost ?? 0),
+            backgroundColor: '#14b8a6',
+            borderRadius: 6,
+            borderSkipped: false,
+          }]
+        });
+
+        this.maintChartData.set({
+          labels,
+          datasets: [{
+            label: 'Maintenance Cost (EUR)',
+            data: bucketByMonth(data.maintenance, o => o.reportedAt, o => o.totalCost ?? 0),
+            backgroundColor: '#f97316',
+            borderRadius: 6,
+            borderSkipped: false,
+          }]
+        });
+
+        const statusLabels = ['Active', 'In Service', 'Retired', 'Sold'];
+        const statusValues = [
+          data.vehicles.filter(v => v.status === 'active').length,
+          data.vehicles.filter(v => v.status === 'service').length,
+          data.vehicles.filter(v => v.status === 'retired').length,
+          data.vehicles.filter(v => v.status === 'sold').length,
+        ];
+        this.statusChartData.set({
+          labels: statusLabels,
+          datasets: [{
+            data: statusValues,
+            backgroundColor: ['#10b981', '#f97316', '#94a3b8', '#ef4444'],
+            hoverOffset: 6,
+          }]
+        });
+
+        this.trendChartData.set({
+          labels,
+          datasets: [
+            {
+              label: 'Accidents',
+              data: bucketByMonth(data.accidents, a => a.occurredAt, () => 1),
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239,68,68,0.12)',
+              tension: 0.4,
+              fill: true,
+              pointRadius: 4,
+            },
+            {
+              label: 'Fines',
+              data: bucketByMonth(data.fines, f => f.occurredAt, () => 1),
+              borderColor: '#f59e0b',
+              backgroundColor: 'rgba(245,158,11,0.10)',
+              tension: 0.4,
+              fill: true,
+              pointRadius: 4,
+            }
+          ]
+        });
+
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
@@ -198,4 +404,31 @@ function calculateKmThisMonth(odometerLogs: OdometerLog[]): number {
     total += Math.max(0, maxThisMonth - baseline);
   }
   return total;
+}
+
+function last6MonthLabels(): string[] {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const now = new Date();
+  const labels: string[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    labels.push(`${months[d.getMonth()]} ${d.getFullYear()}`);
+  }
+  return labels;
+}
+
+function bucketByMonth<T>(items: T[], getDate: (x: T) => string, getValue: (x: T) => number): number[] {
+  const now = new Date();
+  const buckets = new Array(6).fill(0);
+  for (const item of items) {
+    const d = new Date(getDate(item));
+    for (let i = 5; i >= 0; i--) {
+      const target = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      if (d.getFullYear() === target.getFullYear() && d.getMonth() === target.getMonth()) {
+        buckets[5 - i] += getValue(item);
+        break;
+      }
+    }
+  }
+  return buckets;
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FuelCardApiService, FuelTransactionApiService, VehicleApiService, LookupApiService } from '../../../core/auth/feature-api.services';
@@ -33,7 +33,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
       <!-- ── Cards Tab ──────────────────────────────────────────────────── -->
       @if (tab() === 'cards') {
         <div class="section-actions">
-          <input class="search-input" [(ngModel)]="cardSearch" placeholder="Search card#, provider…" />
+          <input class="search-input" [ngModel]="cardSearch()" (ngModelChange)="cardSearch.set($event)" placeholder="Search card#, provider…" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreateCard()">+ Add Card</button>
         </div>
         <div class="table-card">
@@ -78,7 +78,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
       <!-- ── Transactions Tab ───────────────────────────────────────────── -->
       @if (tab() === 'transactions') {
         <div class="section-actions">
-          <input class="search-input" [(ngModel)]="txSearch" placeholder="Search vehicle, station…" />
+          <input class="search-input" [ngModel]="txSearch()" (ngModelChange)="txSearch.set($event)" placeholder="Search vehicle, station…" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreateTx()">+ Add Transaction</button>
         </div>
         <div class="table-card">
@@ -290,10 +290,15 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
     .section-actions { display:flex; gap:12px; margin-bottom:16px; align-items:center; }
     .suspicious-row { background:#fff7ed; }
     .warning-btn { color:#d97706; }
-    .mono { font-family:monospace; }
   `]
 })
 export class FuelListComponent implements OnInit {
+  private cardApi = inject(FuelCardApiService);
+  private txApi = inject(FuelTransactionApiService);
+  private vehicleApi = inject(VehicleApiService);
+  private lookupApi = inject(LookupApiService);
+  auth = inject(AuthService);
+
   cards = signal<FuelCard[]>([]);
   transactions = signal<FuelTransaction[]>([]);
   vehicles = signal<Vehicle[]>([]);
@@ -302,7 +307,7 @@ export class FuelListComponent implements OnInit {
   loadingTx = signal(true);
   saving = signal(false); formError = signal('');
   tab = signal<'cards' | 'transactions'>('cards');
-  cardSearch = ''; txSearch = '';
+  cardSearch = signal(''); txSearch = signal('');
   showCreateCard = false; showCreateTx = false;
   editCardId: number | null = null;
   deleteCardTarget: FuelCard | null = null;
@@ -312,21 +317,13 @@ export class FuelListComponent implements OnInit {
   txForm: CreateFuelTransactionDto = { vehicleId: 0, fuelTypeId: 0, postedAt: '', totalCost: 0 };
 
   filteredCards = computed(() => {
-    const q = this.cardSearch.toLowerCase();
+    const q = this.cardSearch().toLowerCase();
     return q ? this.cards().filter(c => c.cardNumber.toLowerCase().includes(q) || (c.provider ?? '').toLowerCase().includes(q)) : this.cards();
   });
   filteredTx = computed(() => {
-    const q = this.txSearch.toLowerCase();
+    const q = this.txSearch().toLowerCase();
     return q ? this.transactions().filter(t => t.registrationNumber.toLowerCase().includes(q) || (t.stationName ?? '').toLowerCase().includes(q)) : this.transactions();
   });
-
-  constructor(
-    private cardApi: FuelCardApiService,
-    private txApi: FuelTransactionApiService,
-    private vehicleApi: VehicleApiService,
-    private lookupApi: LookupApiService,
-    public auth: AuthService
-  ) { }
 
   ngOnInit(): void {
     this.loadCards();
@@ -395,18 +392,18 @@ export class FuelListComponent implements OnInit {
   closeCreateTx(): void { this.showCreateTx = false; this.formError.set(''); }
 
   markSuspicious(row: FuelTransaction): void {
-    this.txApi.markSuspicious(row.transactionId).subscribe({ next: () => this.loadTx() });
+    this.txApi.markSuspicious(row.transactionId).subscribe({ next: () => this.loadTx(), error: () => {} });
   }
 
   confirmDeleteCard(row: FuelCard): void { this.deleteCardTarget = row; }
   doDeleteCard(): void {
     if (!this.deleteCardTarget) return;
-    this.cardApi.deleteById(this.deleteCardTarget.fuelCardId).subscribe({ next: () => { this.loadCards(); this.deleteCardTarget = null; } });
+    this.cardApi.deleteById(this.deleteCardTarget.fuelCardId).subscribe({ next: () => { this.loadCards(); this.deleteCardTarget = null; }, error: () => { this.deleteCardTarget = null; } });
   }
   confirmDeleteTx(row: FuelTransaction): void { this.deleteTxTarget = row; }
   doDeleteTx(): void {
     if (!this.deleteTxTarget) return;
-    this.txApi.deleteById(this.deleteTxTarget.transactionId).subscribe({ next: () => { this.loadTx(); this.deleteTxTarget = null; } });
+    this.txApi.deleteById(this.deleteTxTarget.transactionId).subscribe({ next: () => { this.loadTx(); this.deleteTxTarget = null; }, error: () => { this.deleteTxTarget = null; } });
   }
   //________Helper______________________________
   onTxVehicleChange(vehicleId: number): void {

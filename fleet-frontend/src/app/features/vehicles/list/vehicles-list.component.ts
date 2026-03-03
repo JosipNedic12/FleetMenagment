@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -23,7 +23,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
           <p class="page-subtitle">{{ filtered().length }} vehicles</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [(ngModel)]="search" placeholder="Search reg#, make, model…" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search reg#, make, model…" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreate()">+ Add Vehicle</button>
         </div>
       </div>
@@ -198,16 +198,20 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
       (cancelled)="deleteTarget = null"
     />
   `,
-  styles: [`.mono { font-family: monospace; }`]
+  styles: []
 })
 export class VehiclesListComponent implements OnInit {
+  private api = inject(VehicleApiService);
+  private lookupApi = inject(LookupApiService);
+  auth = inject(AuthService);
+
   vehicles   = signal<Vehicle[]>([]);
   makes      = signal<MakeDto[]>([]);
   models     = signal<ModelDto[]>([]);
   categories = signal<VehicleCategoryDto[]>([]);
   fuelTypes  = signal<FuelTypeDto[]>([]);
   loading = signal(true); saving = signal(false); formError = signal('');
-  search = ''; showCreate = false; showEdit = false;
+  search = signal(''); showCreate = false; showEdit = false;
   editId: number | null = null;
   deleteTarget: Vehicle | null = null;
   filter = signal<'all' | VehicleStatus>('all');
@@ -219,7 +223,7 @@ export class VehiclesListComponent implements OnInit {
   filtered = computed(() => {
     let list = this.vehicles();
     if (this.filter() !== 'all') list = list.filter(v => v.status === this.filter());
-    const q = this.search.toLowerCase();
+    const q = this.search().toLowerCase();
     if (q) list = list.filter(v =>
       v.registrationNumber.toLowerCase().includes(q) ||
       v.make.toLowerCase().includes(q) ||
@@ -227,12 +231,6 @@ export class VehiclesListComponent implements OnInit {
     );
     return list;
   });
-
-  constructor(
-    private api: VehicleApiService,
-    private lookupApi: LookupApiService,
-    public auth: AuthService
-  ) {}
 
   ngOnInit(): void {
     this.load();
@@ -296,7 +294,8 @@ export class VehiclesListComponent implements OnInit {
   doDelete(): void {
     if (!this.deleteTarget) return;
     this.api.deleteById(this.deleteTarget.vehicleId).subscribe({
-      next: () => { this.load(); this.deleteTarget = null; }
+      next: () => { this.load(); this.deleteTarget = null; },
+      error: () => { this.deleteTarget = null; }
     });
   }
 

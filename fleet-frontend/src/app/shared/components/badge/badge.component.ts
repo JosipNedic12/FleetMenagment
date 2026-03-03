@@ -31,17 +31,4 @@ type BadgeVariant = 'success' | 'danger' | 'warning' | 'info' | 'neutral';
 export class BadgeComponent {
   @Input() label = '';
   @Input() variant: BadgeVariant = 'neutral';
-
-  // Convenience static helpers used in templates
-  static forResult(result: string): BadgeVariant {
-    return result === 'passed' ? 'success'
-         : result === 'failed' ? 'danger'
-         : 'warning';
-  }
-
-  static forSeverity(severity: string): BadgeVariant {
-    return severity === 'minor'  ? 'warning'
-         : severity === 'major'  ? 'danger'
-         : 'danger';
-  }
 } 
