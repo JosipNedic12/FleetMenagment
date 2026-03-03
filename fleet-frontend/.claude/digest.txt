@@ -78,9 +78,14 @@ Directory structure:
     │   │   │   │   ├── odometer/
     │   │   │   │   │   └── list/
     │   │   │   │   │       └── odometer-list.component.ts
+    │   │   │   │   ├── profile/
+    │   │   │   │   │   └── profile.component.ts
     │   │   │   │   ├── registration/
     │   │   │   │   │   └── list/
     │   │   │   │   │       └── registration-list.component.ts
+    │   │   │   │   ├── users/
+    │   │   │   │   │   └── list/
+    │   │   │   │   │       └── users-list.component.ts
     │   │   │   │   └── vehicles/
     │   │   │   │       └── list/
     │   │   │   │           └── vehicles-list.component.ts
@@ -1342,7 +1347,7 @@ FILE: fleet-frontend/src/app/app.html
 FILE: fleet-frontend/src/app/app.routes.ts
 ================================================
 import { Routes } from '@angular/router';
-import { authGuard } from './core/auth/auth.guard';
+import { authGuard, roleGuard } from './core/auth/auth.guard';
 import { AppShellComponent } from './app-shell.component';
 
 export const routes: Routes = [
@@ -1364,6 +1369,19 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
+      },
+      // ── User profile ──
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./features/profile/profile.component').then(m => m.ProfileComponent)
+      },
+      // ── Admin: User management ──
+      {
+        path: 'users',
+        canActivate: [roleGuard('Admin')],
+        loadComponent: () =>
+          import('./features/users/list/users-list.component').then(m => m.UsersListComponent)
       },
       // ── Fleet core ──
       {
@@ -1624,7 +1642,7 @@ import {
   RegistrationRecord, CreateRegistrationRecordDto, UpdateRegistrationRecordDto,
   Inspection, CreateInspectionDto, UpdateInspectionDto,
   Fine, CreateFineDto, UpdateFineDto, MarkFinePaidDto,
-  Accident, CreateAccidentDto, UpdateAccidentDto,
+  Accident, CreateAccidentDto, UpdateAccidentDto,ChangePasswordDto
 } from '../models/models';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -1636,6 +1654,10 @@ export class AuthApiService extends ApiService {
   login(dto: LoginDto): Observable<AuthResponse> {
     return this.post<AuthResponse>('auth/login', dto);
   }
+  
+  changePassword(dto: ChangePasswordDto): Observable<void> {
+    return this.post<void>('auth/change-password', dto);
+  }
 }
 
 // ─── Lookups ──────────────────────────────────────────────────────────────────
@@ -1645,22 +1667,22 @@ export class LookupApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
   getMakes(): Observable<MakeDto[]> {
-    return this.get<MakeDto[]>('v1/makes');
+    return this.get<MakeDto[]>('makes');
   }
   getModelsByMake(makeId: number): Observable<ModelDto[]> {
-    return this.get<ModelDto[]>(`v1/makes/${makeId}/models`);
+    return this.get<ModelDto[]>(`makes/${makeId}/models`);
   }
   getVehicleCategories(): Observable<VehicleCategoryDto[]> {
-    return this.get<VehicleCategoryDto[]>('v1/vehicle-categories');
+    return this.get<VehicleCategoryDto[]>('vehicle-categories');
   }
   getFuelTypes(): Observable<FuelTypeDto[]> {
-    return this.get<FuelTypeDto[]>('v1/fuel-types');
+    return this.get<FuelTypeDto[]>('fuel-types');
   }
   getLicenseCategories(): Observable<LicenseCategoryDto[]> {
-    return this.get<LicenseCategoryDto[]>('v1/license-categories');
+    return this.get<LicenseCategoryDto[]>('license-categories');
   }
   getMaintenanceTypes(): Observable<MaintenanceTypeDto[]> {
-    return this.get<MaintenanceTypeDto[]>('v1/maintenance-types');
+    return this.get<MaintenanceTypeDto[]>('maintenance-types');
   }
 }
 
@@ -1671,19 +1693,19 @@ export class VehicleApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
   getAll(): Observable<Vehicle[]> {
-    return this.get<Vehicle[]>('v1/vehicles');
+    return this.get<Vehicle[]>('Vehicles');
   }
   getById(id: number): Observable<Vehicle> {
-    return this.get<Vehicle>(`v1/vehicles/${id}`);
+    return this.get<Vehicle>(`Vehicles/${id}`);
   }
   create(dto: CreateVehicleDto): Observable<Vehicle> {
-    return this.post<Vehicle>('v1/vehicles', dto);
+    return this.post<Vehicle>('Vehicles', dto);
   }
   update(id: number, dto: UpdateVehicleDto): Observable<Vehicle> {
-    return this.patch<Vehicle>(`v1/vehicles/${id}`, dto);
+    return this.patch<Vehicle>(`Vehicles/${id}`, dto);
   }
   deleteById(id: number): Observable<void> {
-    return super.delete<void>(`v1/vehicles/${id}`);
+    return super.delete<void>(`Vehicles/${id}`);
   }
 }
 
@@ -1694,19 +1716,19 @@ export class EmployeeApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
   getAll(): Observable<Employee[]> {
-    return this.get<Employee[]>('v1/employees');
+    return this.get<Employee[]>('Employees');
   }
   getById(id: number): Observable<Employee> {
-    return this.get<Employee>(`v1/employees/${id}`);
+    return this.get<Employee>(`Employees/${id}`);
   }
   create(dto: CreateEmployeeDto): Observable<Employee> {
-    return this.post<Employee>('v1/employees', dto);
+    return this.post<Employee>('Employees', dto);
   }
   update(id: number, dto: UpdateEmployeeDto): Observable<Employee> {
-    return this.patch<Employee>(`v1/employees/${id}`, dto);
+    return this.patch<Employee>(`Employees/${id}`, dto);
   }
   deleteById(id: number): Observable<void> {
-    return super.delete<void>(`v1/employees/${id}`);
+    return super.delete<void>(`Employees/${id}`);
   }
 }
 
@@ -1717,19 +1739,19 @@ export class DriverApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
   getAll(): Observable<Driver[]> {
-    return this.get<Driver[]>('v1/drivers');
+    return this.get<Driver[]>('Drivers');
   }
   getById(id: number): Observable<Driver> {
-    return this.get<Driver>(`v1/drivers/${id}`);
+    return this.get<Driver>(`Drivers/${id}`);
   }
   create(dto: CreateDriverDto): Observable<Driver> {
-    return this.post<Driver>('v1/drivers', dto);
+    return this.post<Driver>('Drivers', dto);
   }
   update(id: number, dto: UpdateDriverDto): Observable<Driver> {
-    return this.patch<Driver>(`v1/drivers/${id}`, dto);
+    return this.patch<Driver>(`Drivers/${id}`, dto);
   }
   deleteById(id: number): Observable<void> {
-    return super.delete<void>(`v1/drivers/${id}`);
+    return super.delete<void>(`Drivers/${id}`);
   }
 }
 
@@ -1740,28 +1762,28 @@ export class VehicleAssignmentApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
   getAll(activeOnly = false): Observable<VehicleAssignment[]> {
-    return this.get<VehicleAssignment[]>(`v1/vehicleassignments${activeOnly ? '?activeOnly=true' : ''}`);
+    return this.get<VehicleAssignment[]>(`VehicleAssignments${activeOnly ? '?activeOnly=true' : ''}`);
   }
   getById(id: number): Observable<VehicleAssignment> {
-    return this.get<VehicleAssignment>(`v1/vehicleassignments/${id}`);
+    return this.get<VehicleAssignment>(`VehicleAssignments/${id}`);
   }
   getByVehicle(vehicleId: number): Observable<VehicleAssignment[]> {
-    return this.get<VehicleAssignment[]>(`v1/vehicleassignments/vehicle/${vehicleId}`);
+    return this.get<VehicleAssignment[]>(`VehicleAssignments/vehicle/${vehicleId}`);
   }
   getByDriver(driverId: number): Observable<VehicleAssignment[]> {
-    return this.get<VehicleAssignment[]>(`v1/vehicleassignments/driver/${driverId}`);
+    return this.get<VehicleAssignment[]>(`VehicleAssignments/driver/${driverId}`);
   }
   create(dto: CreateVehicleAssignmentDto): Observable<VehicleAssignment> {
-    return this.post<VehicleAssignment>('v1/vehicleassignments', dto);
+    return this.post<VehicleAssignment>('VehicleAssignments', dto);
   }
   update(id: number, dto: UpdateVehicleAssignmentDto): Observable<VehicleAssignment> {
-    return this.patch<VehicleAssignment>(`v1/vehicleassignments/${id}`, dto);
+    return this.patch<VehicleAssignment>(`VehicleAssignments/${id}`, dto);
   }
   end(id: number): Observable<VehicleAssignment> {
-    return this.post<VehicleAssignment>(`v1/vehicleassignments/${id}/end`, {});
+    return this.post<VehicleAssignment>(`VehicleAssignments/${id}/end`, {});
   }
   deleteById(id: number): Observable<void> {
-    return super.delete<void>(`v1/vehicleassignments/${id}`);
+    return super.delete<void>(`VehicleAssignments/${id}`);
   }
 }
 
@@ -1772,19 +1794,19 @@ export class VendorApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
   getAll(): Observable<Vendor[]> {
-    return this.get<Vendor[]>('v1/vendors');
+    return this.get<Vendor[]>('Vendors');
   }
   getById(id: number): Observable<Vendor> {
-    return this.get<Vendor>(`v1/vendors/${id}`);
+    return this.get<Vendor>(`Vendors/${id}`);
   }
   create(dto: CreateVendorDto): Observable<Vendor> {
-    return this.post<Vendor>('v1/vendors', dto);
+    return this.post<Vendor>('Vendors', dto);
   }
   update(id: number, dto: UpdateVendorDto): Observable<Vendor> {
-    return this.patch<Vendor>(`v1/vendors/${id}`, dto);
+    return this.patch<Vendor>(`Vendors/${id}`, dto);
   }
   deleteById(id: number): Observable<void> {
-    return super.delete<void>(`v1/vendors/${id}`);
+    return super.delete<void>(`Vendors/${id}`);
   }
 }
 
@@ -1795,37 +1817,37 @@ export class MaintenanceOrderApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
   getAll(): Observable<MaintenanceOrder[]> {
-    return this.get<MaintenanceOrder[]>('v1/maintenanceorders');
+    return this.get<MaintenanceOrder[]>('MaintenanceOrders');
   }
   getById(id: number): Observable<MaintenanceOrder> {
-    return this.get<MaintenanceOrder>(`v1/maintenanceorders/${id}`);
+    return this.get<MaintenanceOrder>(`MaintenanceOrders/${id}`);
   }
   getByVehicle(vehicleId: number): Observable<MaintenanceOrder[]> {
-    return this.get<MaintenanceOrder[]>(`v1/maintenanceorders/vehicle/${vehicleId}`);
+    return this.get<MaintenanceOrder[]>(`MaintenanceOrders/vehicle/${vehicleId}`);
   }
   create(dto: CreateMaintenanceOrderDto): Observable<MaintenanceOrder> {
-    return this.post<MaintenanceOrder>('v1/maintenanceorders', dto);
+    return this.post<MaintenanceOrder>('MaintenanceOrders', dto);
   }
   update(id: number, dto: UpdateMaintenanceOrderDto): Observable<MaintenanceOrder> {
-    return this.patch<MaintenanceOrder>(`v1/maintenanceorders/${id}`, dto);
+    return this.patch<MaintenanceOrder>(`MaintenanceOrders/${id}`, dto);
   }
   start(id: number): Observable<MaintenanceOrder> {
-    return this.post<MaintenanceOrder>(`v1/maintenanceorders/${id}/start`, {});
+    return this.post<MaintenanceOrder>(`MaintenanceOrders/${id}/start`, {});
   }
   close(id: number, dto: CloseMaintenanceOrderDto): Observable<MaintenanceOrder> {
-    return this.post<MaintenanceOrder>(`v1/maintenanceorders/${id}/close`, dto);
+    return this.post<MaintenanceOrder>(`MaintenanceOrders/${id}/close`, dto);
   }
   cancel(id: number, dto: CancelMaintenanceOrderDto): Observable<MaintenanceOrder> {
-    return this.post<MaintenanceOrder>(`v1/maintenanceorders/${id}/cancel`, dto);
+    return this.post<MaintenanceOrder>(`MaintenanceOrders/${id}/cancel`, dto);
   }
   addItem(orderId: number, dto: CreateMaintenanceItemDto): Observable<MaintenanceItem> {
-    return this.post<MaintenanceItem>(`v1/maintenanceorders/${orderId}/items`, dto);
+    return this.post<MaintenanceItem>(`MaintenanceOrders/${orderId}/items`, dto);
   }
   deleteItem(itemId: number): Observable<void> {
-    return super.delete<void>(`v1/maintenanceorders/items/${itemId}`);
+    return super.delete<void>(`MaintenanceOrders/items/${itemId}`);
   }
   deleteById(id: number): Observable<void> {
-    return super.delete<void>(`v1/maintenanceorders/${id}`);
+    return super.delete<void>(`MaintenanceOrders/${id}`);
   }
 }
 
@@ -1836,22 +1858,22 @@ export class FuelCardApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
   getAll(): Observable<FuelCard[]> {
-    return this.get<FuelCard[]>('v1/fuelcards');
+    return this.get<FuelCard[]>('FuelCards');
   }
   getById(id: number): Observable<FuelCard> {
-    return this.get<FuelCard>(`v1/fuelcards/${id}`);
+    return this.get<FuelCard>(`FuelCards/${id}`);
   }
   getByVehicle(vehicleId: number): Observable<FuelCard[]> {
-    return this.get<FuelCard[]>(`v1/fuelcards/vehicle/${vehicleId}`);
+    return this.get<FuelCard[]>(`FuelCards/vehicle/${vehicleId}`);
   }
   create(dto: CreateFuelCardDto): Observable<FuelCard> {
-    return this.post<FuelCard>('v1/fuelcards', dto);
+    return this.post<FuelCard>('FuelCards', dto);
   }
   update(id: number, dto: UpdateFuelCardDto): Observable<FuelCard> {
-    return this.patch<FuelCard>(`v1/fuelcards/${id}`, dto);
+    return this.patch<FuelCard>(`FuelCards/${id}`, dto);
   }
   deleteById(id: number): Observable<void> {
-    return super.delete<void>(`v1/fuelcards/${id}`);
+    return super.delete<void>(`FuelCards/${id}`);
   }
 }
 
@@ -1862,22 +1884,22 @@ export class FuelTransactionApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
   getAll(): Observable<FuelTransaction[]> {
-    return this.get<FuelTransaction[]>('v1/fueltransactions');
+    return this.get<FuelTransaction[]>('FuelTransactions');
   }
   getById(id: number): Observable<FuelTransaction> {
-    return this.get<FuelTransaction>(`v1/fueltransactions/${id}`);
+    return this.get<FuelTransaction>(`FuelTransactions/${id}`);
   }
   getByVehicle(vehicleId: number): Observable<FuelTransaction[]> {
-    return this.get<FuelTransaction[]>(`v1/fueltransactions/vehicle/${vehicleId}`);
+    return this.get<FuelTransaction[]>(`FuelTransactions/vehicle/${vehicleId}`);
   }
   create(dto: CreateFuelTransactionDto): Observable<FuelTransaction> {
-    return this.post<FuelTransaction>('v1/fueltransactions', dto);
+    return this.post<FuelTransaction>('FuelTransactions', dto);
   }
   markSuspicious(id: number): Observable<FuelTransaction> {
-    return this.patch<FuelTransaction>(`v1/fueltransactions/${id}/suspicious`, {});
+    return this.patch<FuelTransaction>(`FuelTransactions/${id}/suspicious`, {});
   }
   deleteById(id: number): Observable<void> {
-    return super.delete<void>(`v1/fueltransactions/${id}`);
+    return super.delete<void>(`FuelTransactions/${id}`);
   }
 }
 
@@ -2170,7 +2192,10 @@ export interface AuthResponse {
 }
 
 export type UserRole = 'Admin' | 'FleetManager' | 'ReadOnly';
-
+export interface ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+}
 
 
 ================================================
@@ -2508,10 +2533,10 @@ export interface MaintenanceOrder {
 
 export interface CreateMaintenanceOrderDto {
   vehicleId: number;
-  vendorId?: number;
-  scheduledAt?: string;
-  odometerKm?: number;
-  description?: string;
+  vendorId: number;
+  scheduledAt: string;
+  odometerKm: number;
+  description: string;
 }
 
 export interface UpdateMaintenanceOrderDto {
@@ -3435,8 +3460,8 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { VehicleApiService, MaintenanceOrderApiService, OdometerLogApiService, InsurancePolicyApiService, RegistrationApiService, InspectionApiService, FineApiService, AccidentApiService } from '../../core/auth/feature-api.services';
-
+import { VehicleApiService, MaintenanceOrderApiService, OdometerLogApiService, InsurancePolicyApiService, RegistrationApiService, InspectionApiService, FineApiService, AccidentApiService, FuelTransactionApiService } from '../../core/auth/feature-api.services';
+import { OdometerLog } from '../../core/models/models';
 interface StatCard {
   label: string;
   value: number;
@@ -3545,7 +3570,7 @@ interface StatCard {
 })
 export class DashboardComponent implements OnInit {
   loading = signal(true);
-  cards   = signal<StatCard[]>([]);
+  cards = signal<StatCard[]>([]);
 
   constructor(
     private vehicleApi: VehicleApiService,
@@ -3555,45 +3580,82 @@ export class DashboardComponent implements OnInit {
     private registrationApi: RegistrationApiService,
     private inspectionApi: InspectionApiService,
     private fineApi: FineApiService,
-    private accidentApi: AccidentApiService
-  ) {}
+    private accidentApi: AccidentApiService,
+    private fuelApi: FuelTransactionApiService,
+  ) { }
 
   ngOnInit(): void {
     forkJoin({
-      vehicles:     this.vehicleApi.getAll(),
-      maintenance:  this.maintenanceApi.getAll(),
-      odometer:     this.odometerApi.getAll(),
-      insurance:    this.insuranceApi.getAll(),
+      vehicles: this.vehicleApi.getAll(),
+      maintenance: this.maintenanceApi.getAll(),
+      odometer: this.odometerApi.getAll(),
+      insurance: this.insuranceApi.getAll(),
       registration: this.registrationApi.getAll(),
-      inspections:  this.inspectionApi.getAll(),
-      fines:        this.fineApi.getAll(),
-      accidents:    this.accidentApi.getAll()
+      inspections: this.inspectionApi.getAll(),
+      fines: this.fineApi.getAll(),
+      accidents: this.accidentApi.getAll(),
+      fuel: this.fuelApi.getAll(),
     }).subscribe({
       next: (data) => {
         const now = new Date();
         const thisMonth = (d: string) => { const dt = new Date(d); return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth(); };
 
         const activeVehicles = data.vehicles.filter(v => v.status === 'active').length;
-        const openOrders     = data.maintenance.filter(o => o.status === 'open' || o.status === 'in_progress').length;
-        const kmThisMonth    = data.odometer.filter(o => thisMonth(o.logDate)).reduce((sum, o) => sum + o.odometerKm, 0);
-        const unpaidFines    = data.fines.filter(f => !f.isPaid).length;
-        const expiredIns     = data.insurance.filter(i => !i.isActive).length;
-
+        const openOrders = data.maintenance.filter(o => o.status === 'open' || o.status === 'in_progress').length;
+        const kmThisMonth = calculateKmThisMonth(data.odometer);
+        const unpaidFines = data.fines.filter(f => !f.isPaid).length;
+        const expiredIns = data.insurance.filter(i => !i.isActive).length;
+        const fuelCostThisMonth = data.fuel
+          .filter(t => thisMonth(t.postedAt))
+          .reduce((sum, t) => sum + (t.totalCost ?? 0), 0);
         this.cards.set([
-          { label: 'Vehicles',           value: data.vehicles.length,     sub: `${activeVehicles} active`,        route: '/vehicles',      icon: '🚗', accent: '#10b981' },
-          { label: 'Open Orders',        value: openOrders,               sub: 'Maintenance in progress',         route: '/maintenance',   icon: '🔧', accent: '#f97316' },
-          { label: 'KM This Month',      value: kmThisMonth,              sub: 'From odometer logs',              route: '/odometer',      icon: '📍', accent: '#6366f1' },
-          { label: 'Insurance Policies', value: data.insurance.length,    sub: `${expiredIns} expired`,           route: '/insurance',     icon: '🛡', accent: '#3b82f6' },
-          { label: 'Registrations',      value: data.registration.length, sub: 'Active records',                  route: '/registration',  icon: '📋', accent: '#8b5cf6' },
-          { label: 'Inspections',        value: data.inspections.length,  sub: 'Total inspections',               route: '/inspections',   icon: '🔍', accent: '#06b6d4' },
-          { label: 'Fines',              value: data.fines.length,        sub: `${unpaidFines} unpaid`,           route: '/fines',         icon: '⚠', accent: '#f59e0b' },
-          { label: 'Accidents',          value: data.accidents.length,    sub: 'Reported incidents',              route: '/accidents',     icon: '🚨', accent: '#ef4444' },
+          { label: 'Vehicles', value: data.vehicles.length, sub: `${activeVehicles} active`, route: '/vehicles', icon: '🚗', accent: '#10b981' },
+          { label: 'Open Orders', value: openOrders, sub: 'Maintenance in progress', route: '/maintenance', icon: '🔧', accent: '#f97316' },
+          { label: 'KM This Month', value: kmThisMonth, sub: 'From odometer logs', route: '/odometer', icon: '📍', accent: '#6366f1' },
+          { label: 'Insurance Policies', value: data.insurance.length, sub: `${expiredIns} expired`, route: '/insurance', icon: '🛡', accent: '#3b82f6' },
+          { label: 'Registrations', value: data.registration.length, sub: 'Active records', route: '/registration', icon: '📋', accent: '#8b5cf6' },
+          { label: 'Inspections', value: data.inspections.length, sub: 'Total inspections', route: '/inspections', icon: '🔍', accent: '#06b6d4' },
+          { label: 'Fines', value: data.fines.length, sub: `${unpaidFines} unpaid`, route: '/fines', icon: '⚠', accent: '#f59e0b' },
+          { label: 'Accidents', value: data.accidents.length, sub: 'Reported incidents', route: '/accidents', icon: '🚨', accent: '#ef4444' },
+          { label: 'Fuel Cost This Month', value: fuelCostThisMonth, sub: 'EUR spent on fuel', route: '/fuel', icon: '⛽', accent: '#14b8a6' },
         ]);
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
     });
   }
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+function calculateKmThisMonth(odometerLogs: OdometerLog[]): number {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const isThisMonth = (d: string) => {
+    const dt = new Date(d);
+    return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+  };
+
+  const byVehicle = new Map<number, OdometerLog[]>();
+  for (const o of odometerLogs) {
+    if (!byVehicle.has(o.vehicleId)) byVehicle.set(o.vehicleId, []);
+    byVehicle.get(o.vehicleId)!.push(o);
+  }
+
+  let total = 0;
+  for (const [, logs] of byVehicle) {
+    const sorted = [...logs].sort((a, b) => new Date(a.logDate).getTime() - new Date(b.logDate).getTime());
+    const thisMonthLogs = sorted.filter(o => isThisMonth(o.logDate));
+    if (thisMonthLogs.length === 0) continue;
+
+    const maxThisMonth = Math.max(...thisMonthLogs.map(o => o.odometerKm));
+    const beforeMonth = sorted.filter(o => new Date(o.logDate) < monthStart);
+    const baseline = beforeMonth.length > 0
+      ? beforeMonth[beforeMonth.length - 1].odometerKm
+      : Math.min(...thisMonthLogs.map(o => o.odometerKm));
+
+    total += Math.max(0, maxThisMonth - baseline);
+  }
+  return total;
 }
 
 
@@ -4314,9 +4376,9 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
               <input [(ngModel)]="cardForm.provider" placeholder="INA, Shell, Petrol…" />
             </div>
             <div class="form-group">
-              <label>Assigned Vehicle</label>
+              <label>Vehicle</label>
               <select [(ngModel)]="cardForm.assignedVehicleId">
-                <option [ngValue]="undefined">Unassigned</option>
+                <option [ngValue]="undefined">No vehicle</option>
                 @for (v of vehicles(); track v.vehicleId) {
                   <option [ngValue]="v.vehicleId">{{ v.registrationNumber }}</option>
                 }
@@ -4354,7 +4416,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
           <div class="form-grid">
             <div class="form-group">
               <label>Vehicle *</label>
-              <select [(ngModel)]="txForm.vehicleId">
+              <select [(ngModel)]="txForm.vehicleId" (ngModelChange)="onTxVehicleChange($event)">
                 <option [ngValue]="0">Select vehicle…</option>
                 @for (v of vehicles(); track v.vehicleId) {
                   <option [ngValue]="v.vehicleId">{{ v.registrationNumber }}</option>
@@ -4372,7 +4434,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
             </div>
             <div class="form-group">
               <label>Fuel Type *</label>
-              <select [(ngModel)]="txForm.fuelTypeId">
+              <select [(ngModel)]="txForm.fuelTypeId" (ngModelChange)="recalcTotalCost()">
                 <option [ngValue]="0">Select type…</option>
                 @for (f of fuelTypes(); track f.fuelTypeId) {
                   <option [ngValue]="f.fuelTypeId">{{ f.label }}</option>
@@ -4383,29 +4445,39 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
               <label>Date *</label>
               <input type="datetime-local" [(ngModel)]="txForm.postedAt" />
             </div>
-            <div class="form-group">
-              <label>Liters (fuel)</label>
-              <input type="number" [(ngModel)]="txForm.liters" min="0" step="0.01" />
-            </div>
-            <div class="form-group">
-              <label>Price/L (EUR)</label>
-              <input type="number" [(ngModel)]="txForm.pricePerLiter" min="0" step="0.001" />
-            </div>
-            <div class="form-group">
-              <label>kWh (electric)</label>
-              <input type="number" [(ngModel)]="txForm.energyKwh" min="0" step="0.01" />
-            </div>
-            <div class="form-group">
-              <label>Price/kWh (EUR)</label>
-              <input type="number" [(ngModel)]="txForm.pricePerKwh" min="0" step="0.001" />
-            </div>
+
+            @if (!isElectric()) {
+              <div class="form-group">
+                <label>Liters</label>
+                <input type="number" [(ngModel)]="txForm.liters" min="0" step="0.01"
+                      (ngModelChange)="recalcTotalCost()" />
+              </div>
+              <div class="form-group">
+                <label>Price/L (EUR)</label>
+                <input type="number" [(ngModel)]="txForm.pricePerLiter" min="0" step="0.001"
+                      (ngModelChange)="recalcTotalCost()" />
+              </div>
+            }
+            @if (isElectric()) {
+              <div class="form-group">
+                <label>kWh</label>
+                <input type="number" [(ngModel)]="txForm.energyKwh" min="0" step="0.01"
+                      (ngModelChange)="recalcTotalCost()" />
+              </div>
+              <div class="form-group">
+                <label>Price/kWh (EUR)</label>
+                <input type="number" [(ngModel)]="txForm.pricePerKwh" min="0" step="0.001"
+                      (ngModelChange)="recalcTotalCost()" />
+              </div>
+            }
+
             <div class="form-group">
               <label>Total Cost (EUR) *</label>
               <input type="number" [(ngModel)]="txForm.totalCost" min="0" step="0.01" />
             </div>
             <div class="form-group">
-              <label>Odometer (km)</label>
-              <input type="number" [(ngModel)]="txForm.odometerKm" min="0" />
+              <label>Odometer (km) *</label>
+              <input type="number" [(ngModel)]="txForm.odometerKm" min="0" required />
             </div>
             <div class="form-group">
               <label>Station</label>
@@ -4457,12 +4529,12 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
   `]
 })
 export class FuelListComponent implements OnInit {
-  cards        = signal<FuelCard[]>([]);
+  cards = signal<FuelCard[]>([]);
   transactions = signal<FuelTransaction[]>([]);
-  vehicles     = signal<Vehicle[]>([]);
-  fuelTypes    = signal<FuelTypeDto[]>([]);
+  vehicles = signal<Vehicle[]>([]);
+  fuelTypes = signal<FuelTypeDto[]>([]);
   loadingCards = signal(true);
-  loadingTx    = signal(true);
+  loadingTx = signal(true);
   saving = signal(false); formError = signal('');
   tab = signal<'cards' | 'transactions'>('cards');
   cardSearch = ''; txSearch = '';
@@ -4489,7 +4561,7 @@ export class FuelListComponent implements OnInit {
     private vehicleApi: VehicleApiService,
     private lookupApi: LookupApiService,
     public auth: AuthService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.loadCards();
@@ -4534,15 +4606,23 @@ export class FuelListComponent implements OnInit {
   closeCreateCard(): void { this.showCreateCard = false; this.editCardId = null; this.formError.set(''); }
 
   openCreateTx(): void {
-    this.txForm = { vehicleId: 0, fuelTypeId: 0, postedAt: new Date().toISOString().slice(0, 16), totalCost: 0 };
+    this.txForm = { vehicleId: 0, fuelTypeId: 0, postedAt: new Date().toISOString(), totalCost: 0, odometerKm: 0 };
     this.formError.set(''); this.showCreateTx = true;
   }
+
   saveTx(): void {
     if (!this.txForm.vehicleId || !this.txForm.fuelTypeId || !this.txForm.postedAt) {
       this.formError.set('Fill all required fields.'); return;
     }
+    if (!this.txForm.odometerKm || this.txForm.odometerKm <= 0) {
+      this.formError.set('Odometer reading is required.'); return;
+    }
+    const payload = {
+      ...this.txForm,
+      postedAt: new Date(this.txForm.postedAt).toISOString()
+    };
     this.saving.set(true);
-    this.txApi.create(this.txForm).subscribe({
+    this.txApi.create(payload).subscribe({
       next: () => { this.loadTx(); this.closeCreateTx(); this.saving.set(false); },
       error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
     });
@@ -4562,6 +4642,36 @@ export class FuelListComponent implements OnInit {
   doDeleteTx(): void {
     if (!this.deleteTxTarget) return;
     this.txApi.deleteById(this.deleteTxTarget.transactionId).subscribe({ next: () => { this.loadTx(); this.deleteTxTarget = null; } });
+  }
+  //________Helper______________________________
+  onTxVehicleChange(vehicleId: number): void {
+  const vehicle = this.vehicles().find(v => v.vehicleId === vehicleId);
+  if (vehicle) {
+    this.txForm.odometerKm = vehicle.currentOdometerKm + 1;
+    const matchedType = this.fuelTypes().find(f => f.label.toLowerCase() === vehicle.fuelType?.toLowerCase());
+    if (matchedType) {
+      this.txForm.fuelTypeId = matchedType.fuelTypeId;
+    }
+    // Clear quantity fields when vehicle changes
+    this.txForm.liters = undefined;
+    this.txForm.pricePerLiter = undefined;
+    this.txForm.energyKwh = undefined;
+    this.txForm.pricePerKwh = undefined;
+    this.txForm.totalCost = 0;
+  }
+}
+
+  isElectric(): boolean {
+    const ft = this.fuelTypes().find(f => f.fuelTypeId === this.txForm.fuelTypeId);
+    return ft?.label?.toLowerCase().includes('electric') ?? false;
+  }
+
+  recalcTotalCost(): void {
+    if (this.txForm.liters && this.txForm.pricePerLiter) {
+      this.txForm.totalCost = parseFloat((this.txForm.liters * this.txForm.pricePerLiter).toFixed(2));
+    } else if (this.txForm.energyKwh && this.txForm.pricePerKwh) {
+      this.txForm.totalCost = parseFloat((this.txForm.energyKwh * this.txForm.pricePerKwh).toFixed(2));
+    }
   }
 }
 
@@ -5091,7 +5201,6 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
                     @if (row.status === 'open' || row.status === 'in_progress') {
                       <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Add Item" (click)="openAddItem(row)">＋</button>
                     }
-                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="confirmDelete(row)">🗑</button>
                   </td>
                 </tr>
                 @if (row.items.length > 0) {
@@ -5123,33 +5232,33 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
           <h2 class="modal-title">New Maintenance Order</h2>
           <div class="form-grid">
             <div class="form-group">
-              <label>Vehicle *</label>
-              <select [(ngModel)]="createForm.vehicleId">
-                <option [ngValue]="0">Select vehicle…</option>
-                @for (v of vehicles(); track v.vehicleId) {
-                  <option [ngValue]="v.vehicleId">{{ v.registrationNumber }} – {{ v.make }} {{ v.model }}</option>
-                }
-              </select>
-            </div>
+            <label>Vehicle *</label>
+            <select [(ngModel)]="createForm.vehicleId" (ngModelChange)="onCreateVehicleChange($event)">
+              <option [ngValue]="0">Select vehicle…</option>
+              @for (v of vehicles(); track v.vehicleId) {
+                <option [ngValue]="v.vehicleId">{{ v.registrationNumber }} – {{ v.make }} {{ v.model }}</option>
+              }
+            </select>
+          </div>
             <div class="form-group">
-              <label>Vendor</label>
+              <label>Vendor *</label>
               <select [(ngModel)]="createForm.vendorId">
-                <option [ngValue]="undefined">No vendor</option>
+                <option [ngValue]="0">Select vendor…</option>
                 @for (v of vendors(); track v.vendorId) {
                   <option [ngValue]="v.vendorId">{{ v.name }}</option>
                 }
               </select>
             </div>
             <div class="form-group">
-              <label>Scheduled At</label>
+              <label>Scheduled At *</label>
               <input type="datetime-local" [(ngModel)]="createForm.scheduledAt" />
             </div>
             <div class="form-group">
               <label>Odometer (km)</label>
-              <input type="number" [(ngModel)]="createForm.odometerKm" min="0" />
+              <input type="number" [(ngModel)]="createForm.odometerKm" [readonly]="true" />
             </div>
-            <div class="form-group span-2">
-              <label>Description</label>
+            <<div class="form-group span-2">
+              <label>Description *</label>
               <textarea [(ngModel)]="createForm.description" rows="3" placeholder="Describe the maintenance needed…"></textarea>
             </div>
           </div>
@@ -5295,9 +5404,9 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
   `]
 })
 export class MaintenanceListComponent implements OnInit {
-  orders         = signal<MaintenanceOrder[]>([]);
-  vehicles       = signal<Vehicle[]>([]);
-  vendors        = signal<Vendor[]>([]);
+  orders = signal<MaintenanceOrder[]>([]);
+  vehicles = signal<Vehicle[]>([]);
+  vendors = signal<Vendor[]>([]);
   maintenanceTypes = signal<MaintenanceTypeDto[]>([]);
   loading = signal(true); saving = signal(false); formError = signal('');
   search = ''; showCreate = false; showEdit = false;
@@ -5307,7 +5416,7 @@ export class MaintenanceListComponent implements OnInit {
   deleteTarget: MaintenanceOrder | null = null;
   filter = signal<'all' | OrderStatus>('all');
 
-  createForm: CreateMaintenanceOrderDto = { vehicleId: 0 };
+  createForm: CreateMaintenanceOrderDto = { vehicleId: 0, vendorId: 0, scheduledAt: '', odometerKm: 0, description: '' };
   editForm: UpdateMaintenanceOrderDto = {};
   closeForm: CloseMaintenanceOrderDto = {};
   cancelForm: CancelMaintenanceOrderDto = { cancelReason: '' };
@@ -5331,7 +5440,7 @@ export class MaintenanceListComponent implements OnInit {
     private vendorApi: VendorApiService,
     private lookupApi: LookupApiService,
     public auth: AuthService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.load();
@@ -5358,15 +5467,33 @@ export class MaintenanceListComponent implements OnInit {
     return 'neutral';
   }
 
-  openCreate(): void { this.createForm = { vehicleId: 0 }; this.formError.set(''); this.showCreate = true; }
-  saveCreate(): void {
-    if (!this.createForm.vehicleId) { this.formError.set('Select a vehicle.'); return; }
-    this.saving.set(true);
-    this.api.create(this.createForm).subscribe({
-      next: () => { this.load(); this.closeCreate(); this.saving.set(false); },
-      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
-    });
+  openCreate(): void {
+    this.createForm = { vehicleId: 0, vendorId: 0, scheduledAt: '', odometerKm: 0, description: '' };
+    this.formError.set('');
+    this.showCreate = true;
   }
+  onCreateVehicleChange(vehicleId: number): void {
+    const vehicle = this.vehicles().find(v => v.vehicleId === vehicleId);
+    if (vehicle) {
+      this.createForm.odometerKm = vehicle.currentOdometerKm;
+    }
+  }
+  saveCreate(): void {
+  if (!this.createForm.vehicleId) { this.formError.set('Select a vehicle.'); return; }
+  if (!this.createForm.vendorId) { this.formError.set('Select a vendor.'); return; }
+  if (!this.createForm.scheduledAt) { this.formError.set('Set a scheduled date.'); return; }
+  if (!this.createForm.description?.trim()) { this.formError.set('Enter a description.'); return; }
+  this.saving.set(true);
+  const payload = {
+    ...this.createForm,
+    scheduledAt: new Date(this.createForm.scheduledAt).toISOString()
+  };
+  console.log('PAYLOAD:', JSON.stringify(payload));
+  this.api.create(payload).subscribe({
+    next: () => { this.load(); this.closeCreate(); this.saving.set(false); },
+    error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+  });
+}
   closeCreate(): void { this.showCreate = false; this.formError.set(''); }
 
   startEdit(row: MaintenanceOrder): void {
@@ -5626,6 +5753,588 @@ export class OdometerListComponent implements OnInit {
 
 
 ================================================
+FILE: fleet-frontend/src/app/features/profile/profile.component.ts
+================================================
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../core/auth/auth.service';
+import { AuthApiService } from '../../core/auth/feature-api.services';
+import { BadgeComponent } from '../../shared/components/badge/badge.component';
+
+@Component({
+  selector: 'app-profile',
+  standalone: true,
+  imports: [CommonModule, FormsModule, BadgeComponent],
+  template: `
+    <div class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">My Profile</h1>
+          <p class="page-subtitle">Manage your account and security settings</p>
+        </div>
+      </div>
+
+      <div class="profile-grid">
+        <!-- ── User Info Card ──────────────────────────────────── -->
+        <div class="profile-card user-card">
+          <div class="card-hero">
+            <div class="avatar-large">{{ initials() }}</div>
+            <div class="hero-info">
+              <h2 class="user-fullname">{{ auth.fullName() }}</h2>
+              <span class="user-username">{{'@'}}{{ user()?.username }}</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Role</span>
+                <span class="info-value">
+                  <app-badge [label]="auth.role() ?? ''" [variant]="roleBadge()"></app-badge>
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Session Expires</span>
+                <span class="info-value">{{ expiresFormatted() }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Permissions</span>
+                <span class="info-value permissions">
+                  <span class="perm" [class.active]="true">Read</span>
+                  <span class="perm" [class.active]="auth.canWrite()">Write</span>
+                  <span class="perm" [class.active]="auth.canDelete()">Delete</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Change Password Card ────────────────────────────── -->
+        <div class="profile-card password-card">
+          <div class="card-header">
+            <span class="card-icon">🔒</span>
+            <h3 class="card-title">Change Password</h3>
+          </div>
+          <div class="card-body">
+            @if (pwSuccess()) {
+              <div class="alert alert-success">
+                <span class="alert-icon">✓</span>
+                Password updated successfully.
+              </div>
+            }
+            @if (pwError()) {
+              <div class="alert alert-error">
+                <span class="alert-icon">!</span>
+                {{ pwError() }}
+              </div>
+            }
+            <div class="form-group">
+              <label class="form-label">Current Password</label>
+              <div class="input-wrapper">
+                <input
+                  [type]="showCurrentPw ? 'text' : 'password'"
+                  class="form-input"
+                  [(ngModel)]="pwForm.currentPassword"
+                  placeholder="Enter current password"
+                  autocomplete="current-password"
+                />
+                <button class="toggle-pw" (click)="showCurrentPw = !showCurrentPw" type="button">
+                  {{ showCurrentPw ? '◉' : '○' }}
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <div class="input-wrapper">
+                <input
+                  [type]="showNewPw ? 'text' : 'password'"
+                  class="form-input"
+                  [(ngModel)]="pwForm.newPassword"
+                  placeholder="Enter new password"
+                  autocomplete="new-password"
+                />
+                <button class="toggle-pw" (click)="showNewPw = !showNewPw" type="button">
+                  {{ showNewPw ? '◉' : '○' }}
+                </button>
+              </div>
+              @if (pwForm.newPassword.length > 0) {
+                <div class="strength-bar">
+                  <div class="strength-fill" [style.width.%]="passwordStrength()" [class]="strengthClass()"></div>
+                </div>
+                <span class="strength-label" [class]="strengthClass()">{{ strengthLabel() }}</span>
+              }
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm New Password</label>
+              <input
+                type="password"
+                class="form-input"
+                [(ngModel)]="pwForm.confirmPassword"
+                placeholder="Re-enter new password"
+                autocomplete="new-password"
+              />
+              @if (pwForm.confirmPassword.length > 0 && pwForm.newPassword !== pwForm.confirmPassword) {
+                <span class="field-error">Passwords do not match</span>
+              }
+            </div>
+            <button
+              class="btn btn-primary"
+              [disabled]="pwSaving() || !canSubmitPw()"
+              (click)="changePassword()"
+            >
+              {{ pwSaving() ? 'Updating…' : 'Update Password' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Activity / Session Card ─────────────────────────── -->
+        <div class="profile-card activity-card">
+          <div class="card-header">
+            <span class="card-icon">📋</span>
+            <h3 class="card-title">Recent Activity</h3>
+          </div>
+          <div class="card-body">
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="timeline-dot dot-success"></div>
+                <div class="timeline-content">
+                  <span class="timeline-action">Logged in</span>
+                  <span class="timeline-time">Current session</span>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot dot-info"></div>
+                <div class="timeline-content">
+                  <span class="timeline-action">Session expires</span>
+                  <span class="timeline-time">{{ expiresFormatted() }}</span>
+                </div>
+              </div>
+              <div class="timeline-item">
+                <div class="timeline-dot dot-neutral"></div>
+                <div class="timeline-content">
+                  <span class="timeline-action">Token issued</span>
+                  <span class="timeline-time">{{ tokenIssuedFormatted() }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="session-info">
+              <div class="session-row">
+                <span class="session-key">Session Status</span>
+                <app-badge
+                  [label]="auth.isTokenExpired() ? 'Expired' : 'Active'"
+                  [variant]="auth.isTokenExpired() ? 'danger' : 'success'"
+                ></app-badge>
+              </div>
+              <div class="session-row">
+                <span class="session-key">Time Remaining</span>
+                <span class="session-val mono">{{ timeRemaining() }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    /* ── Grid Layout ─────────────────────────────────────── */
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .user-card { grid-column: 1 / -1; }
+
+    /* ── Cards ────────────────────────────────────────────── */
+    .profile-card {
+      background: white;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-icon { font-size: 18px; }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .card-body { padding: 24px; }
+
+    /* ── User Hero ────────────────────────────────────────── */
+    .card-hero {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 28px 28px 0;
+    }
+    .avatar-large {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
+    }
+    .hero-info { display: flex; flex-direction: column; gap: 4px; }
+    .user-fullname {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .user-username {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── Info Grid ────────────────────────────────────────── */
+    .info-grid {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .info-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+    }
+    .info-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    .permissions { display: flex; gap: 6px; }
+    .perm {
+      padding: 3px 10px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #f1f5f9;
+      color: #94a3b8;
+    }
+    .perm.active {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    /* ── Password Form ────────────────────────────────────── */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text-primary);
+      background: white;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: var(--brand); }
+    .toggle-pw {
+      position: absolute;
+      right: 10px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text-muted);
+      padding: 4px;
+    }
+    .strength-bar {
+      height: 3px;
+      background: #f1f5f9;
+      border-radius: 3px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .strength-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+    .strength-fill.weak { background: #ef4444; }
+    .strength-fill.fair { background: #f59e0b; }
+    .strength-fill.strong { background: #22c55e; }
+    .strength-label {
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 4px;
+      display: inline-block;
+    }
+    .strength-label.weak { color: #ef4444; }
+    .strength-label.fair { color: #f59e0b; }
+    .strength-label.strong { color: #22c55e; }
+    .field-error {
+      font-size: 12px;
+      color: #ef4444;
+      margin-top: 4px;
+      display: block;
+    }
+
+    /* ── Alerts ────────────────────────────────────────────── */
+    .alert {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+    .alert-success { background: #dcfce7; color: #15803d; }
+    .alert-error   { background: #fee2e2; color: #dc2626; }
+    .alert-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .alert-success .alert-icon { background: #15803d; color: white; }
+    .alert-error .alert-icon   { background: #dc2626; color: white; }
+
+    /* ── Button ────────────────────────────────────────────── */
+    .btn {
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--brand); color: white; }
+    .btn-primary:hover:not(:disabled) { background: var(--brand-dark); }
+
+    /* ── Timeline ──────────────────────────────────────────── */
+    .timeline { display: flex; flex-direction: column; gap: 0; margin-bottom: 20px; }
+    .timeline-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      position: relative;
+    }
+    .timeline-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 26px;
+      bottom: -4px;
+      width: 2px;
+      background: var(--border);
+    }
+    .timeline-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .dot-success { background: #22c55e; }
+    .dot-info    { background: var(--brand); }
+    .dot-neutral { background: #94a3b8; }
+    .timeline-content { display: flex; flex-direction: column; gap: 2px; }
+    .timeline-action {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .timeline-time {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ── Session Info ──────────────────────────────────────── */
+    .session-info {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .session-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .session-key {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .session-val {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .mono { font-family: 'DM Mono', monospace; }
+
+    /* ── Responsive ────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .profile-grid { grid-template-columns: 1fr; }
+      .card-hero { flex-direction: column; text-align: center; }
+      .info-grid { justify-content: center; }
+    }
+  `]
+})
+export class ProfileComponent implements OnInit {
+  auth = inject(AuthService);
+  private authApi = inject(AuthApiService);
+
+  user = this.auth.user;
+
+  pwForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
+  showCurrentPw = false;
+  showNewPw = false;
+  pwSaving = signal(false);
+  pwSuccess = signal(false);
+  pwError = signal('');
+
+  initials = computed(() =>
+    this.auth.fullName()
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  );
+
+  roleBadge = computed(() => {
+    const role = this.auth.role();
+    if (role === 'Admin') return 'danger' as const;
+    if (role === 'FleetManager') return 'info' as const;
+    return 'neutral' as const;
+  });
+
+  expiresFormatted = computed(() => {
+    const u = this.user();
+    if (!u) return '—';
+    return new Date(u.expiresAt).toLocaleString();
+  });
+
+  tokenIssuedFormatted = computed(() => {
+    const u = this.user();
+    if (!u) return '—';
+    // Token is issued 8 hours before expiry
+    const expires = new Date(u.expiresAt);
+    const issued = new Date(expires.getTime() - 8 * 60 * 60 * 1000);
+    return issued.toLocaleString();
+  });
+
+  timeRemaining = computed(() => {
+    const u = this.user();
+    if (!u) return '—';
+    const diff = new Date(u.expiresAt).getTime() - Date.now();
+    if (diff <= 0) return 'Expired';
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    return `${h}h ${m}m`;
+  });
+
+  passwordStrength = computed(() => {
+    const pw = this.pwForm.newPassword;
+    if (!pw) return 0;
+    let score = 0;
+    if (pw.length >= 6) score += 25;
+    if (pw.length >= 10) score += 25;
+    if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score += 25;
+    if (/[0-9!@#$%^&*]/.test(pw)) score += 25;
+    return score;
+  });
+
+  strengthClass = computed(() => {
+    const s = this.passwordStrength();
+    if (s <= 25) return 'weak';
+    if (s <= 50) return 'fair';
+    return 'strong';
+  });
+
+  strengthLabel = computed(() => {
+    const s = this.passwordStrength();
+    if (s <= 25) return 'Weak';
+    if (s <= 50) return 'Fair';
+    return 'Strong';
+  });
+
+  canSubmitPw = computed(() =>
+    this.pwForm.currentPassword.length > 0 &&
+    this.pwForm.newPassword.length >= 6 &&
+    this.pwForm.newPassword === this.pwForm.confirmPassword
+  );
+
+  ngOnInit(): void {}
+
+  changePassword(): void {
+    this.pwError.set('');
+    this.pwSuccess.set(false);
+    this.pwSaving.set(true);
+
+    this.authApi.changePassword({
+      currentPassword: this.pwForm.currentPassword,
+      newPassword: this.pwForm.newPassword
+    }).subscribe({
+      next: () => {
+        this.pwSaving.set(false);
+        this.pwSuccess.set(true);
+        this.pwForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
+        setTimeout(() => this.pwSuccess.set(false), 4000);
+      },
+      error: (e) => {
+        this.pwSaving.set(false);
+        this.pwError.set(e.error?.message ?? e.error ?? 'Failed to change password.');
+      }
+    });
+  }
+}
+
+
+================================================
 FILE: fleet-frontend/src/app/features/registration/list/registration-list.component.ts
 ================================================
 import { Component, OnInit, signal, computed } from '@angular/core';
@@ -5794,6 +6503,281 @@ export class RegistrationListComponent implements OnInit {
   }
   closeForm(): void { this.showForm = false; this.editId = null; this.form = this.emptyForm(); this.formError.set(''); }
   private emptyForm(): CreateRegistrationRecordDto { return { vehicleId: 0, registrationNumber: '', validFrom: '', validTo: '' }; }
+}
+
+
+================================================
+FILE: fleet-frontend/src/app/features/users/list/users-list.component.ts
+================================================
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
+import { EmployeeApiService } from '../../../core/auth/feature-api.services';
+import { Employee } from '../../../core/models/models';
+import { BadgeComponent } from '../../../shared/components/badge/badge.component';
+import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
+
+@Component({
+  selector: 'app-users-list',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterLink, BadgeComponent, HasRoleDirective],
+  template: `
+    <div class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">User Management</h1>
+          <p class="page-subtitle">{{ filtered().length }} employees · Admin only</p>
+        </div>
+        <div class="header-actions">
+          <input class="search-input" [(ngModel)]="search" placeholder="Search name, email…" />
+        </div>
+      </div>
+
+      <div class="filter-tabs">
+        <button [class.active]="filter() === 'all'"      (click)="filter.set('all')">All</button>
+        <button [class.active]="filter() === 'active'"   (click)="filter.set('active')">Active</button>
+        <button [class.active]="filter() === 'inactive'" (click)="filter.set('inactive')">Inactive</button>
+      </div>
+
+      <div class="table-card">
+        @if (loading()) {
+          <div class="table-loading">Loading…</div>
+        } @else if (filtered().length === 0) {
+          <div class="table-empty">No employees found.</div>
+        } @else {
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th>Driver Profile</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of filtered(); track row.employeeId) {
+                <tr>
+                  <td><strong>{{ row.firstName }} {{ row.lastName }}</strong></td>
+                  <td class="mono">{{ row.email }}</td>
+                  <td>{{ row.department ?? '—' }}</td>
+                  <td>
+                    <app-badge
+                      [label]="row.isActive ? 'Active' : 'Inactive'"
+                      [variant]="row.isActive ? 'success' : 'danger'"
+                    ></app-badge>
+                  </td>
+                  <td>
+                    <app-badge
+                      [label]="row.hasDriverProfile ? 'Yes' : 'No'"
+                      [variant]="row.hasDriverProfile ? 'info' : 'neutral'"
+                    ></app-badge>
+                  </td>
+                  <td>
+                    <div class="row-actions">
+                      <button class="action-btn" title="View details" (click)="openDetail(row)">👁</button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+
+      <!-- ── Detail Modal ──────────────────────────────────── -->
+      @if (detailEmployee) {
+        <div class="modal-overlay" (click)="detailEmployee = null">
+          <div class="modal-box detail-modal" (click)="$event.stopPropagation()">
+            <div class="detail-header">
+              <div class="detail-avatar">
+                {{ getInitials(detailEmployee) }}
+              </div>
+              <div>
+                <h2 class="detail-name">{{ detailEmployee.firstName }} {{ detailEmployee.lastName }}</h2>
+                <span class="detail-email">{{ detailEmployee.email }}</span>
+              </div>
+              <button class="close-btn" (click)="detailEmployee = null">&times;</button>
+            </div>
+            <div class="detail-body">
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Department</span>
+                  <span class="detail-value">{{ detailEmployee.department ?? 'Not assigned' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Phone</span>
+                  <span class="detail-value mono">{{ detailEmployee.phone ?? '—' }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Status</span>
+                  <app-badge
+                    [label]="detailEmployee.isActive ? 'Active' : 'Inactive'"
+                    [variant]="detailEmployee.isActive ? 'success' : 'danger'"
+                  ></app-badge>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Driver Profile</span>
+                  <app-badge
+                    [label]="detailEmployee.hasDriverProfile ? 'Has Profile' : 'No Profile'"
+                    [variant]="detailEmployee.hasDriverProfile ? 'info' : 'neutral'"
+                  ></app-badge>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  `,
+  styles: [`
+    .mono { font-family: 'DM Mono', monospace; font-size: 13px; }
+    .row-actions { display: flex; gap: 6px; }
+    .action-btn {
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+    .action-btn:hover { background: #f8fafc; border-color: var(--brand); }
+
+    /* ── Detail Modal ──────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.15s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .detail-modal {
+      background: white;
+      border-radius: 14px;
+      width: 90%;
+      max-width: 480px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+      animation: slideUp 0.2s ease;
+      overflow: hidden;
+    }
+    @keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .detail-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 24px 24px 20px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .detail-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .detail-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 2px;
+    }
+    .detail-email {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+    }
+    .close-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+    }
+    .close-btn:hover { color: var(--text-primary); }
+    .detail-body { padding: 24px; }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .detail-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+    }
+    .detail-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+  `]
+})
+export class UsersListComponent implements OnInit {
+  auth = inject(AuthService);
+  private employeeApi = inject(EmployeeApiService);
+
+  employees = signal<Employee[]>([]);
+  loading = signal(true);
+  search = '';
+  filter = signal<'all' | 'active' | 'inactive'>('all');
+  detailEmployee: Employee | null = null;
+
+  filtered = computed(() => {
+    let list = this.employees();
+    const q = this.search.toLowerCase().trim();
+    if (q) {
+      list = list.filter(e =>
+        `${e.firstName} ${e.lastName}`.toLowerCase().includes(q) ||
+        e.email.toLowerCase().includes(q) ||
+        (e.department ?? '').toLowerCase().includes(q)
+      );
+    }
+    const f = this.filter();
+    if (f === 'active') list = list.filter(e => e.isActive);
+    if (f === 'inactive') list = list.filter(e => !e.isActive);
+    return list;
+  });
+
+  ngOnInit(): void { this.load(); }
+
+  load(): void {
+    this.loading.set(true);
+    this.employeeApi.getAll().subscribe({
+      next: (data) => { this.employees.set(data); this.loading.set(false); },
+      error: () => { this.loading.set(false); }
+    });
+  }
+
+  openDetail(employee: Employee): void { this.detailEmployee = employee; }
+
+  getInitials(e: Employee): string {
+    return `${e.firstName[0] ?? ''}${e.lastName[0] ?? ''}`.toUpperCase();
+  }
 }
 
 
@@ -6251,13 +7235,14 @@ interface NavItem { label: string; route: string; icon: string; }
         <span class="logo-text">FleetMgr</span>
       </div>
 
-      <div class="sidebar-user">
+      <a routerLink="/profile" class="sidebar-user sidebar-user-link" routerLinkActive="user-active">
         <div class="user-avatar">{{ initials() }}</div>
         <div class="user-info">
           <span class="user-name">{{ auth.fullName() }}</span>
           <span class="user-role">{{ auth.role() }}</span>
         </div>
-      </div>
+        <span class="user-arrow">›</span>
+      </a>
 
       <nav class="sidebar-nav">
         <div class="nav-section-label">Overview</div>
@@ -6276,6 +7261,12 @@ interface NavItem { label: string; route: string; icon: string; }
             <span class="nav-icon">{{ item.icon }}</span><span>{{ item.label }}</span>
           </a>
         }
+        @if (auth.hasRole('Admin')) {
+          <div class="nav-section-label">Admin</div>
+          <a routerLink="/users" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">👥</span><span>User Management</span>
+          </a>
+        }
       </nav>
 
       <div class="sidebar-footer">
@@ -6290,6 +7281,22 @@ interface NavItem { label: string; route: string; icon: string; }
     .sidebar-logo { display:flex; align-items:center; gap:10px; padding:20px 20px 16px; border-bottom:1px solid var(--sidebar-border); }
     .logo-text { font-size:17px; font-weight:700; color:var(--sidebar-text); letter-spacing:-0.3px; }
     .sidebar-user { display:flex; align-items:center; gap:10px; padding:14px 20px; border-bottom:1px solid var(--sidebar-border); }
+    .sidebar-user-link {
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s;
+      position: relative;
+    }
+    .sidebar-user-link:hover { background: var(--sidebar-hover); }
+    .sidebar-user-link.user-active { background: rgba(37, 99, 235, 0.1); }
+    .user-arrow {
+      margin-left: auto;
+      color: var(--sidebar-muted);
+      font-size: 18px;
+      font-weight: 300;
+      transition: transform 0.15s, color 0.15s;
+    }
+    .sidebar-user-link:hover .user-arrow { color: var(--sidebar-text); transform: translateX(2px); }
     .user-avatar { width:34px; height:34px; border-radius:50%; background:var(--brand); color:white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
     .user-name { display:block; font-size:13px; font-weight:600; color:var(--sidebar-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .user-role { display:block; font-size:11px; color:var(--sidebar-muted); }
@@ -7266,25 +8273,36 @@ public class FuelTransactionsController : ControllerBase
     [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<FuelTransactionDto>> Create(CreateFuelTransactionDto dto)
     {
-        var transaction = new FuelTransaction
+        try
         {
-            VehicleId = dto.VehicleId,
-            FuelCardId = dto.FuelCardId,
-            FuelTypeId = dto.FuelTypeId,
-            PostedAt = dto.PostedAt,
-            OdometerKm = dto.OdometerKm,
-            Liters = dto.Liters,
-            PricePerLiter = dto.PricePerLiter,
-            EnergyKwh = dto.EnergyKwh,
-            PricePerKwh = dto.PricePerKwh,
-            TotalCost = dto.TotalCost,
-            StationName = dto.StationName,
-            ReceiptNumber = dto.ReceiptNumber,
-            Notes = dto.Notes
-        };
-
-        var created = await _repo.CreateAsync(transaction);
-        return CreatedAtAction(nameof(GetById), new { id = created.TransactionId }, MapToDto(created));
+            var transaction = new FuelTransaction
+            {
+                VehicleId = dto.VehicleId,
+                FuelCardId = dto.FuelCardId,
+                FuelTypeId = dto.FuelTypeId,
+                PostedAt = dto.PostedAt,
+                OdometerKm = dto.OdometerKm,
+                Liters = dto.Liters,
+                PricePerLiter = dto.PricePerLiter,
+                EnergyKwh = dto.EnergyKwh,
+                PricePerKwh = dto.PricePerKwh,
+                TotalCost = dto.TotalCost,
+                StationName = dto.StationName,
+                ReceiptNumber = dto.ReceiptNumber,
+                Notes = dto.Notes
+            };
+            var created = await _repo.CreateAsync(transaction);
+            return CreatedAtAction(nameof(GetById), new { id = created.TransactionId }, MapToDto(created));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                message = ex.Message,
+                inner = ex.InnerException?.Message,
+                trace = ex.StackTrace
+            });
+        }
     }
 
     // PATCH api/v1/fueltransactions/5/suspicious
@@ -7407,998 +8425,4 @@ public class InspectionController : ControllerBase
             return BadRequest("Notes are required when result is 'failed'");
 
         var updated = new Inspection
-        {
-            InspectedAt = dto.InspectedAt ?? default,
-            ValidTo = dto.ValidTo,
-            Result = dto.Result ?? string.Empty,
-            Notes = dto.Notes,
-            OdometerKm = dto.OdometerKm
-        };
-        var result = await _repo.UpdateAsync(id, updated);
-        return result == null ? NotFound() : Ok(ToDto(result));
-    }
-
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Delete(int id) =>
-        await _repo.DeleteAsync(id) ? NoContent() : NotFound();
-
-    private static InspectionDto ToDto(Inspection i)
-    {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        return new InspectionDto
-        {
-            InspectionId = i.InspectionId,
-            VehicleId = i.VehicleId,
-            RegistrationNumber = i.Vehicle?.RegistrationNumber ?? string.Empty,
-            InspectedAt = i.InspectedAt,
-            ValidTo = i.ValidTo,
-            Result = i.Result,
-            Notes = i.Notes,
-            OdometerKm = i.OdometerKm,
-            IsValid = i.ValidTo.HasValue && i.ValidTo.Value >= today
-        };
-    }
-}
-
-
-================================================
-FILE: FleetManagement.API/Controllers/InsurancePolicyController.cs
-================================================
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
-using FleetManagement.Domain.Entities;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-namespace FleetManagement.API.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-[Authorize]
-public class InsurancePolicyController : ControllerBase
-{
-    private readonly IInsurancePolicyRepository _repo;
-    public InsurancePolicyController(IInsurancePolicyRepository repo) => _repo = repo;
-
-    [HttpGet]
-    public async Task<IActionResult> GetAll() =>
-        Ok((await _repo.GetAllAsync()).Select(ToDto));
-
-    [HttpGet("active")]
-    public async Task<IActionResult> GetActive() =>
-        Ok((await _repo.GetActiveAsync()).Select(ToDto));
-
-    [HttpGet("vehicle/{vehicleId}")]
-    public async Task<IActionResult> GetByVehicle(int vehicleId) =>
-        Ok((await _repo.GetByVehicleIdAsync(vehicleId)).Select(ToDto));
-
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var p = await _repo.GetByIdAsync(id);
-        return p == null ? NotFound() : Ok(ToDto(p));
-    }
-
-    [HttpPost]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Create([FromBody] CreateInsurancePolicyDto dto)
-    {
-        var entity = new InsurancePolicy
-        {
-            VehicleId = dto.VehicleId,
-            PolicyNumber = dto.PolicyNumber,
-            Insurer = dto.Insurer,
-            ValidFrom = dto.ValidFrom,
-            ValidTo = dto.ValidTo,
-            Premium = dto.Premium,
-            CoverageNotes = dto.CoverageNotes
-        };
-        var created = await _repo.CreateAsync(entity);
-        return CreatedAtAction(nameof(GetById), new { id = created.PolicyId }, ToDto(created));
-    }
-
-    [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateInsurancePolicyDto dto)
-    {
-        var updated = new InsurancePolicy
-        {
-            Insurer = dto.Insurer ?? string.Empty,
-            ValidFrom = dto.ValidFrom ?? default,
-            ValidTo = dto.ValidTo ?? default,
-            Premium = dto.Premium ?? 0,
-            CoverageNotes = dto.CoverageNotes
-        };
-        var result = await _repo.UpdateAsync(id, updated);
-        return result == null ? NotFound() : Ok(ToDto(result));
-    }
-
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Delete(int id) =>
-        await _repo.DeleteAsync(id) ? NoContent() : NotFound();
-
-    // Map to DTO inline (or use AutoMapper if you have profiles set up)
-    private static InsurancePolicyDto ToDto(InsurancePolicy p) => new()
-    {
-        PolicyId = p.PolicyId,
-        VehicleId = p.VehicleId,
-        RegistrationNumber = p.Vehicle?.RegistrationNumber ?? string.Empty,
-        PolicyNumber = p.PolicyNumber,
-        Insurer = p.Insurer,
-        ValidFrom = p.ValidFrom,
-        ValidTo = p.ValidTo,
-        Premium = p.Premium,
-        CoverageNotes = p.CoverageNotes,
-        IsActive = p.ValidTo >= DateOnly.FromDateTime(DateTime.UtcNow)
-    };
-}
-
-
-================================================
-FILE: FleetManagement.API/Controllers/LookupsController.cs
-================================================
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Infrastructure.Data;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-
-namespace FleetManagement.API.Controllers;
-
-[ApiController]
-[Route("api")]
-public class LookupsController : ControllerBase
-{
-    private readonly FleetDbContext _context;
-    public LookupsController(FleetDbContext context) => _context = context;
-
-    // GET api/v1/makes
-    [HttpGet("makes")]
-    public async Task<ActionResult<IEnumerable<MakeDto>>> GetMakes()
-    {
-        var makes = await _context.VehicleMakes
-            .Where(m => m.IsActive)
-            .OrderBy(m => m.Name)
-            .Select(m => new MakeDto { MakeId = m.MakeId, Name = m.Name })
-            .ToListAsync();
-        return Ok(makes);
-    }
-
-    // GET api/v1/makes/1/models
-    [HttpGet("makes/{makeId}/models")]
-    public async Task<ActionResult<IEnumerable<ModelDto>>> GetModelsByMake(int makeId)
-    {
-        var models = await _context.VehicleModels
-            .Where(m => m.MakeId == makeId && m.IsActive)
-            .OrderBy(m => m.Name)
-            .Select(m => new ModelDto { ModelId = m.ModelId, MakeId = m.MakeId, Name = m.Name })
-            .ToListAsync();
-        return Ok(models);
-    }
-
-    // GET api/v1/vehicle-categories
-    [HttpGet("vehicle-categories")]
-    public async Task<ActionResult<IEnumerable<VehicleCategoryDto>>> GetVehicleCategories()
-    {
-        var categories = await _context.VehicleCategories
-            .Where(c => c.IsActive)
-            .OrderBy(c => c.Name)
-            .Select(c => new VehicleCategoryDto
-            {
-                CategoryId = c.CategoryId,
-                Name = c.Name,
-                Description = c.Description
-            })
-            .ToListAsync();
-        return Ok(categories);
-    }
-
-    // GET api/v1/fuel-types
-    [HttpGet("fuel-types")]
-    [Authorize]
-    public async Task<ActionResult<IEnumerable<FuelTypeDto>>> GetFuelTypes()
-    {
-        var fuelTypes = await _context.FuelTypes
-            .Where(f => f.IsActive)
-            .OrderBy(f => f.Label)
-            .Select(f => new FuelTypeDto
-            {
-                FuelTypeId = f.FuelTypeId,
-                Code = f.Code,
-                Label = f.Label,
-                IsElectric = f.IsElectric
-            })
-            .ToListAsync();
-        return Ok(fuelTypes);
-    }
-
-    // GET api/v1/license-categories
-    [HttpGet("license-categories")]
-    public async Task<ActionResult<IEnumerable<LicenseCategoryDto>>> GetLicenseCategories()
-    {
-        var categories = await _context.LicenseCategories
-            .Where(lc => lc.IsActive)
-            .OrderBy(lc => lc.Code)
-            .Select(lc => new LicenseCategoryDto
-            {
-                LicenseCategoryId = lc.LicenseCategoryId,
-                Code = lc.Code,
-                Description = lc.Description
-            })
-            .ToListAsync();
-        return Ok(categories);
-    }
-
-    [HttpGet("maintenance-types")]
-    [Authorize]
-    public async Task<ActionResult<IEnumerable<MaintenanceTypeDto>>> GetMaintenanceTypes()
-    {
-        var types = await _context.MaintenanceTypes
-            .Where(t => t.IsActive)
-            .OrderBy(t => t.Name)
-            .Select(t => new MaintenanceTypeDto
-            {
-                MaintenanceTypeId = t.MaintenanceTypeId,
-                Name = t.Name,
-                Description = t.Description
-            })
-            .ToListAsync();
-        return Ok(types);
-    }
-}
-
-
-================================================
-FILE: FleetManagement.API/Controllers/MaintenanceOrdersController.cs
-================================================
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
-using FleetManagement.Domain.Entities;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-namespace FleetManagement.API.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class MaintenanceOrdersController : ControllerBase
-{
-    private readonly IMaintenanceOrderRepository _repo;
-    public MaintenanceOrdersController(IMaintenanceOrderRepository repo) => _repo = repo;
-
-    [HttpGet]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<IEnumerable<MaintenanceOrderDto>>> GetAll()
-    {
-        var orders = await _repo.GetAllAsync();
-        return Ok(orders.Select(MapToDto));
-    }
-
-    [HttpGet("{id}")]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<MaintenanceOrderDto>> GetById(int id)
-    {
-        var order = await _repo.GetByIdAsync(id);
-        if (order == null) return NotFound();
-        return Ok(MapToDto(order));
-    }
-
-    [HttpGet("vehicle/{vehicleId}")]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<IEnumerable<MaintenanceOrderDto>>> GetByVehicle(int vehicleId)
-    {
-        var orders = await _repo.GetByVehicleIdAsync(vehicleId);
-        return Ok(orders.Select(MapToDto));
-    }
-
-    [HttpPost]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<MaintenanceOrderDto>> Create(CreateMaintenanceOrderDto dto)
-    {
-        var order = new MaintenanceOrder
-        {
-            VehicleId = dto.VehicleId,
-            VendorId = dto.VendorId,
-            ScheduledAt = dto.ScheduledAt,
-            OdometerKm = dto.OdometerKm,
-            Description = dto.Description
-        };
-
-        var created = await _repo.CreateAsync(order);
-        return CreatedAtAction(nameof(GetById), new { id = created.OrderId }, MapToDto(created));
-    }
-
-    [HttpPatch("{id}")]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<MaintenanceOrderDto>> Update(int id, UpdateMaintenanceOrderDto dto)
-    {
-        var updated = await _repo.UpdateAsync(id, new MaintenanceOrder
-        {
-            VendorId = dto.VendorId,
-            ScheduledAt = dto.ScheduledAt,
-            Description = dto.Description
-        });
-
-        if (updated == null) return NotFound();
-        return Ok(MapToDto(updated));
-    }
-
-    // POST api/v1/maintenanceorders/5/start  (open → in_progress)
-    [HttpPost("{id}/start")]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<MaintenanceOrderDto>> Start(int id)
-    {
-        var result = await _repo.SetStatusAsync(id, "in_progress");
-        if (result == null) return BadRequest("Order not found or cannot be started from its current status.");
-        return Ok(MapToDto(result));
-    }
-
-    // POST api/v1/maintenanceorders/5/close
-    [HttpPost("{id}/close")]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<MaintenanceOrderDto>> Close(int id, CloseMaintenanceOrderDto dto)
-    {
-        var result = await _repo.CloseAsync(id, dto.OdometerKm);
-        if (result == null)
-            return BadRequest("Order not found, not in_progress, or has no items. Add at least one item before closing.");
-        return Ok(MapToDto(result));
-    }
-
-    // POST api/v1/maintenanceorders/5/cancel
-    [HttpPost("{id}/cancel")]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<MaintenanceOrderDto>> Cancel(int id, CancelMaintenanceOrderDto dto)
-    {
-        var result = await _repo.CancelAsync(id, dto.CancelReason);
-        if (result == null) return BadRequest("Order not found or already closed/cancelled.");
-        return Ok(MapToDto(result));
-    }
-
-    // POST api/v1/maintenanceorders/5/items
-    [HttpPost("{id}/items")]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<MaintenanceItemDto>> AddItem(int id, CreateMaintenanceItemDto dto)
-    {
-        // Verify order exists and is not closed/cancelled
-        var order = await _repo.GetByIdAsync(id);
-        if (order == null) return NotFound("Order not found.");
-        if (order.Status == "closed" || order.Status == "cancelled")
-            return BadRequest("Cannot add items to a closed or cancelled order.");
-
-        var item = new MaintenanceItem
-        {
-            MaintenanceTypeId = dto.MaintenanceTypeId,
-            PartsCost = dto.PartsCost,
-            LaborCost = dto.LaborCost,
-            Notes = dto.Notes
-        };
-
-        var created = await _repo.AddItemAsync(id, item);
-        return Ok(MapItemToDto(created));
-    }
-
-    // DELETE api/v1/maintenanceorders/items/5
-    [HttpDelete("items/{itemId}")]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> DeleteItem(int itemId)
-    {
-        var result = await _repo.DeleteItemAsync(itemId);
-        if (!result) return NotFound("Item not found or order is already closed/cancelled.");
-        return NoContent();
-    }
-
-    private static MaintenanceOrderDto MapToDto(MaintenanceOrder o) => new()
-    {
-        OrderId = o.OrderId,
-        VehicleId = o.VehicleId,
-        RegistrationNumber = o.Vehicle.RegistrationNumber,
-        VendorId = o.VendorId,
-        VendorName = o.Vendor?.Name,
-        Status = o.Status,
-        ReportedAt = o.ReportedAt,
-        ScheduledAt = o.ScheduledAt,
-        ClosedAt = o.ClosedAt,
-        OdometerKm = o.OdometerKm,
-        TotalCost = o.TotalCost,
-        Description = o.Description,
-        CancelReason = o.CancelReason,
-        Items = o.Items.Select(MapItemToDto).ToList()
-    };
-
-    private static MaintenanceItemDto MapItemToDto(MaintenanceItem i) => new()
-    {
-        ItemId = i.ItemId,
-        OrderId = i.OrderId,
-        MaintenanceTypeId = i.MaintenanceTypeId,
-        MaintenanceTypeName = i.MaintenanceType?.Name ?? string.Empty,
-        PartsCost = i.PartsCost,
-        LaborCost = i.LaborCost,
-        Notes = i.Notes
-    };
-
-}
-
-
-================================================
-FILE: FleetManagement.API/Controllers/OdometerLogsController.cs
-================================================
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
-using FleetManagement.Domain.Entities;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-namespace FleetManagement.API.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class OdometerLogsController : ControllerBase
-{
-    private readonly IOdometerLogRepository _repo;
-    public OdometerLogsController(IOdometerLogRepository repo) => _repo = repo;
-
-    // GET api/v1/odometerlogs/vehicle/5
-    [HttpGet("vehicle/{vehicleId}")]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<IEnumerable<OdometerLogDto>>> GetByVehicle(int vehicleId)
-    {
-        var logs = await _repo.GetByVehicleIdAsync(vehicleId);
-        return Ok(logs.Select(MapToDto));
-    }
-
-    // GET api/v1/odometerlogs/5
-    [HttpGet("{id}")]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<OdometerLogDto>> GetById(int id)
-    {
-        var log = await _repo.GetByIdAsync(id);
-        if (log == null) return NotFound();
-        return Ok(MapToDto(log));
-    }
-
-    // POST api/v1/odometerlogs
-    [HttpPost]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<OdometerLogDto>> Create(CreateOdometerLogDto dto)
-    {
-        // Validate new reading is not lower than current odometer
-        var latest = await _repo.GetLatestOdometerAsync(dto.VehicleId);
-        if (latest.HasValue && dto.OdometerKm < latest.Value)
-            return BadRequest($"Odometer reading ({dto.OdometerKm} km) cannot be less than the current reading ({latest.Value} km).");
-
-        var log = new OdometerLog
-        {
-            VehicleId = dto.VehicleId,
-            OdometerKm = dto.OdometerKm,
-            LogDate = dto.LogDate,
-            Notes = dto.Notes
-        };
-
-        var created = await _repo.CreateAsync(log);
-        return CreatedAtAction(nameof(GetById), new { id = created.LogId }, MapToDto(created));
-    }
-
-    // DELETE api/v1/odometerlogs/5
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var result = await _repo.DeleteAsync(id);
-        if (!result) return NotFound();
-        return NoContent();
-    }
-
-    private static OdometerLogDto MapToDto(OdometerLog l) => new()
-    {
-        LogId = l.LogId,
-        VehicleId = l.VehicleId,
-        RegistrationNumber = l.Vehicle.RegistrationNumber,
-        OdometerKm = l.OdometerKm,
-        LogDate = l.LogDate,
-        Notes = l.Notes,
-        CreatedAt = l.CreatedAt
-    };
-}
-
-
-================================================
-FILE: FleetManagement.API/Controllers/RegistrationRecordController.cs
-================================================
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
-using FleetManagement.Domain.Entities;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-namespace FleetManagement.API.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-[Authorize]
-public class RegistrationRecordController : ControllerBase
-{
-    private readonly IRegistrationRecordRepository _repo;
-    public RegistrationRecordController(IRegistrationRecordRepository repo) => _repo = repo;
-
-    [HttpGet]
-    public async Task<IActionResult> GetAll() =>
-        Ok((await _repo.GetAllAsync()).Select(ToDto));
-
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var r = await _repo.GetByIdAsync(id);
-        return r == null ? NotFound() : Ok(ToDto(r));
-    }
-
-    [HttpGet("vehicle/{vehicleId}")]
-    public async Task<IActionResult> GetByVehicle(int vehicleId) =>
-        Ok((await _repo.GetByVehicleIdAsync(vehicleId)).Select(ToDto));
-
-    [HttpGet("vehicle/{vehicleId}/current")]
-    public async Task<IActionResult> GetCurrent(int vehicleId)
-    {
-        var r = await _repo.GetCurrentByVehicleIdAsync(vehicleId);
-        return r == null ? NotFound() : Ok(ToDto(r));
-    }
-
-    [HttpPost]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Create([FromBody] CreateRegistrationRecordDto dto)
-    {
-        var entity = new RegistrationRecord
-        {
-            VehicleId = dto.VehicleId,
-            RegistrationNumber = dto.RegistrationNumber,
-            ValidFrom = dto.ValidFrom,
-            ValidTo = dto.ValidTo,
-            Fee = dto.Fee,
-            Notes = dto.Notes
-        };
-        var created = await _repo.CreateAsync(entity);
-        return CreatedAtAction(nameof(GetById), new { id = created.RegistrationId }, ToDto(created));
-    }
-
-    [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateRegistrationRecordDto dto)
-    {
-        var updated = new RegistrationRecord
-        {
-            RegistrationNumber = dto.RegistrationNumber ?? string.Empty,
-            ValidFrom = dto.ValidFrom ?? default,
-            ValidTo = dto.ValidTo ?? default,
-            Fee = dto.Fee,
-            Notes = dto.Notes
-        };
-        var result = await _repo.UpdateAsync(id, updated);
-        return result == null ? NotFound() : Ok(ToDto(result));
-    }
-
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Delete(int id) =>
-        await _repo.DeleteAsync(id) ? NoContent() : NotFound();
-
-    private static RegistrationRecordDto ToDto(RegistrationRecord r)
-    {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        return new RegistrationRecordDto
-        {
-            RegistrationId = r.RegistrationId,
-            VehicleId = r.VehicleId,
-            VehicleRegistrationNumber = r.Vehicle?.RegistrationNumber ?? string.Empty,
-            RegistrationNumber = r.RegistrationNumber,
-            ValidFrom = r.ValidFrom,
-            ValidTo = r.ValidTo,
-            Fee = r.Fee,
-            Notes = r.Notes,
-            IsActive = r.ValidFrom <= today && r.ValidTo >= today
-        };
-    }
-}
-
-
-================================================
-FILE: FleetManagement.API/Controllers/VehicleAssignmentsController.cs
-================================================
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
-using FleetManagement.Domain.Entities;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-namespace FleetManagement.API.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class VehicleAssignmentsController : ControllerBase
-{
-    private readonly IVehicleAssignmentRepository _repo;
-    public VehicleAssignmentsController(IVehicleAssignmentRepository repo) => _repo = repo;
-
-    [HttpGet]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<IEnumerable<VehicleAssignmentDto>>> GetAll(
-        [FromQuery] bool activeOnly = false)
-    {
-        var assignments = await _repo.GetAllAsync(activeOnly);
-        return Ok(assignments.Select(MapToDto));
-    }
-
-    [HttpGet("{id}")]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<VehicleAssignmentDto>> GetById(int id)
-    {
-        var assignment = await _repo.GetByIdAsync(id);
-        if (assignment == null) return NotFound();
-        return Ok(MapToDto(assignment));
-    }
-
-    [HttpGet("vehicle/{vehicleId}")]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<IEnumerable<VehicleAssignmentDto>>> GetByVehicle(int vehicleId)
-    {
-        var assignments = await _repo.GetByVehicleIdAsync(vehicleId);
-        return Ok(assignments.Select(MapToDto));
-    }
-
-    [HttpGet("driver/{driverId}")]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<IEnumerable<VehicleAssignmentDto>>> GetByDriver(int driverId)
-    {
-        var assignments = await _repo.GetByDriverIdAsync(driverId);
-        return Ok(assignments.Select(MapToDto));
-    }
-
-    [HttpPost]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<VehicleAssignmentDto>> Create(CreateVehicleAssignmentDto dto)
-    {
-        if (await _repo.VehicleHasActiveAssignmentAsync(dto.VehicleId))
-            return Conflict("This vehicle already has an active assignment. End it before creating a new one.");
-
-        var assignment = new VehicleAssignment
-        {
-            VehicleId = dto.VehicleId,
-            DriverId = dto.DriverId,
-            AssignedFrom = dto.AssignedFrom,
-            AssignedTo = dto.AssignedTo,
-            Notes = dto.Notes
-        };
-
-        var created = await _repo.CreateAsync(assignment);
-        return CreatedAtAction(nameof(GetById), new { id = created.AssignmentId }, MapToDto(created));
-    }
-
-    [HttpPatch("{id}")]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<VehicleAssignmentDto>> Update(int id, UpdateVehicleAssignmentDto dto)
-    {
-        var updated = await _repo.UpdateAsync(id, new UpdateAssignmentData(
-            dto.AssignedTo,
-            dto.Notes
-        ));
-
-        if (updated == null) return NotFound();
-        return Ok(MapToDto(updated));
-    }
-
-    [HttpPost("{id}/end")]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> End(int id)
-    {
-        var result = await _repo.EndAssignmentAsync(id);
-        if (!result) return NotFound("Assignment not found or already ended.");
-        return NoContent();
-    }
-
-    private static VehicleAssignmentDto MapToDto(VehicleAssignment a) => new()
-    {
-        AssignmentId = a.AssignmentId,
-        VehicleId = a.VehicleId,
-        RegistrationNumber = a.Vehicle.RegistrationNumber,
-        VehicleMake = a.Vehicle.Make?.Name ?? string.Empty,
-        VehicleModel = a.Vehicle.Model?.Name ?? string.Empty,
-        DriverId = a.DriverId,
-        DriverFullName = $"{a.Driver.Employee.FirstName} {a.Driver.Employee.LastName}",
-        Department = a.Driver.Employee.Department,
-        AssignedFrom = a.AssignedFrom,
-        AssignedTo = a.AssignedTo,
-        Notes = a.Notes
-    };
-}
-
-
-================================================
-FILE: FleetManagement.API/Controllers/VehiclesController.cs
-================================================
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
-using FleetManagement.Domain.Entities;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-namespace FleetManagement.API.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class VehiclesController : ControllerBase
-{
-    private readonly IVehicleRepository _repo;
-
-    public VehiclesController(IVehicleRepository repo)
-    {
-        _repo = repo;
-    }
-
-    // GET api/v1/vehicles
-    [HttpGet]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<IEnumerable<VehicleDto>>> GetAll()
-    {
-        var vehicles = await _repo.GetAllAsync();
-        return Ok(vehicles.Select(MapToDto));
-    }
-
-    // GET api/v1/vehicles/5
-    [HttpGet("{id}")]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<VehicleDto>> GetById(int id)
-    {
-        var vehicle = await _repo.GetByIdAsync(id);
-        if (vehicle == null) return NotFound();
-        return Ok(MapToDto(vehicle));
-    }
-
-    // POST api/v1/vehicles
-    [HttpPost]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<VehicleDto>> Create(CreateVehicleDto dto)
-    {
-        // Check for duplicate registration or VIN
-        if (await _repo.ExistsAsync(dto.RegistrationNumber, dto.Vin))
-            return Conflict("A vehicle with this registration number or VIN already exists.");
-
-        var vehicle = new Vehicle
-        {
-            RegistrationNumber = dto.RegistrationNumber.ToUpper().Trim(),
-            Vin = dto.Vin.ToUpper().Trim(),
-            MakeId = dto.MakeId,
-            ModelId = dto.ModelId,
-            CategoryId = dto.CategoryId,
-            FuelTypeId = dto.FuelTypeId,
-            Year = dto.Year,
-            Color = dto.Color,
-            Notes = dto.Notes,
-            Status = "active"
-        };
-
-        var created = await _repo.CreateAsync(vehicle);
-
-        // 201 Created with Location header pointing to the new resource
-        return CreatedAtAction(nameof(GetById), new { id = created.VehicleId }, MapToDto(created));
-    }
-
-    // PATCH api/v1/vehicles/5
-    [HttpPatch("{id}")]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<VehicleDto>> Update(int id, UpdateVehicleDto dto)
-    {
-        var updated = await _repo.UpdateAsync(id, new Vehicle
-        {
-            Color = dto.Color,
-            Status = dto.Status ?? "active",
-            Notes = dto.Notes
-        });
-
-        if (updated == null) return NotFound();
-        return Ok(MapToDto(updated));
-    }
-
-    // DELETE api/v1/vehicles/5
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var result = await _repo.DeleteAsync(id);
-        if (!result) return NotFound();
-        return NoContent();  // 204
-    }
-
-    // Map entity → DTO (keep DB model out of API responses)
-    private static VehicleDto MapToDto(Vehicle v) => new()
-    {
-        VehicleId = v.VehicleId,
-        RegistrationNumber = v.RegistrationNumber,
-        Vin = v.Vin,
-        Make = v.Make?.Name ?? string.Empty,
-        Model = v.Model?.Name ?? string.Empty,
-        Category = v.Category?.Name ?? string.Empty,
-        FuelType = v.FuelType?.Label ?? string.Empty,
-        Year = v.Year,
-        Color = v.Color,
-        Status = v.Status,
-        CurrentOdometerKm = v.CurrentOdometerKm,
-        Notes = v.Notes
-    };
-}
-
-
-================================================
-FILE: FleetManagement.API/Controllers/VendorsController.cs
-================================================
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
-using FleetManagement.Domain.Entities;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-namespace FleetManagement.API.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class VendorsController : ControllerBase
-{
-    private readonly IVendorRepository _repo;
-    public VendorsController(IVendorRepository repo) => _repo = repo;
-
-    [HttpGet]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<IEnumerable<VendorDto>>> GetAll()
-    {
-        var vendors = await _repo.GetAllAsync();
-        return Ok(vendors.Select(MapToDto));
-    }
-
-    [HttpGet("{id}")]
-    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
-    public async Task<ActionResult<VendorDto>> GetById(int id)
-    {
-        var vendor = await _repo.GetByIdAsync(id);
-        if (vendor == null) return NotFound();
-        return Ok(MapToDto(vendor));
-    }
-
-    [HttpPost]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<VendorDto>> Create(CreateVendorDto dto)
-    {
-        var vendor = new Vendor
-        {
-            Name = dto.Name.Trim(),
-            ContactPerson = dto.ContactPerson,
-            Phone = dto.Phone,
-            Email = dto.Email,
-            Address = dto.Address
-        };
-
-        var created = await _repo.CreateAsync(vendor);
-        return CreatedAtAction(nameof(GetById), new { id = created.VendorId }, MapToDto(created));
-    }
-
-    [HttpPatch("{id}")]
-    [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<ActionResult<VendorDto>> Update(int id, UpdateVendorDto dto)
-    {
-        var updated = await _repo.UpdateAsync(id, new Vendor
-        {
-            ContactPerson = dto.ContactPerson,
-            Phone = dto.Phone,
-            Email = dto.Email,
-            Address = dto.Address,
-            IsActive = dto.IsActive ?? true
-        });
-
-        if (updated == null) return NotFound();
-        return Ok(MapToDto(updated));
-    }
-
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var result = await _repo.DeleteAsync(id);
-        if (!result) return NotFound();
-        return NoContent();
-    }
-
-    private static VendorDto MapToDto(Vendor v) => new()
-    {
-        VendorId = v.VendorId,
-        Name = v.Name,
-        ContactPerson = v.ContactPerson,
-        Phone = v.Phone,
-        Email = v.Email,
-        Address = v.Address,
-        IsActive = v.IsActive
-    };
-}
-
-
-================================================
-FILE: FleetManagement.API/Properties/launchSettings.json
-================================================
-﻿{
-  "$schema": "http://json.schemastore.org/launchsettings.json",
-  "iisSettings": {
-    "windowsAuthentication": false,
-    "anonymousAuthentication": true,
-    "iisExpress": {
-      "applicationUrl": "http://localhost:52625",
-      "sslPort": 44379
-    }
-  },
-  "profiles": {
-    "http": {
-      "commandName": "Project",
-      "dotnetRunMessages": true,
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "applicationUrl": "http://localhost:5062",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    },
-    "https": {
-      "commandName": "Project",
-      "dotnetRunMessages": true,
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "applicationUrl": "https://localhost:7203;http://localhost:5062",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    },
-    "IIS Express": {
-      "commandName": "IISExpress",
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    }
-  }
-}
-
-
-
-================================================
-FILE: FleetManagement.Application/FleetManagement.Application.csproj
-================================================
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="8.1.1" />
-    <PackageReference Include="FluentValidation" Version="11.3.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\FleetManagement.Domain\FleetManagement.Domain.csproj" />
-  </ItemGroup>
-
-</Project>
-
-
-
-================================================
-FILE: FleetManagement.Application/DTOs/AccidentDtos.cs
-================================================
-﻿namespace FleetManagement.Application.DTOs;
-
-public class AccidentDto
-{
-    public int AccidentId { get; set; }
-    public int VehicleId { get; set; }
-    public string RegistrationNumber { get; set; } = string.Empty;
-    public int? DriverId { get; set; }
-    public string? DriverName { get; set; }
-    public DateTime 
+       

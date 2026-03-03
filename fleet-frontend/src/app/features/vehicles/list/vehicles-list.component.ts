@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { VehicleApiService, LookupApiService } from '../../../core/auth/feature-api.services';
 import { Vehicle, CreateVehicleDto, UpdateVehicleDto, MakeDto, ModelDto, VehicleCategoryDto, FuelTypeDto } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -13,7 +14,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
 @Component({
   selector: 'app-vehicles-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
   template: `
     <div class="page">
       <div class="page-header">
@@ -68,6 +69,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
                     />
                   </td>
                   <td class="actions">
+                    <a [routerLink]="['/vehicles', row.vehicleId]" class="btn-icon" title="View">🔍</a>
                     <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)">✏️</button>
                     <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="confirmDelete(row)">🗑</button>
                   </td>

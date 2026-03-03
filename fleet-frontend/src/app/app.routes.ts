@@ -42,9 +42,19 @@ export const routes: Routes = [
           import('./features/vehicles/list/vehicles-list.component').then(m => m.VehiclesListComponent)
       },
       {
+        path: 'vehicles/:id',
+        loadComponent: () =>
+          import('./features/vehicles/detail/vehicle-detail.component').then(m => m.VehicleDetailComponent)
+      },
+      {
         path: 'drivers',
         loadComponent: () =>
           import('./features/drivers/list/drivers-list.component').then(m => m.DriversListComponent)
+      },
+      {
+        path: 'drivers/:id',
+        loadComponent: () =>
+          import('./features/drivers/detail/driver-detail.component').then(m => m.DriverDetailComponent)
       },
       {
         path: 'assignments',

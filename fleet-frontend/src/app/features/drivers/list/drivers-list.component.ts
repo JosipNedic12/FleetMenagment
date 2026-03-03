@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { DriverApiService, EmployeeApiService, LookupApiService } from '../../../core/auth/feature-api.services';
 import { Driver, CreateDriverDto, UpdateDriverDto, Employee, LicenseCategoryDto } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -11,7 +12,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 @Component({
   selector: 'app-drivers-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
   template: `
     <div class="page">
       <div class="page-header">
@@ -66,6 +67,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
                     }
                   </td>
                   <td class="actions">
+                    <a [routerLink]="['/drivers', row.driverId]" class="btn-icon" title="View">🔍</a>
                     <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEdit(row)">✏️</button>
                     <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)">🗑</button>
                   </td>
