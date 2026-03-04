@@ -9,6 +9,15 @@ export interface AuthResponse {
   fullName: string;
   role: string;
   expiresAt: string;
+  mustChangePassword?: boolean;
+}
+
+export interface CreateAppUserDto {
+  employeeId: number;
+  username: string;
+  email: string;
+  temporaryPassword: string;
+  role: string;
 }
 
 export type UserRole = 'Admin' | 'FleetManager' | 'ReadOnly';

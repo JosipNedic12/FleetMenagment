@@ -2,7 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/auth/auth.service';
-import { EmployeeApiService } from '../../../core/auth/feature-api.services';
+import { EmployeeApiService, AuthApiService } from '../../../core/auth/feature-api.services';
 import { Employee } from '../../../core/models/models';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
 
@@ -42,6 +42,7 @@ import { BadgeComponent } from '../../../shared/components/badge/badge.component
                 <th>Department</th>
                 <th>Status</th>
                 <th>Driver Profile</th>
+                <th>App User</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -64,8 +65,17 @@ import { BadgeComponent } from '../../../shared/components/badge/badge.component
                     ></app-badge>
                   </td>
                   <td>
+                    <app-badge
+                      [label]="row.hasAppUser ? 'Yes' : 'No'"
+                      [variant]="row.hasAppUser ? 'success' : 'neutral'"
+                    ></app-badge>
+                  </td>
+                  <td>
                     <div class="row-actions">
                       <button class="action-btn" title="View details" (click)="openDetail(row)">👁</button>
+                      @if (!row.hasAppUser) {
+                        <button class="action-btn" title="Add app user" (click)="openAddUser(row)">＋</button>
+                      }
                     </div>
                   </td>
                 </tr>
@@ -74,6 +84,59 @@ import { BadgeComponent } from '../../../shared/components/badge/badge.component
           </table>
         }
       </div>
+
+      <!-- ── Add App User Modal ────────────────────────────── -->
+      @if (addUserTarget) {
+        <div class="modal-overlay" (click)="closeAddUser()">
+          <div class="modal-box detail-modal" (click)="$event.stopPropagation()">
+            <div class="detail-header">
+              <div class="detail-avatar">{{ getInitials(addUserTarget) }}</div>
+              <div>
+                <h2 class="detail-name">Add App User</h2>
+                <span class="detail-email">{{ addUserTarget.firstName }} {{ addUserTarget.lastName }}</span>
+              </div>
+              <button class="close-btn" (click)="closeAddUser()">&times;</button>
+            </div>
+            <div class="detail-body">
+              <form (ngSubmit)="submitAddUser()">
+                <div class="form-group">
+                  <label>Username</label>
+                  <input class="form-input" type="text" [(ngModel)]="newUser.username" name="username" required placeholder="e.g. jdoe" />
+                </div>
+                <div class="form-group">
+                  <label>Email</label>
+                  <input class="form-input" type="email" [(ngModel)]="newUser.email" name="email" required placeholder="employee@company.com" />
+                </div>
+                <div class="form-group">
+                  <label>Temporary Password</label>
+                  <input class="form-input" type="text" [(ngModel)]="newUser.temporaryPassword" name="password" required placeholder="Temp password (will be hashed)" />
+                </div>
+                <div class="form-group">
+                  <label>Role</label>
+                  <select class="form-input" [(ngModel)]="newUser.role" name="role" required>
+                    <option value="ReadOnly">ReadOnly</option>
+                    <option value="FleetManager">FleetManager</option>
+                    <option value="Admin">Admin</option>
+                  </select>
+                </div>
+                @if (addUserError()) {
+                  <div class="error-msg">{{ addUserError() }}</div>
+                }
+                @if (addUserSuccess()) {
+                  <div class="success-msg">User created. Share the credentials with the employee.</div>
+                }
+                <button
+                  type="submit"
+                  class="submit-btn"
+                  [disabled]="addUserLoading() || !newUser.username || !newUser.email || !newUser.temporaryPassword"
+                >
+                  @if (addUserLoading()) { <span class="spinner"></span> Creating… } @else { Create App User }
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      }
 
       <!-- ── Detail Modal ──────────────────────────────────── -->
       @if (detailEmployee) {
@@ -191,6 +254,70 @@ import { BadgeComponent } from '../../../shared/components/badge/badge.component
     }
     .close-btn:hover { color: var(--text-primary); }
     .detail-body { padding: 24px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: white;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: var(--brand); }
+    .error-msg {
+      background: #fef2f2;
+      color: #dc2626;
+      border-radius: 7px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .success-msg {
+      background: #f0fdf4;
+      color: #16a34a;
+      border-radius: 7px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .submit-btn {
+      width: 100%;
+      padding: 11px;
+      background: var(--brand);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s;
+    }
+    .submit-btn:hover:not(:disabled) { background: var(--brand-dark); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .detail-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -218,12 +345,19 @@ import { BadgeComponent } from '../../../shared/components/badge/badge.component
 export class UsersListComponent implements OnInit {
   auth = inject(AuthService);
   private employeeApi = inject(EmployeeApiService);
+  private authApi = inject(AuthApiService);
 
   employees = signal<Employee[]>([]);
   loading = signal(true);
   search = signal('');
   filter = signal<'all' | 'active' | 'inactive'>('all');
   detailEmployee: Employee | null = null;
+
+  addUserTarget: Employee | null = null;
+  newUser = { username: '', email: '', temporaryPassword: '', role: 'ReadOnly' };
+  addUserLoading = signal(false);
+  addUserError = signal('');
+  addUserSuccess = signal(false);
 
   filtered = computed(() => {
     let list = this.employees();
@@ -252,6 +386,41 @@ export class UsersListComponent implements OnInit {
   }
 
   openDetail(employee: Employee): void { this.detailEmployee = employee; }
+
+  openAddUser(employee: Employee): void {
+    this.addUserTarget = employee;
+    this.newUser = { username: '', email: employee.email, temporaryPassword: '', role: 'ReadOnly' };
+    this.addUserError.set('');
+    this.addUserSuccess.set(false);
+  }
+
+  closeAddUser(): void { this.addUserTarget = null; }
+
+  submitAddUser(): void {
+    if (!this.addUserTarget) return;
+    this.addUserLoading.set(true);
+    this.addUserError.set('');
+    this.authApi.createAppUser({
+      employeeId: this.addUserTarget.employeeId,
+      username: this.newUser.username,
+      email: this.newUser.email,
+      temporaryPassword: this.newUser.temporaryPassword,
+      role: this.newUser.role
+    }).subscribe({
+      next: () => {
+        this.addUserLoading.set(false);
+        this.addUserSuccess.set(true);
+        // Mark employee as having an app user locally
+        this.employees.update(list =>
+          list.map(e => e.employeeId === this.addUserTarget!.employeeId ? { ...e, hasAppUser: true } : e)
+        );
+      },
+      error: (err) => {
+        this.addUserLoading.set(false);
+        this.addUserError.set(err.status === 409 ? 'A user already exists for this employee.' : 'Failed to create user. Try again.');
+      }
+    });
+  }
 
   getInitials(e: Employee): string {
     return `${e.firstName[0] ?? ''}${e.lastName[0] ?? ''}`.toUpperCase();

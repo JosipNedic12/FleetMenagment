@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import {
-  LoginDto, AuthResponse,
+  LoginDto, AuthResponse, CreateAppUserDto,
   MakeDto, ModelDto, VehicleCategoryDto, FuelTypeDto, LicenseCategoryDto, MaintenanceTypeDto,
   Vehicle, CreateVehicleDto, UpdateVehicleDto,
   Employee, CreateEmployeeDto, UpdateEmployeeDto,
@@ -35,6 +35,15 @@ export class AuthApiService extends ApiService {
   
   changePassword(dto: ChangePasswordDto): Observable<void> {
     return this.post<void>('auth/change-password', dto);
+  }
+
+  createAppUser(dto: CreateAppUserDto): Observable<void> {
+    return this.post<void>('auth/register', {
+      employeeId: dto.employeeId,
+      username: dto.username,
+      password: dto.temporaryPassword,
+      role: dto.role
+    });
   }
 }
 

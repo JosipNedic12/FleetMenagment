@@ -22,6 +22,7 @@ export interface Employee {
   phone?: string;
   isActive: boolean;
   hasDriverProfile: boolean;
+  hasAppUser?: boolean;
 }
 
 export interface CreateEmployeeDto {

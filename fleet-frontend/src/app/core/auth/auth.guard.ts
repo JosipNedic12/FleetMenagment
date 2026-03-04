@@ -10,6 +10,9 @@ export const authGuard: CanActivateFn = () => {
     auth.logout();
     return router.createUrlTree(['/login']);
   }
+  if (auth.user()?.mustChangePassword) {
+    return router.createUrlTree(['/change-password']);
+  }
   return true;
 };
 

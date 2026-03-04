@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 namespace FleetManagement.API.Controllers;
 
 [ApiController]
@@ -44,7 +45,8 @@ public class AuthController : ControllerBase
             Username = user.Username,
             FullName = $"{user.Employee.FirstName} {user.Employee.LastName}",
             Role = user.Role,
-            ExpiresAt = DateTime.UtcNow.AddHours(8)
+            ExpiresAt = DateTime.UtcNow.AddHours(8),
+            MustChangePassword = user.MustChangePassword
         });
     }
 
@@ -55,6 +57,9 @@ public class AuthController : ControllerBase
     {
         if (await _context.AppUsers.AnyAsync(u => u.Username == dto.Username))
             return Conflict("Username already exists.");
+
+        if (await _context.AppUsers.AnyAsync(u => u.EmployeeId == dto.EmployeeId))
+            return Conflict("This employee already has an app user.");
 
         if (!await _context.Employees.AnyAsync(e => e.EmployeeId == dto.EmployeeId && !e.IsDeleted))
             return BadRequest("Employee not found.");
@@ -69,6 +74,7 @@ public class AuthController : ControllerBase
             Username = dto.Username.Trim().ToLower(),
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
             Role = dto.Role,
+            MustChangePassword = true,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -82,7 +88,8 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
     {
-        var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)
+                         ?? User.FindFirst(JwtRegisteredClaimNames.Sub)
                          ?? User.FindFirst("sub");
         if (userIdClaim == null) return Unauthorized();
 
@@ -93,6 +100,7 @@ public class AuthController : ControllerBase
             return BadRequest("Current password is incorrect.");
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        user.MustChangePassword = false;
         await _context.SaveChangesAsync();
 
         return NoContent();

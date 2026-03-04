@@ -9,6 +9,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/auth/login/login.component').then(m => m.LoginComponent)
   },
+  {
+    path: 'change-password',
+    loadComponent: () =>
+      import('./features/auth/change-password/change-password.component').then(m => m.ChangePasswordComponent)
+  },
 
   // Protected — wrapped in shell (sidebar + layout)
   {

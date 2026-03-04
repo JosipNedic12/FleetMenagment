@@ -6,14 +6,13 @@ import { AuthApiService } from '../../../core/auth/feature-api.services';
 import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
-  selector: 'app-login',
+  selector: 'app-change-password',
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="login-page">
-      <div class="login-card">
-        <!-- Logo -->
-        <div class="login-logo">
+    <div class="page">
+      <div class="card">
+        <div class="logo">
           <svg width="40" height="40" viewBox="0 0 28 28" fill="none">
             <rect width="28" height="28" rx="8" fill="var(--brand)"/>
             <path d="M6 18L10 10L14 15L18 8L22 18H6Z" fill="white"/>
@@ -21,34 +20,49 @@ import { AuthService } from '../../../core/auth/auth.service';
           <span>FleetMgr</span>
         </div>
 
-        <h1 class="login-title">Welcome back</h1>
-        <p class="login-subtitle">Sign in to your fleet dashboard</p>
+        <h1 class="title">Set your password</h1>
+        <p class="subtitle">You must change your temporary password before continuing.</p>
 
-        <form (ngSubmit)="onLogin()" #f="ngForm">
+        <form (ngSubmit)="onSubmit()">
           <div class="form-group">
-            <label>Username</label>
+            <label>Current (temporary) password</label>
             <input
-              type="text"
-              name="username"
-              [(ngModel)]="username"
+              type="password"
+              name="current"
+              [(ngModel)]="currentPassword"
               required
-              placeholder="Enter username"
+              placeholder="Enter temporary password"
               class="form-input"
-              [class.error]="error()"
             />
           </div>
 
           <div class="form-group">
-            <label>Password</label>
+            <label>New password</label>
             <input
               type="password"
-              name="password"
-              [(ngModel)]="password"
+              name="newPw"
+              [(ngModel)]="newPassword"
               required
-              placeholder="Enter password"
+              minlength="8"
+              placeholder="Min. 8 characters"
               class="form-input"
-              [class.error]="error()"
             />
+          </div>
+
+          <div class="form-group">
+            <label>Confirm new password</label>
+            <input
+              type="password"
+              name="confirm"
+              [(ngModel)]="confirmPassword"
+              required
+              placeholder="Repeat new password"
+              class="form-input"
+              [class.error]="mismatch()"
+            />
+            @if (mismatch()) {
+              <span class="field-error">Passwords do not match.</span>
+            }
           </div>
 
           @if (error()) {
@@ -57,13 +71,13 @@ import { AuthService } from '../../../core/auth/auth.service';
 
           <button
             type="submit"
-            class="login-btn"
-            [disabled]="loading() || !username || !password"
+            class="btn"
+            [disabled]="loading() || !currentPassword || !newPassword || !confirmPassword"
           >
             @if (loading()) {
-              <span class="spinner"></span> Signing in...
+              <span class="spinner"></span> Saving...
             } @else {
-              Sign in
+              Set new password
             }
           </button>
         </form>
@@ -71,7 +85,7 @@ import { AuthService } from '../../../core/auth/auth.service';
     </div>
   `,
   styles: [`
-    .login-page {
+    .page {
       min-height: 100vh;
       background: var(--page-bg);
       display: flex;
@@ -79,7 +93,7 @@ import { AuthService } from '../../../core/auth/auth.service';
       justify-content: center;
       padding: 20px;
     }
-    .login-card {
+    .card {
       background: white;
       border-radius: 16px;
       padding: 40px;
@@ -87,7 +101,7 @@ import { AuthService } from '../../../core/auth/auth.service';
       max-width: 400px;
       box-shadow: 0 4px 24px rgba(0,0,0,0.08);
     }
-    .login-logo {
+    .logo {
       display: flex;
       align-items: center;
       gap: 10px;
@@ -96,20 +110,18 @@ import { AuthService } from '../../../core/auth/auth.service';
       font-weight: 700;
       color: var(--text-primary);
     }
-    .login-title {
+    .title {
       font-size: 24px;
       font-weight: 700;
       color: var(--text-primary);
       margin: 0 0 6px;
     }
-    .login-subtitle {
+    .subtitle {
       font-size: 14px;
       color: var(--text-muted);
       margin: 0 0 28px;
     }
-    .form-group {
-      margin-bottom: 16px;
-    }
+    .form-group { margin-bottom: 16px; }
     label {
       display: block;
       font-size: 13px;
@@ -131,6 +143,7 @@ import { AuthService } from '../../../core/auth/auth.service';
     }
     .form-input:focus { border-color: var(--brand); }
     .form-input.error { border-color: #ef4444; }
+    .field-error { font-size: 12px; color: #dc2626; margin-top: 4px; display: block; }
     .error-msg {
       background: #fef2f2;
       color: #dc2626;
@@ -139,7 +152,7 @@ import { AuthService } from '../../../core/auth/auth.service';
       font-size: 13px;
       margin-bottom: 16px;
     }
-    .login-btn {
+    .btn {
       width: 100%;
       padding: 12px;
       background: var(--brand);
@@ -156,8 +169,8 @@ import { AuthService } from '../../../core/auth/auth.service';
       justify-content: center;
       gap: 8px;
     }
-    .login-btn:hover:not(:disabled) { background: var(--brand-dark); }
-    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn:hover:not(:disabled) { background: var(--brand-dark); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .spinner {
       width: 16px; height: 16px;
       border: 2px solid rgba(255,255,255,0.3);
@@ -169,32 +182,37 @@ import { AuthService } from '../../../core/auth/auth.service';
     @keyframes spin { to { transform: rotate(360deg); } }
   `]
 })
-export class LoginComponent {
-  username = '';
-  password = '';
-  loading  = signal(false);
-  error    = signal('');
+export class ChangePasswordComponent {
+  private authApi = inject(AuthApiService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
-  constructor(
-    private authApi: AuthApiService,
-    private authService: AuthService,
-    private router: Router
-  ) {}
+  currentPassword = '';
+  newPassword = '';
+  confirmPassword = '';
+  loading = signal(false);
+  error = signal('');
 
-  onLogin(): void {
+  mismatch = () => !!this.confirmPassword && this.newPassword !== this.confirmPassword;
+
+  onSubmit(): void {
+    if (this.mismatch()) return;
+
     this.loading.set(true);
     this.error.set('');
 
-    this.authApi.login({ username: this.username, password: this.password })
+    this.authApi.changePassword({ currentPassword: this.currentPassword, newPassword: this.newPassword })
       .subscribe({
-        next: (res) => {
-          this.authService.setSession(res);
-          this.router.navigate([res.mustChangePassword ? '/change-password' : '/dashboard']);
+        next: () => {
+          // Update stored session so mustChangePassword is cleared locally
+          const user = this.authService.user();
+          if (user) this.authService.setSession({ ...user, mustChangePassword: false });
+          this.router.navigate(['/dashboard']);
         },
         error: (err) => {
           this.loading.set(false);
           this.error.set(
-            err.status === 401 ? 'Invalid username or password.' : 'Login failed. Try again.'
+            err.status === 400 ? 'Current password is incorrect.' : 'Failed to change password. Try again.'
           );
         }
       });

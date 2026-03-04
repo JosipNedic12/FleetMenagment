@@ -8,6 +8,7 @@ public class AppUser
     public string PasswordHash { get; set; } = string.Empty;
     public string Role { get; set; } = "ReadOnly"; // Admin | FleetManager | Driver | ReadOnly
     public bool IsActive { get; set; } = true;
+    public bool MustChangePassword { get; set; } = false;
     public DateTime CreatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }
 
