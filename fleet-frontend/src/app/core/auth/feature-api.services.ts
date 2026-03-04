@@ -457,3 +457,65 @@ export class AccidentApiService extends ApiService {
     return super.delete<void>(`accident/${id}`);
   }
 }
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
+export interface ComplianceReminder {
+  vehicleId: number;
+  registrationNumber: string;
+  type: 'Insurance' | 'Registration' | 'Inspection';
+  expiresAt: string;
+  daysLeft: number;
+  status: 'expired' | 'due_soon' | 'ok';
+}
+
+export interface AssignmentSummary {
+  assigned: number;
+  unassigned: number;
+  totalVehicles: number;
+}
+
+export interface WorkOrderSummary {
+  open: number;
+  inProgress: number;
+  completed: number;
+  overdue: number;
+}
+
+export interface VehicleStatusBreakdown {
+  active: number;
+  inService: number;
+  retired: number;
+  sold: number;
+}
+
+export interface DashboardData {
+  // Stat counts
+  activeVehicles: number;
+  openMaintenanceOrders: number;
+  kmThisMonth: number;
+  unpaidFines: number;
+  expiredInsurance: number;
+  accidentCount: number;
+  fuelCostThisMonth: number;
+  inspectionsDue: number;
+  // Widgets
+  complianceReminders: ComplianceReminder[];
+  assignmentSummary: AssignmentSummary;
+  workOrderSummary: WorkOrderSummary;
+  // Charts
+  fuelCostByMonth: number[];
+  maintenanceCostByMonth: number[];
+  vehicleStatusBreakdown: VehicleStatusBreakdown;
+  accidentsByMonth: number[];
+  finesByMonth: number[];
+}
+
+@Injectable({ providedIn: 'root' })
+export class DashboardApiService extends ApiService {
+  constructor(http: HttpClient) { super(http); }
+
+  getDashboard(): Observable<DashboardData> {
+    return this.get<DashboardData>('Dashboard');
+  }
+}

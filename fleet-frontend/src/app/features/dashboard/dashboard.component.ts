@@ -1,15 +1,16 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
 import { NgChartsModule } from 'ng2-charts';
 import { Chart, ChartData, ChartOptions, registerables } from 'chart.js';
 import { LucideAngularModule, LucideIconData } from 'lucide-angular';
 import {
   Car, Wrench, MapPin, Shield, Clipboard, Search, TriangleAlert, Siren, Fuel,
+  AlertCircle, Clock, CheckCircle, Users,
 } from 'lucide-angular';
-import { VehicleApiService, MaintenanceOrderApiService, OdometerLogApiService, InsurancePolicyApiService, RegistrationApiService, InspectionApiService, FineApiService, AccidentApiService, FuelTransactionApiService } from '../../core/auth/feature-api.services';
-import { OdometerLog } from '../../core/models/models';
+import {
+  DashboardApiService, DashboardData, ComplianceReminder,
+} from '../../core/auth/feature-api.services';
 
 Chart.register(...registerables);
 
@@ -42,12 +43,18 @@ interface StatCard {
             <div class="stat-skeleton"></div>
           }
         </div>
+        <div class="widgets-grid">
+          @for (i of [1,2,3]; track i) {
+            <div class="chart-skeleton"></div>
+          }
+        </div>
         <div class="charts-grid">
           @for (i of [1,2,3,4]; track i) {
             <div class="chart-skeleton"></div>
           }
         </div>
       } @else {
+        <!-- ── Stat Cards ─────────────────────────────────────────── -->
         <div class="stats-grid">
           @for (card of cards(); track card.label) {
             <a [routerLink]="card.route" class="stat-card" [style.--accent]="card.accent">
@@ -63,6 +70,131 @@ interface StatCard {
           }
         </div>
 
+        <!-- ── Widget Cards ──────────────────────────────────────── -->
+        <div class="section-title">Operational Summary</div>
+        <div class="widgets-grid">
+
+          <!-- Compliance Reminders -->
+          <div class="chart-card widget-card">
+            <div class="chart-card-header">
+              <div class="chart-card-title-group">
+                <div class="chart-icon" style="background:#ef44441a; color:#ef4444">
+                  <lucide-icon [img]="alertCircleIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+                </div>
+                <span class="chart-card-title">Compliance Reminders</span>
+              </div>
+              <div class="widget-badges">
+                @if (expiredCount() > 0) {
+                  <span class="badge badge--red">{{ expiredCount() }} expired</span>
+                }
+                @if (dueSoonCount() > 0) {
+                  <span class="badge badge--amber">{{ dueSoonCount() }} due soon</span>
+                }
+              </div>
+            </div>
+            @if (complianceReminders().length === 0) {
+              <p class="widget-empty">All compliance items are up to date.</p>
+            } @else {
+              <table class="compliance-table">
+                <thead>
+                  <tr>
+                    <th>Vehicle</th>
+                    <th>Type</th>
+                    <th>Expires</th>
+                    <th>Days</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of complianceReminders(); track item.vehicleId + item.type) {
+                    <tr [class]="'compliance-row--' + item.status">
+                      <td class="reg-cell">{{ item.registrationNumber }}</td>
+                      <td>
+                        <span class="type-chip type-chip--{{ item.type | lowercase }}">{{ item.type }}</span>
+                      </td>
+                      <td>{{ item.expiresAt | date:'dd MMM yyyy' }}</td>
+                      <td>
+                        <span [class]="item.daysLeft < 0 ? 'days-badge days-badge--expired' : 'days-badge days-badge--soon'">
+                          {{ item.daysLeft < 0 ? (item.daysLeft * -1) + 'd ago' : item.daysLeft + 'd' }}
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+
+          <!-- Vehicle Assignments -->
+          <div class="chart-card widget-card">
+            <div class="chart-card-header">
+              <div class="chart-card-title-group">
+                <div class="chart-icon" style="background:#6366f11a; color:#6366f1">
+                  <lucide-icon [img]="usersIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+                </div>
+                <span class="chart-card-title">Vehicle Assignments</span>
+              </div>
+              <span class="chart-card-sub">{{ dashboard()?.assignmentSummary?.totalVehicles ?? 0 }} total</span>
+            </div>
+            <div class="assignment-numbers">
+              <div class="assign-block">
+                <span class="assign-value" style="color:#10b981">{{ dashboard()?.assignmentSummary?.assigned ?? 0 }}</span>
+                <span class="assign-label">Assigned</span>
+              </div>
+              <div class="assign-divider"></div>
+              <div class="assign-block">
+                <span class="assign-value" style="color:#94a3b8">{{ dashboard()?.assignmentSummary?.unassigned ?? 0 }}</span>
+                <span class="assign-label">Unassigned</span>
+              </div>
+            </div>
+            <div class="assign-bar-wrap">
+              <div class="assign-bar">
+                <div class="assign-bar-fill"
+                  [style.width]="assignedPct() + '%'"
+                  style="background:#10b981">
+                </div>
+              </div>
+              <span class="assign-pct">{{ assignedPct() }}% assigned</span>
+            </div>
+          </div>
+
+          <!-- Work Orders -->
+          <div class="chart-card widget-card">
+            <div class="chart-card-header">
+              <div class="chart-card-title-group">
+                <div class="chart-icon" style="background:#f974161a; color:#f97416">
+                  <lucide-icon [img]="wrenchIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+                </div>
+                <span class="chart-card-title">Work Orders</span>
+              </div>
+              <a routerLink="/maintenance" class="chart-card-sub widget-link">View all</a>
+            </div>
+            <div class="work-order-stats">
+              <div class="wo-stat">
+                <lucide-icon [img]="clockIcon" [size]="16" [strokeWidth]="2" style="color:#f97416"></lucide-icon>
+                <span class="wo-count">{{ dashboard()?.workOrderSummary?.open ?? 0 }}</span>
+                <span class="wo-label">Open</span>
+              </div>
+              <div class="wo-stat">
+                <lucide-icon [img]="wrenchIcon" [size]="16" [strokeWidth]="2" style="color:#6366f1"></lucide-icon>
+                <span class="wo-count">{{ dashboard()?.workOrderSummary?.inProgress ?? 0 }}</span>
+                <span class="wo-label">In Progress</span>
+              </div>
+              <div class="wo-stat">
+                <lucide-icon [img]="checkCircleIcon" [size]="16" [strokeWidth]="2" style="color:#10b981"></lucide-icon>
+                <span class="wo-count">{{ dashboard()?.workOrderSummary?.completed ?? 0 }}</span>
+                <span class="wo-label">Completed</span>
+              </div>
+              <div class="wo-stat wo-stat--overdue">
+                <lucide-icon [img]="alertCircleIcon" [size]="16" [strokeWidth]="2" style="color:#ef4444"></lucide-icon>
+                <span class="wo-count" style="color:#ef4444">{{ dashboard()?.workOrderSummary?.overdue ?? 0 }}</span>
+                <span class="wo-label">Overdue</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Charts ─────────────────────────────────────────────── -->
         <div class="section-title">Analytics</div>
         <div class="charts-grid">
           <div class="chart-card">
@@ -191,6 +323,73 @@ interface StatCard {
 
     .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 16px; }
 
+    /* ── Widgets ── */
+    .widgets-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .widget-card { display: flex; flex-direction: column; }
+    .widget-empty { font-size: 13px; color: var(--text-muted); margin: 12px 0 0; }
+    .widget-link { font-size: 12px; color: #6366f1; text-decoration: none; font-weight: 500; }
+    .widget-link:hover { text-decoration: underline; }
+
+    .widget-badges { display: flex; gap: 6px; align-items: center; }
+    .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+    .badge--red { background: #fef2f2; color: #ef4444; }
+    .badge--amber { background: #fffbeb; color: #f59e0b; }
+
+    /* Compliance table */
+    .compliance-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+    .compliance-table th { text-align: left; font-weight: 600; color: var(--text-muted); padding: 4px 6px; border-bottom: 1px solid #f1f5f9; }
+    .compliance-table td { padding: 6px 6px; border-bottom: 1px solid #f8fafc; color: var(--text-primary); }
+    .compliance-row--expired td { background: #fef2f2; }
+    .compliance-row--due_soon td { background: #fffbeb; }
+    .reg-cell { font-weight: 600; }
+
+    .type-chip { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .type-chip--insurance { background: #eff6ff; color: #3b82f6; }
+    .type-chip--registration { background: #f5f3ff; color: #8b5cf6; }
+    .type-chip--inspection { background: #ecfdf5; color: #10b981; }
+
+    .days-badge { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; }
+    .days-badge--expired { background: #fef2f2; color: #ef4444; }
+    .days-badge--soon { background: #fffbeb; color: #f59e0b; }
+
+    /* Assignment widget */
+    .assignment-numbers { display: flex; align-items: center; justify-content: center; gap: 0; margin: 16px 0 12px; }
+    .assign-block { display: flex; flex-direction: column; align-items: center; flex: 1; }
+    .assign-value { font-size: 40px; font-weight: 800; line-height: 1; }
+    .assign-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .assign-divider { width: 1px; height: 48px; background: #f1f5f9; }
+    .assign-bar-wrap { display: flex; align-items: center; gap: 10px; }
+    .assign-bar { flex: 1; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+    .assign-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+    .assign-pct { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
+    /* Work orders widget */
+    .work-order-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .wo-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 8px;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+    .wo-stat--overdue { background: #fef2f2; }
+    .wo-count { font-size: 28px; font-weight: 800; color: var(--text-primary); line-height: 1; }
+    .wo-label { font-size: 11px; color: var(--text-muted); text-align: center; }
+
+    /* ── Charts ── */
     .charts-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -247,6 +446,10 @@ interface StatCard {
       justify-content: center;
     }
 
+    @media (max-width: 900px) {
+      .widgets-grid { grid-template-columns: 1fr; }
+    }
+
     @media (max-width: 768px) {
       .charts-grid { grid-template-columns: 1fr; }
     }
@@ -255,6 +458,8 @@ interface StatCard {
 export class DashboardComponent implements OnInit {
   loading = signal(true);
   cards = signal<StatCard[]>([]);
+  dashboard = signal<DashboardData | null>(null);
+  complianceReminders = signal<ComplianceReminder[]>([]);
 
   fuelChartData = signal<ChartData<'bar'>>({ labels: [], datasets: [] });
   maintChartData = signal<ChartData<'bar'>>({ labels: [], datasets: [] });
@@ -265,14 +470,19 @@ export class DashboardComponent implements OnInit {
   readonly wrenchIcon = Wrench;
   readonly carIcon = Car;
   readonly alertIcon = TriangleAlert;
+  readonly alertCircleIcon = AlertCircle;
+  readonly clockIcon = Clock;
+  readonly checkCircleIcon = CheckCircle;
+  readonly usersIcon = Users;
+
+  expiredCount = signal(0);
+  dueSoonCount = signal(0);
+  assignedPct = signal(0);
 
   barOptions: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: {
-      duration: 800,
-      easing: 'easeInOutQuart',
-    },
+    animation: { duration: 800, easing: 'easeInOutQuart' },
     plugins: {
       legend: { display: false },
       tooltip: {
@@ -290,11 +500,7 @@ export class DashboardComponent implements OnInit {
   doughnutOptions: ChartOptions<'doughnut'> = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: {
-      duration: 900,
-      animateRotate: true,
-      animateScale: true,
-    },
+    animation: { duration: 900, animateRotate: true, animateScale: true },
     plugins: {
       legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } },
       tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
@@ -305,10 +511,7 @@ export class DashboardComponent implements OnInit {
   lineOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: {
-      duration: 1000,
-      easing: 'easeInOutCubic',
-    },
+    animation: { duration: 1000, easing: 'easeInOutCubic' },
     plugins: {
       legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } },
       tooltip: { mode: 'index', intersect: false }
@@ -319,63 +522,42 @@ export class DashboardComponent implements OnInit {
     }
   };
 
-  constructor(
-    private vehicleApi: VehicleApiService,
-    private maintenanceApi: MaintenanceOrderApiService,
-    private odometerApi: OdometerLogApiService,
-    private insuranceApi: InsurancePolicyApiService,
-    private registrationApi: RegistrationApiService,
-    private inspectionApi: InspectionApiService,
-    private fineApi: FineApiService,
-    private accidentApi: AccidentApiService,
-    private fuelApi: FuelTransactionApiService,
-  ) { }
+  constructor(private dashboardApi: DashboardApiService) {}
 
   ngOnInit(): void {
-    forkJoin({
-      vehicles: this.vehicleApi.getAll(),
-      maintenance: this.maintenanceApi.getAll(),
-      odometer: this.odometerApi.getAll(),
-      insurance: this.insuranceApi.getAll(),
-      registration: this.registrationApi.getAll(),
-      inspections: this.inspectionApi.getAll(),
-      fines: this.fineApi.getAll(),
-      accidents: this.accidentApi.getAll(),
-      fuel: this.fuelApi.getAll(),
-    }).subscribe({
+    this.dashboardApi.getDashboard().subscribe({
       next: (data) => {
-        const now = new Date();
-        const thisMonth = (d: string) => { const dt = new Date(d); return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth(); };
+        this.dashboard.set(data);
 
-        const activeVehicles = data.vehicles.filter(v => v.status === 'active').length;
-        const openOrders = data.maintenance.filter(o => o.status === 'open' || o.status === 'in_progress').length;
-        const kmThisMonth = calculateKmThisMonth(data.odometer);
-        const unpaidFines = data.fines.filter(f => !f.isPaid).length;
-        const expiredIns = data.insurance.filter(i => !i.isActive).length;
-        const fuelCostThisMonth = data.fuel
-          .filter(t => thisMonth(t.postedAt))
-          .reduce((sum, t) => sum + (t.totalCost ?? 0), 0);
-
+        // ── Stat cards ─────────────────────────────────────────────
         this.cards.set([
-          { label: 'Vehicles', value: data.vehicles.length, sub: `${activeVehicles} active`, route: '/vehicles', icon: Car, accent: '#10b981' },
-          { label: 'Open Orders', value: openOrders, sub: 'Maintenance in progress', route: '/maintenance', icon: Wrench, accent: '#f97316' },
-          { label: 'KM This Month', value: kmThisMonth, sub: 'From odometer logs', route: '/odometer', icon: MapPin, accent: '#6366f1' },
-          { label: 'Insurance Policies', value: data.insurance.length, sub: `${expiredIns} expired`, route: '/insurance', icon: Shield, accent: '#3b82f6' },
-          { label: 'Registrations', value: data.registration.length, sub: 'Active records', route: '/registration', icon: Clipboard, accent: '#8b5cf6' },
-          { label: 'Inspections', value: data.inspections.length, sub: 'Total inspections', route: '/inspections', icon: Search, accent: '#06b6d4' },
-          { label: 'Fines', value: data.fines.length, sub: `${unpaidFines} unpaid`, route: '/fines', icon: TriangleAlert, accent: '#f59e0b' },
-          { label: 'Accidents', value: data.accidents.length, sub: 'Reported incidents', route: '/accidents', icon: Siren, accent: '#ef4444' },
-          { label: 'Fuel Cost This Month', value: fuelCostThisMonth, sub: 'EUR spent on fuel', route: '/fuel', icon: Fuel, accent: '#14b8a6' },
+          { label: 'Vehicles', value: data.activeVehicles, sub: `${data.activeVehicles} active`, route: '/vehicles', icon: Car, accent: '#10b981' },
+          { label: 'Open Orders', value: data.openMaintenanceOrders, sub: 'Maintenance in progress', route: '/maintenance', icon: Wrench, accent: '#f97316' },
+          { label: 'KM This Month', value: data.kmThisMonth, sub: 'From odometer logs', route: '/odometer', icon: MapPin, accent: '#6366f1' },
+          { label: 'Expired Insurance', value: data.expiredInsurance, sub: 'Policies expired', route: '/insurance', icon: Shield, accent: '#3b82f6' },
+          { label: 'Inspections Due', value: data.inspectionsDue, sub: 'Within 30 days', route: '/inspections', icon: Search, accent: '#06b6d4' },
+          { label: 'Fines', value: data.unpaidFines, sub: 'Unpaid fines', route: '/fines', icon: TriangleAlert, accent: '#f59e0b' },
+          { label: 'Accidents', value: data.accidentCount, sub: 'Reported incidents', route: '/accidents', icon: Siren, accent: '#ef4444' },
+          { label: 'Fuel Cost This Month', value: Math.round(data.fuelCostThisMonth), sub: 'EUR spent on fuel', route: '/fuel', icon: Fuel, accent: '#14b8a6' },
         ]);
 
-        // ── Charts ────────────────────────────────────────────────
+        // ── Compliance widget ──────────────────────────────────────
+        this.complianceReminders.set(data.complianceReminders);
+        this.expiredCount.set(data.complianceReminders.filter(r => r.status === 'expired').length);
+        this.dueSoonCount.set(data.complianceReminders.filter(r => r.status === 'due_soon').length);
+
+        // ── Assignment widget ──────────────────────────────────────
+        const total = data.assignmentSummary.totalVehicles;
+        this.assignedPct.set(total > 0 ? Math.round((data.assignmentSummary.assigned / total) * 100) : 0);
+
+        // ── Charts ─────────────────────────────────────────────────
         const labels = last6MonthLabels();
 
         this.fuelChartData.set({
           labels,
           datasets: [{
             label: 'Fuel Cost (EUR)',
-            data: bucketByMonth(data.fuel, t => t.postedAt, t => t.totalCost ?? 0),
+            data: data.fuelCostByMonth,
             backgroundColor: '#14b8a6',
             borderRadius: 6,
             borderSkipped: false,
@@ -386,24 +568,18 @@ export class DashboardComponent implements OnInit {
           labels,
           datasets: [{
             label: 'Maintenance Cost (EUR)',
-            data: bucketByMonth(data.maintenance, o => o.reportedAt, o => o.totalCost ?? 0),
+            data: data.maintenanceCostByMonth,
             backgroundColor: '#f97316',
             borderRadius: 6,
             borderSkipped: false,
           }]
         });
 
-        const statusLabels = ['Active', 'In Service', 'Retired', 'Sold'];
-        const statusValues = [
-          data.vehicles.filter(v => v.status === 'active').length,
-          data.vehicles.filter(v => v.status === 'service').length,
-          data.vehicles.filter(v => v.status === 'retired').length,
-          data.vehicles.filter(v => v.status === 'sold').length,
-        ];
+        const sb = data.vehicleStatusBreakdown;
         this.statusChartData.set({
-          labels: statusLabels,
+          labels: ['Active', 'In Service', 'Retired', 'Sold'],
           datasets: [{
-            data: statusValues,
+            data: [sb.active, sb.inService, sb.retired, sb.sold],
             backgroundColor: ['#10b981', '#f97316', '#94a3b8', '#ef4444'],
             hoverOffset: 8,
           }]
@@ -414,7 +590,7 @@ export class DashboardComponent implements OnInit {
           datasets: [
             {
               label: 'Accidents',
-              data: bucketByMonth(data.accidents, a => a.occurredAt, () => 1),
+              data: data.accidentsByMonth,
               borderColor: '#ef4444',
               backgroundColor: 'rgba(239,68,68,0.12)',
               tension: 0.4,
@@ -424,7 +600,7 @@ export class DashboardComponent implements OnInit {
             },
             {
               label: 'Fines',
-              data: bucketByMonth(data.fines, f => f.occurredAt, () => 1),
+              data: data.finesByMonth,
               borderColor: '#f59e0b',
               backgroundColor: 'rgba(245,158,11,0.10)',
               tension: 0.4,
@@ -443,37 +619,6 @@ export class DashboardComponent implements OnInit {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
-function calculateKmThisMonth(odometerLogs: OdometerLog[]): number {
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const isThisMonth = (d: string) => {
-    const dt = new Date(d);
-    return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
-  };
-
-  const byVehicle = new Map<number, OdometerLog[]>();
-  for (const o of odometerLogs) {
-    if (!byVehicle.has(o.vehicleId)) byVehicle.set(o.vehicleId, []);
-    byVehicle.get(o.vehicleId)!.push(o);
-  }
-
-  let total = 0;
-  for (const [, logs] of byVehicle) {
-    const sorted = [...logs].sort((a, b) => new Date(a.logDate).getTime() - new Date(b.logDate).getTime());
-    const thisMonthLogs = sorted.filter(o => isThisMonth(o.logDate));
-    if (thisMonthLogs.length === 0) continue;
-
-    const maxThisMonth = Math.max(...thisMonthLogs.map(o => o.odometerKm));
-    const beforeMonth = sorted.filter(o => new Date(o.logDate) < monthStart);
-    const baseline = beforeMonth.length > 0
-      ? beforeMonth[beforeMonth.length - 1].odometerKm
-      : Math.min(...thisMonthLogs.map(o => o.odometerKm));
-
-    total += Math.max(0, maxThisMonth - baseline);
-  }
-  return total;
-}
-
 function last6MonthLabels(): string[] {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const now = new Date();
@@ -484,20 +629,3 @@ function last6MonthLabels(): string[] {
   }
   return labels;
 }
-
-function bucketByMonth<T>(items: T[], getDate: (x: T) => string, getValue: (x: T) => number): number[] {
-  const now = new Date();
-  const buckets = new Array(6).fill(0);
-  for (const item of items) {
-    const d = new Date(getDate(item));
-    for (let i = 5; i >= 0; i--) {
-      const target = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      if (d.getFullYear() === target.getFullYear() && d.getMonth() === target.getMonth()) {
-        buckets[5 - i] += getValue(item);
-        break;
-      }
-    }
-  }
-  return buckets;
-}
-

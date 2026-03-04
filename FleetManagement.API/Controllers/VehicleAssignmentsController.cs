@@ -93,12 +93,14 @@ public class VehicleAssignmentsController : ControllerBase
     {
         AssignmentId = a.AssignmentId,
         VehicleId = a.VehicleId,
-        RegistrationNumber = a.Vehicle.RegistrationNumber,
-        VehicleMake = a.Vehicle.Make?.Name ?? string.Empty,
-        VehicleModel = a.Vehicle.Model?.Name ?? string.Empty,
+        RegistrationNumber = a.Vehicle?.RegistrationNumber ?? string.Empty,
+        VehicleMake = a.Vehicle?.Make?.Name ?? string.Empty,
+        VehicleModel = a.Vehicle?.Model?.Name ?? string.Empty,
         DriverId = a.DriverId,
-        DriverFullName = $"{a.Driver.Employee.FirstName} {a.Driver.Employee.LastName}",
-        Department = a.Driver.Employee.Department,
+        DriverFullName = a.Driver?.Employee != null
+            ? $"{a.Driver.Employee.FirstName} {a.Driver.Employee.LastName}"
+            : string.Empty,
+        Department = a.Driver?.Employee?.Department,
         AssignedFrom = a.AssignedFrom,
         AssignedTo = a.AssignedTo,
         Notes = a.Notes

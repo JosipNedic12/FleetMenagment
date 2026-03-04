@@ -138,7 +138,7 @@ public class MaintenanceOrdersController : ControllerBase
     {
         OrderId = o.OrderId,
         VehicleId = o.VehicleId,
-        RegistrationNumber = o.Vehicle.RegistrationNumber,
+        RegistrationNumber = o.Vehicle?.RegistrationNumber ?? string.Empty,
         VendorId = o.VendorId,
         VendorName = o.Vendor?.Name,
         Status = o.Status,

@@ -142,6 +142,7 @@ public class FleetDbContext : DbContext
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.ModifiedAt).HasColumnName("modified_at");
             entity.Property(e => e.ModifiedBy).HasColumnName("modified_by");
+
         });
 
         modelBuilder.Entity<DriverLicenseCategory>(entity =>
