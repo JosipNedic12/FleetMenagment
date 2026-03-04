@@ -1,15 +1,16 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LucideAngularModule, Trash2 } from 'lucide-angular';
 
 @Component({
   selector: 'app-confirm-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   template: `
     @if (visible) {
       <div class="modal-overlay" (click)="onCancel()">
         <div class="modal-box" (click)="$event.stopPropagation()">
-          <div class="modal-icon">🗑</div>
+          <div class="modal-icon"><lucide-icon [img]="trash2" [size]="32" [strokeWidth]="1.5" color="#ef4444"></lucide-icon></div>
           <h3 class="modal-title">{{ title }}</h3>
           <p class="modal-message">{{ message }}</p>
           <div class="modal-actions">
@@ -21,11 +22,12 @@ import { CommonModule } from '@angular/common';
     }
   `,
   styles: [`
-    .modal-icon { font-size: 36px; margin-bottom: 12px; }
+    .modal-icon { display: flex; justify-content: center; margin-bottom: 12px; }
     .modal-message { font-size: 14px; color: #6b7280; margin: 0 0 24px; }
   `]
 })
 export class ConfirmModalComponent {
+  readonly trash2 = Trash2;
   @Input() visible = false;
   @Input() title = 'Delete record';
   @Input() message = 'This action cannot be undone.';

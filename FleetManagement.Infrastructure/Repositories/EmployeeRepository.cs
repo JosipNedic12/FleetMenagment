@@ -13,6 +13,7 @@ public class EmployeeRepository : IEmployeeRepository
     public async Task<IEnumerable<Employee>> GetAllAsync() =>
         await _context.Employees
             .Include(e => e.Driver)
+            .Include(e => e.AppUser)
             .Where(e => !e.IsDeleted)
             .OrderBy(e => e.LastName)
             .ToListAsync();
@@ -20,6 +21,7 @@ public class EmployeeRepository : IEmployeeRepository
     public async Task<Employee?> GetByIdAsync(int id) =>
         await _context.Employees
             .Include(e => e.Driver)
+            .Include(e => e.AppUser)
             .FirstOrDefaultAsync(e => e.EmployeeId == id && !e.IsDeleted);
 
     public async Task<Employee> CreateAsync(Employee employee)

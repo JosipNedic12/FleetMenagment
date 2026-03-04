@@ -5,11 +5,12 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { EmployeeApiService, AuthApiService } from '../../../core/auth/feature-api.services';
 import { Employee } from '../../../core/models/models';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
+import { LucideAngularModule, Eye } from 'lucide-angular';
 
 @Component({
   selector: 'app-users-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent],
+  imports: [CommonModule, FormsModule, BadgeComponent, LucideAngularModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -72,7 +73,7 @@ import { BadgeComponent } from '../../../shared/components/badge/badge.component
                   </td>
                   <td>
                     <div class="row-actions">
-                      <button class="action-btn" title="View details" (click)="openDetail(row)">👁</button>
+                      <button class="action-btn" title="View details" (click)="openDetail(row)"><lucide-icon [img]="icons.Eye" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                       @if (!row.hasAppUser) {
                         <button class="action-btn" title="Add app user" (click)="openAddUser(row)">＋</button>
                       }
@@ -343,6 +344,7 @@ import { BadgeComponent } from '../../../shared/components/badge/badge.component
   `]
 })
 export class UsersListComponent implements OnInit {
+  readonly icons = { Eye };
   auth = inject(AuthService);
   private employeeApi = inject(EmployeeApiService);
   private authApi = inject(AuthApiService);

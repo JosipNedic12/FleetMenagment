@@ -33,6 +33,7 @@ public class FuelTransactionRepository : IFuelTransactionRepository
     public async Task<FuelTransaction> CreateAsync(FuelTransaction transaction)
     {
         transaction.CreatedAt = DateTime.UtcNow;
+        transaction.PostedAt = DateTime.SpecifyKind(transaction.PostedAt, DateTimeKind.Utc);
         _context.FuelTransactions.Add(transaction);
 
         // Auto-update vehicle odometer if provided and higher than current

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { VehicleApiService, LookupApiService } from '../../../core/auth/feature-api.services';
+import { LucideAngularModule, Eye, Pencil, Trash2 } from 'lucide-angular';
 import { Vehicle, CreateVehicleDto, UpdateVehicleDto, MakeDto, ModelDto, VehicleCategoryDto, FuelTypeDto } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
@@ -14,7 +15,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
 @Component({
   selector: 'app-vehicles-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -69,9 +70,9 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
                     />
                   </td>
                   <td class="actions">
-                    <a [routerLink]="['/vehicles', row.vehicleId]" class="btn-icon" title="View">🔍</a>
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)">✏️</button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="confirmDelete(row)">🗑</button>
+                    <a [routerLink]="['/vehicles', row.vehicleId]" class="btn-icon" title="View"><lucide-icon [img]="icons.Eye" [size]="15" [strokeWidth]="2"></lucide-icon></a>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -201,6 +202,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
   styles: []
 })
 export class VehiclesListComponent implements OnInit {
+  readonly icons = { Eye, Pencil, Trash2 };
   private api = inject(VehicleApiService);
   private lookupApi = inject(LookupApiService);
   auth = inject(AuthService);

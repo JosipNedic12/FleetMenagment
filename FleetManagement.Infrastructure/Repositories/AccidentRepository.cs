@@ -32,6 +32,7 @@ public class AccidentRepository : IAccidentRepository
     public async Task<Accident> CreateAsync(Accident accident)
     {
         accident.CreatedAt = DateTime.UtcNow;
+        accident.OccurredAt = DateTime.SpecifyKind(accident.OccurredAt, DateTimeKind.Utc);
         _context.Accidents.Add(accident);
         await _context.SaveChangesAsync();
 
@@ -56,7 +57,7 @@ public class AccidentRepository : IAccidentRepository
         if (accident == null) return null;
 
         accident.DriverId = updated.DriverId;
-        if (updated.OccurredAt != default) accident.OccurredAt = updated.OccurredAt;
+        if (updated.OccurredAt != default) accident.OccurredAt = DateTime.SpecifyKind(updated.OccurredAt, DateTimeKind.Utc);
         if (!string.IsNullOrEmpty(updated.Severity)) accident.Severity = updated.Severity;
         if (!string.IsNullOrEmpty(updated.Description)) accident.Description = updated.Description;
         accident.DamageEstimate = updated.DamageEstimate;

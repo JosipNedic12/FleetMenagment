@@ -1,9 +1,13 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { NgChartsModule } from 'ng2-charts';
 import { Chart, ChartData, ChartOptions, registerables } from 'chart.js';
+import { LucideAngularModule, LucideIconData } from 'lucide-angular';
+import {
+  Car, Wrench, MapPin, Shield, Clipboard, Search, TriangleAlert, Siren, Fuel,
+} from 'lucide-angular';
 import { VehicleApiService, MaintenanceOrderApiService, OdometerLogApiService, InsurancePolicyApiService, RegistrationApiService, InspectionApiService, FineApiService, AccidentApiService, FuelTransactionApiService } from '../../core/auth/feature-api.services';
 import { OdometerLog } from '../../core/models/models';
 
@@ -14,14 +18,14 @@ interface StatCard {
   value: number;
   sub: string;
   route: string;
-  icon: string;
+  icon: LucideIconData;
   accent: string;
 }
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, NgChartsModule],
+  imports: [CommonModule, RouterLink, NgChartsModule, LucideAngularModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -47,7 +51,9 @@ interface StatCard {
         <div class="stats-grid">
           @for (card of cards(); track card.label) {
             <a [routerLink]="card.route" class="stat-card" [style.--accent]="card.accent">
-              <div class="stat-icon">{{ card.icon }}</div>
+              <div class="stat-icon" [style.background]="card.accent + '18'" [style.color]="card.accent">
+                <lucide-icon [img]="card.icon" [size]="20" [strokeWidth]="1.8"></lucide-icon>
+              </div>
               <div class="stat-body">
                 <span class="stat-value">{{ card.value }}</span>
                 <span class="stat-label">{{ card.label }}</span>
@@ -61,7 +67,12 @@ interface StatCard {
         <div class="charts-grid">
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">⛽ Fuel Cost / Month</span>
+              <div class="chart-card-title-group">
+                <div class="chart-icon" style="background:#14b8a61a; color:#14b8a6">
+                  <lucide-icon [img]="fuelIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+                </div>
+                <span class="chart-card-title">Fuel Cost / Month</span>
+              </div>
               <span class="chart-card-sub">Last 6 months (EUR)</span>
             </div>
             <div class="chart-wrap">
@@ -75,7 +86,12 @@ interface StatCard {
 
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">🔧 Maintenance Cost / Month</span>
+              <div class="chart-card-title-group">
+                <div class="chart-icon" style="background:#f974161a; color:#f97416">
+                  <lucide-icon [img]="wrenchIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+                </div>
+                <span class="chart-card-title">Maintenance Cost / Month</span>
+              </div>
               <span class="chart-card-sub">Last 6 months (EUR)</span>
             </div>
             <div class="chart-wrap">
@@ -89,7 +105,12 @@ interface StatCard {
 
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">🚗 Vehicle Status</span>
+              <div class="chart-card-title-group">
+                <div class="chart-icon" style="background:#10b9811a; color:#10b981">
+                  <lucide-icon [img]="carIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+                </div>
+                <span class="chart-card-title">Vehicle Status</span>
+              </div>
               <span class="chart-card-sub">Current fleet breakdown</span>
             </div>
             <div class="chart-wrap chart-wrap--doughnut">
@@ -103,7 +124,12 @@ interface StatCard {
 
           <div class="chart-card">
             <div class="chart-card-header">
-              <span class="chart-card-title">⚠ Accidents &amp; Fines</span>
+              <div class="chart-card-title-group">
+                <div class="chart-icon" style="background:#ef44441a; color:#ef4444">
+                  <lucide-icon [img]="alertIcon" [size]="14" [strokeWidth]="2"></lucide-icon>
+                </div>
+                <span class="chart-card-title">Accidents &amp; Fines</span>
+              </div>
               <span class="chart-card-sub">Monthly count – last 6 months</span>
             </div>
             <div class="chart-wrap">
@@ -142,9 +168,18 @@ interface StatCard {
       flex-direction: column;
       gap: 12px;
       border-left: 4px solid var(--accent);
+      animation: fadeSlideUp 0.4s ease both;
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
     .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-    .stat-icon { font-size: 24px; }
+    .stat-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
     .stat-value { display: block; font-size: 32px; font-weight: 800; color: var(--text-primary); line-height: 1; }
     .stat-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-top: 4px; }
     .stat-sub { display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
@@ -167,13 +202,26 @@ interface StatCard {
       border-radius: 12px;
       padding: 20px 24px;
       border: 1.5px solid #f1f5f9;
+      animation: fadeSlideUp 0.5s ease both;
     }
 
     .chart-card-header {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
       margin-bottom: 16px;
+    }
+
+    .chart-card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
     }
 
     .chart-card-title {
@@ -213,9 +261,18 @@ export class DashboardComponent implements OnInit {
   statusChartData = signal<ChartData<'doughnut'>>({ labels: [], datasets: [] });
   trendChartData = signal<ChartData<'line'>>({ labels: [], datasets: [] });
 
+  readonly fuelIcon = Fuel;
+  readonly wrenchIcon = Wrench;
+  readonly carIcon = Car;
+  readonly alertIcon = TriangleAlert;
+
   barOptions: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 800,
+      easing: 'easeInOutQuart',
+    },
     plugins: {
       legend: { display: false },
       tooltip: {
@@ -233,6 +290,11 @@ export class DashboardComponent implements OnInit {
   doughnutOptions: ChartOptions<'doughnut'> = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 900,
+      animateRotate: true,
+      animateScale: true,
+    },
     plugins: {
       legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } },
       tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
@@ -243,6 +305,10 @@ export class DashboardComponent implements OnInit {
   lineOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 1000,
+      easing: 'easeInOutCubic',
+    },
     plugins: {
       legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } },
       tooltip: { mode: 'index', intersect: false }
@@ -291,15 +357,15 @@ export class DashboardComponent implements OnInit {
           .reduce((sum, t) => sum + (t.totalCost ?? 0), 0);
 
         this.cards.set([
-          { label: 'Vehicles', value: data.vehicles.length, sub: `${activeVehicles} active`, route: '/vehicles', icon: '🚗', accent: '#10b981' },
-          { label: 'Open Orders', value: openOrders, sub: 'Maintenance in progress', route: '/maintenance', icon: '🔧', accent: '#f97316' },
-          { label: 'KM This Month', value: kmThisMonth, sub: 'From odometer logs', route: '/odometer', icon: '📍', accent: '#6366f1' },
-          { label: 'Insurance Policies', value: data.insurance.length, sub: `${expiredIns} expired`, route: '/insurance', icon: '🛡', accent: '#3b82f6' },
-          { label: 'Registrations', value: data.registration.length, sub: 'Active records', route: '/registration', icon: '📋', accent: '#8b5cf6' },
-          { label: 'Inspections', value: data.inspections.length, sub: 'Total inspections', route: '/inspections', icon: '🔍', accent: '#06b6d4' },
-          { label: 'Fines', value: data.fines.length, sub: `${unpaidFines} unpaid`, route: '/fines', icon: '⚠', accent: '#f59e0b' },
-          { label: 'Accidents', value: data.accidents.length, sub: 'Reported incidents', route: '/accidents', icon: '🚨', accent: '#ef4444' },
-          { label: 'Fuel Cost This Month', value: fuelCostThisMonth, sub: 'EUR spent on fuel', route: '/fuel', icon: '⛽', accent: '#14b8a6' },
+          { label: 'Vehicles', value: data.vehicles.length, sub: `${activeVehicles} active`, route: '/vehicles', icon: Car, accent: '#10b981' },
+          { label: 'Open Orders', value: openOrders, sub: 'Maintenance in progress', route: '/maintenance', icon: Wrench, accent: '#f97316' },
+          { label: 'KM This Month', value: kmThisMonth, sub: 'From odometer logs', route: '/odometer', icon: MapPin, accent: '#6366f1' },
+          { label: 'Insurance Policies', value: data.insurance.length, sub: `${expiredIns} expired`, route: '/insurance', icon: Shield, accent: '#3b82f6' },
+          { label: 'Registrations', value: data.registration.length, sub: 'Active records', route: '/registration', icon: Clipboard, accent: '#8b5cf6' },
+          { label: 'Inspections', value: data.inspections.length, sub: 'Total inspections', route: '/inspections', icon: Search, accent: '#06b6d4' },
+          { label: 'Fines', value: data.fines.length, sub: `${unpaidFines} unpaid`, route: '/fines', icon: TriangleAlert, accent: '#f59e0b' },
+          { label: 'Accidents', value: data.accidents.length, sub: 'Reported incidents', route: '/accidents', icon: Siren, accent: '#ef4444' },
+          { label: 'Fuel Cost This Month', value: fuelCostThisMonth, sub: 'EUR spent on fuel', route: '/fuel', icon: Fuel, accent: '#14b8a6' },
         ]);
 
         // ── Charts ────────────────────────────────────────────────
@@ -339,7 +405,7 @@ export class DashboardComponent implements OnInit {
           datasets: [{
             data: statusValues,
             backgroundColor: ['#10b981', '#f97316', '#94a3b8', '#ef4444'],
-            hoverOffset: 6,
+            hoverOffset: 8,
           }]
         });
 
@@ -354,6 +420,7 @@ export class DashboardComponent implements OnInit {
               tension: 0.4,
               fill: true,
               pointRadius: 4,
+              pointHoverRadius: 6,
             },
             {
               label: 'Fines',
@@ -363,6 +430,7 @@ export class DashboardComponent implements OnInit {
               tension: 0.4,
               fill: true,
               pointRadius: 4,
+              pointHoverRadius: 6,
             }
           ]
         });
@@ -432,3 +500,4 @@ function bucketByMonth<T>(items: T[], getDate: (x: T) => string, getValue: (x: T
   }
   return buckets;
 }
+

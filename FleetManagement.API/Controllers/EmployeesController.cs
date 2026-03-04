@@ -83,6 +83,7 @@ public class EmployeesController : ControllerBase
         Email = e.Email,
         Phone = e.Phone,
         IsActive = e.IsActive,
-        HasDriverProfile = e.Driver != null && !e.Driver.IsDeleted
+        HasDriverProfile = e.Driver != null && !e.Driver.IsDeleted,
+        HasAppUser = e.AppUser != null && e.AppUser.IsActive
     };
 }

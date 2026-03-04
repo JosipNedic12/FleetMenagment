@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MaintenanceOrderApiService, VehicleApiService, VendorApiService, LookupApiService } from '../../../core/auth/feature-api.services';
+import { LucideAngularModule, Eye, Pencil, Trash2, Check, X } from 'lucide-angular';
 import {
   MaintenanceOrder, CreateMaintenanceOrderDto, UpdateMaintenanceOrderDto,
   CloseMaintenanceOrderDto, CancelMaintenanceOrderDto,
@@ -18,7 +19,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
 @Component({
   selector: 'app-maintenance-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -70,13 +71,13 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
                   <td>{{ row.items.length }}</td>
                   <td>{{ row.totalCost != null ? (row.totalCost | currency:'EUR':'symbol':'1.2-2') : '—' }}</td>
                   <td class="actions">
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)">✏️</button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     @if (row.status === 'open') {
                       <button *hasRole="['Admin','FleetManager']" class="btn-icon start-btn" title="Start" (click)="startOrder(row)">▶</button>
                     }
                     @if (row.status === 'in_progress') {
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon close-btn" title="Close" (click)="openClose(row)">✓</button>
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Cancel" (click)="openCancel(row)">✕</button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon close-btn" title="Close" (click)="openClose(row)"><lucide-icon [img]="icons.Check" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Cancel" (click)="openCancel(row)"><lucide-icon [img]="icons.X" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
                     }
                     @if (row.status === 'open' || row.status === 'in_progress') {
                       <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Add Item" (click)="openAddItem(row)">＋</button>
@@ -283,6 +284,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
   `]
 })
 export class MaintenanceListComponent implements OnInit {
+  readonly icons = { Eye, Pencil, Trash2, Check, X };
   private api = inject(MaintenanceOrderApiService);
   private vehicleApi = inject(VehicleApiService);
   private vendorApi = inject(VendorApiService);

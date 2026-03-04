@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { OdometerLogApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
+import { LucideAngularModule, Eye, Pencil, Trash2 } from 'lucide-angular';
 import { OdometerLog, CreateOdometerLogDto, Vehicle } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ConfirmModalComponent } from '../../../shared/components/modal/confirm-modal.component';
@@ -10,7 +11,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 @Component({
   selector: 'app-odometer-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmModalComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, ConfirmModalComponent, HasRoleDirective, LucideAngularModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -54,7 +55,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
                     <td class="notes-cell">{{ row.notes ?? '—' }}</td>
                     <td>{{ row.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
                     <td class="actions">
-                      <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)">🗑</button>
+                      <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     </td>
                   </tr>
                 }
@@ -111,6 +112,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
   `]
 })
 export class OdometerListComponent implements OnInit {
+  readonly icons = { Eye, Pencil, Trash2 };
   private api = inject(OdometerLogApiService);
   private vehicleApi = inject(VehicleApiService);
   auth = inject(AuthService);

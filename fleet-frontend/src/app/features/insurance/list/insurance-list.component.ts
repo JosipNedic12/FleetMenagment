@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InsurancePolicyApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
+import { LucideAngularModule, Eye, Pencil, Trash2 } from 'lucide-angular';
 import { InsurancePolicy, CreateInsurancePolicyDto, Vehicle } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
@@ -11,7 +12,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 @Component({
   selector: 'app-insurance-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule],
   template: `
     <div class="page">
       <!-- Header -->
@@ -71,8 +72,8 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
                     />
                   </td>
                   <td class="actions">
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)">✏️</button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="confirmDelete(row)">🗑</button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -150,6 +151,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
   styles: []
 })
 export class InsuranceListComponent implements OnInit {
+  readonly icons = { Eye, Pencil, Trash2 };
   private api = inject(InsurancePolicyApiService);
   private vehicleApi = inject(VehicleApiService);
   auth = inject(AuthService);

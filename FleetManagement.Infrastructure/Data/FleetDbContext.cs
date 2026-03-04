@@ -213,8 +213,8 @@ public class FleetDbContext : DbContext
             entity.HasIndex(e => e.Username).IsUnique();
 
             entity.HasOne(e => e.Employee)
-                  .WithMany()
-                  .HasForeignKey(e => e.EmployeeId);
+                  .WithOne(e => e.AppUser)
+                  .HasForeignKey<AppUser>(e => e.EmployeeId);
         });
         modelBuilder.Entity<OdometerLog>(entity =>
         {

@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VehicleAssignmentApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
+import { LucideAngularModule, Eye, Pencil, Trash2 } from 'lucide-angular';
 import { VehicleAssignment, CreateVehicleAssignmentDto, UpdateVehicleAssignmentDto, Vehicle, Driver } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
@@ -11,7 +12,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 @Component({
   selector: 'app-assignments-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -64,11 +65,11 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
                   </td>
                   <td class="notes-cell">{{ row.notes ?? '—' }}</td>
                   <td class="actions">
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)">✏️</button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     @if (row.isActive) {
                       <button *hasRole="['Admin','FleetManager']" class="btn-icon warning" title="End Assignment" (click)="endAssignment(row)">⏹</button>
                     }
-                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="confirmDelete(row)">🗑</button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -163,6 +164,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
   styles: [`.btn-icon.warning { color:#d97706; } small { color:var(--text-muted); font-size:11px; }`]
 })
 export class AssignmentsListComponent implements OnInit {
+  readonly icons = { Eye, Pencil, Trash2 };
   private api = inject(VehicleAssignmentApiService);
   private vehicleApi = inject(VehicleApiService);
   private driverApi = inject(DriverApiService);

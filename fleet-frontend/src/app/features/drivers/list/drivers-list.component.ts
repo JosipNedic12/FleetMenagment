@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { DriverApiService, EmployeeApiService, LookupApiService } from '../../../core/auth/feature-api.services';
+import { LucideAngularModule, Eye, Pencil, Trash2 } from 'lucide-angular';
 import { Driver, CreateDriverDto, UpdateDriverDto, Employee, LicenseCategoryDto } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
@@ -12,7 +13,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 @Component({
   selector: 'app-drivers-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -67,9 +68,9 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
                     }
                   </td>
                   <td class="actions">
-                    <a [routerLink]="['/drivers', row.driverId]" class="btn-icon" title="View">🔍</a>
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEdit(row)">✏️</button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)">🗑</button>
+                    <a [routerLink]="['/drivers', row.driverId]" class="btn-icon" title="View"><lucide-icon [img]="icons.Eye" [size]="15" [strokeWidth]="2"></lucide-icon></a>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -190,6 +191,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
   `]
 })
 export class DriversListComponent implements OnInit {
+  readonly icons = { Eye, Pencil, Trash2 };
   private api = inject(DriverApiService);
   private employeeApi = inject(EmployeeApiService);
   private lookupApi = inject(LookupApiService);

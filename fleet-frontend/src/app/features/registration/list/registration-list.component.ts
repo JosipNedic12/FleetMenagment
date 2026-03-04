@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RegistrationApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
+import { LucideAngularModule, Eye, Pencil, Trash2 } from 'lucide-angular';
 import { RegistrationRecord, CreateRegistrationRecordDto, Vehicle } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
@@ -11,7 +12,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 @Component({
   selector: 'app-registration-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -59,8 +60,8 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
                     <app-badge [label]="row.isActive ? 'Active' : 'Expired'" [variant]="row.isActive ? 'success' : 'danger'" />
                   </td>
                   <td class="actions">
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEdit(row)">✏️</button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)">🗑</button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -118,6 +119,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
   `
 })
 export class RegistrationListComponent implements OnInit {
+  readonly icons = { Eye, Pencil, Trash2 };
   records  = signal<RegistrationRecord[]>([]);
   vehicles = signal<Vehicle[]>([]);
   loading = signal(true); saving = signal(false); formError = signal('');

@@ -42,6 +42,7 @@ public class FineRepository : IFineRepository
     public async Task<Fine> CreateAsync(Fine fine)
     {
         fine.CreatedAt = DateTime.UtcNow;
+        fine.OccurredAt = DateTime.SpecifyKind(fine.OccurredAt, DateTimeKind.Utc);
         _context.Fines.Add(fine);
         await _context.SaveChangesAsync();
         return (await BaseQuery().FirstAsync(f => f.FineId == fine.FineId));
@@ -53,7 +54,7 @@ public class FineRepository : IFineRepository
         if (fine == null) return null;
 
         fine.DriverId = updated.DriverId;
-        if (updated.OccurredAt != default) fine.OccurredAt = updated.OccurredAt;
+        if (updated.OccurredAt != default) fine.OccurredAt = DateTime.SpecifyKind(updated.OccurredAt, DateTimeKind.Utc);
         if (updated.Amount != default) fine.Amount = updated.Amount;
         if (!string.IsNullOrEmpty(updated.Reason)) fine.Reason = updated.Reason;
         fine.Notes = updated.Notes;

@@ -1,5 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LucideAngularModule } from 'lucide-angular';
+import { Fuel, Wrench, MapPin, CalendarDays } from 'lucide-angular';
 import { forkJoin } from 'rxjs';
 import {
   VehicleApiService,
@@ -58,7 +60,7 @@ interface ComplianceRow {
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -69,10 +71,18 @@ interface ComplianceRow {
       </div>
 
       <div class="tabs">
-        <button class="tab" [class.active]="activeTab() === 'fuel'" (click)="setTab('fuel')">⛽ Fuel Cost</button>
-        <button class="tab" [class.active]="activeTab() === 'maintenance'" (click)="setTab('maintenance')">🔧 Maintenance Spend</button>
-        <button class="tab" [class.active]="activeTab() === 'utilization'" (click)="setTab('utilization')">📍 Fleet Utilization</button>
-        <button class="tab" [class.active]="activeTab() === 'compliance'" (click)="setTab('compliance')">📅 Compliance Expiry</button>
+        <button class="tab" [class.active]="activeTab() === 'fuel'" (click)="setTab('fuel')">
+          <lucide-icon [img]="icons.Fuel" [size]="14" [strokeWidth]="2"></lucide-icon> Fuel Cost
+        </button>
+        <button class="tab" [class.active]="activeTab() === 'maintenance'" (click)="setTab('maintenance')">
+          <lucide-icon [img]="icons.Wrench" [size]="14" [strokeWidth]="2"></lucide-icon> Maintenance Spend
+        </button>
+        <button class="tab" [class.active]="activeTab() === 'utilization'" (click)="setTab('utilization')">
+          <lucide-icon [img]="icons.MapPin" [size]="14" [strokeWidth]="2"></lucide-icon> Fleet Utilization
+        </button>
+        <button class="tab" [class.active]="activeTab() === 'compliance'" (click)="setTab('compliance')">
+          <lucide-icon [img]="icons.CalendarDays" [size]="14" [strokeWidth]="2"></lucide-icon> Compliance Expiry
+        </button>
       </div>
 
       @if (loading()) {
@@ -276,7 +286,7 @@ interface ComplianceRow {
   `,
   styles: [`
     .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: #f8fafc; border-radius: 10px; padding: 4px; width: fit-content; }
-    .tab { padding: 8px 16px; border: none; background: none; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .tab { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border: none; background: none; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: inherit; }
     .tab:hover { background: white; color: var(--text-primary); }
     .tab.active { background: white; color: var(--brand); font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 
@@ -317,6 +327,7 @@ interface ComplianceRow {
   `]
 })
 export class ReportsComponent implements OnInit {
+  readonly icons = { Fuel, Wrench, MapPin, CalendarDays };
   loading = signal(true);
   activeTab = signal<Tab>('fuel');
 

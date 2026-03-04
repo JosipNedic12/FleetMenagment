@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthApiService } from '../../core/auth/feature-api.services';
 import { BadgeComponent } from '../../shared/components/badge/badge.component';
+import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 'lucide-angular';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent],
+  imports: [CommonModule, FormsModule, BadgeComponent, LucideAngularModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -55,19 +56,19 @@ import { BadgeComponent } from '../../shared/components/badge/badge.component';
         <!-- ── Change Password Card ────────────────────────────── -->
         <div class="profile-card password-card">
           <div class="card-header">
-            <span class="card-icon">🔒</span>
+            <div class="card-icon"><lucide-icon [img]="icons.Lock" [size]="16" [strokeWidth]="2"></lucide-icon></div>
             <h3 class="card-title">Change Password</h3>
           </div>
           <div class="card-body">
             @if (pwSuccess()) {
               <div class="alert alert-success">
-                <span class="alert-icon">✓</span>
+                <span class="alert-icon"><lucide-icon [img]="icons.Check" [size]="11" [strokeWidth]="3"></lucide-icon></span>
                 Password updated successfully.
               </div>
             }
             @if (pwError()) {
               <div class="alert alert-error">
-                <span class="alert-icon">!</span>
+                <span class="alert-icon"><lucide-icon [img]="icons.X" [size]="11" [strokeWidth]="3"></lucide-icon></span>
                 {{ pwError() }}
               </div>
             }
@@ -82,7 +83,7 @@ import { BadgeComponent } from '../../shared/components/badge/badge.component';
                   autocomplete="current-password"
                 />
                 <button class="toggle-pw" (click)="showCurrentPw = !showCurrentPw" type="button">
-                  {{ showCurrentPw ? '◉' : '○' }}
+                  <lucide-icon [img]="showCurrentPw ? icons.EyeOff : icons.Eye" [size]="16" [strokeWidth]="2"></lucide-icon>
                 </button>
               </div>
             </div>
@@ -97,7 +98,7 @@ import { BadgeComponent } from '../../shared/components/badge/badge.component';
                   autocomplete="new-password"
                 />
                 <button class="toggle-pw" (click)="showNewPw = !showNewPw" type="button">
-                  {{ showNewPw ? '◉' : '○' }}
+                  <lucide-icon [img]="showNewPw ? icons.EyeOff : icons.Eye" [size]="16" [strokeWidth]="2"></lucide-icon>
                 </button>
               </div>
               @if (pwForm.newPassword.length > 0) {
@@ -133,7 +134,7 @@ import { BadgeComponent } from '../../shared/components/badge/badge.component';
         <!-- ── Activity / Session Card ─────────────────────────── -->
         <div class="profile-card activity-card">
           <div class="card-header">
-            <span class="card-icon">📋</span>
+            <div class="card-icon"><lucide-icon [img]="icons.ClipboardList" [size]="16" [strokeWidth]="2"></lucide-icon></div>
             <h3 class="card-title">Recent Activity</h3>
           </div>
           <div class="card-body">
@@ -467,6 +468,7 @@ import { BadgeComponent } from '../../shared/components/badge/badge.component';
   `]
 })
 export class ProfileComponent implements OnInit {
+  readonly icons = { Lock, Check, X, Eye, EyeOff, ClipboardList };
   auth = inject(AuthService);
   private authApi = inject(AuthApiService);
 

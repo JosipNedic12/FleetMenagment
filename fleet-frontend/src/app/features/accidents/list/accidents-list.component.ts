@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccidentApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
+import { LucideAngularModule, Eye, Pencil, Trash2, TriangleAlert } from 'lucide-angular';
 import { Accident, CreateAccidentDto, Vehicle, Driver } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
@@ -11,7 +12,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 @Component({
   selector: 'app-accidents-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -65,8 +66,8 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
                   <td>{{ row.damageEstimate != null ? (row.damageEstimate | currency:'EUR':'symbol':'1.2-2') : '—' }}</td>
                   <td class="mono">{{ row.policeReport ?? '—' }}</td>
                   <td class="actions">
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEdit(row)">✏️</button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)">🗑</button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -113,7 +114,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
             </div>
             @if (form.severity === 'total') {
               <div class="form-group span-2 total-warning">
-                ⚠️ <strong>Total loss</strong> will automatically retire the vehicle.
+                <lucide-icon [img]="icons.TriangleAlert" [size]="14" [strokeWidth]="2"></lucide-icon> <strong>Total loss</strong> will automatically retire the vehicle.
               </div>
             }
             <div class="form-group span-2">
@@ -161,6 +162,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
   `]
 })
 export class AccidentsListComponent implements OnInit {
+  readonly icons = { Eye, Pencil, Trash2, TriangleAlert };
   accidents = signal<Accident[]>([]);
   vehicles  = signal<Vehicle[]>([]);
   drivers   = signal<Driver[]>([]);

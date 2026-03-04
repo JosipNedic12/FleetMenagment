@@ -50,7 +50,7 @@ public class MaintenanceOrderRepository : IMaintenanceOrderRepository
             return null;
 
         order.VendorId = updated.VendorId;
-        order.ScheduledAt = updated.ScheduledAt;
+        order.ScheduledAt = updated.ScheduledAt.HasValue ? DateTime.SpecifyKind(updated.ScheduledAt.Value, DateTimeKind.Utc) : updated.ScheduledAt;
         order.Description = updated.Description;
         order.ModifiedAt = DateTime.UtcNow;
 

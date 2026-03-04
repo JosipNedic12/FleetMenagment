@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FuelCardApiService, FuelTransactionApiService, VehicleApiService, LookupApiService } from '../../../core/auth/feature-api.services';
+import { LucideAngularModule, Eye, Pencil, Trash2, TriangleAlert } from 'lucide-angular';
 import {
   FuelCard, CreateFuelCardDto, UpdateFuelCardDto,
   FuelTransaction, CreateFuelTransactionDto,
@@ -15,7 +16,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 @Component({
   selector: 'app-fuel-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule],
   template: `
     <div class="page">
       <div class="page-header">
@@ -64,8 +65,8 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
                       <app-badge [label]="row.isActive ? 'Active' : 'Inactive'" [variant]="row.isActive ? 'success' : 'neutral'" />
                     </td>
                     <td class="actions">
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEditCard(row)">✏️</button>
-                      <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDeleteCard(row)">🗑</button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEditCard(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                      <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDeleteCard(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     </td>
                   </tr>
                 }
@@ -111,11 +112,11 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
                     <td>{{ row.stationName ?? '—' }}</td>
                     <td class="actions">
                       @if (!row.isSuspicious) {
-                        <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Mark suspicious" (click)="markSuspicious(row)">⚠</button>
+                        <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Mark suspicious" (click)="markSuspicious(row)"><lucide-icon [img]="icons.TriangleAlert" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                       } @else {
                         <app-badge label="Suspicious" variant="danger" />
                       }
-                      <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDeleteTx(row)">🗑</button>
+                      <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDeleteTx(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     </td>
                   </tr>
                 }
@@ -293,6 +294,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
   `]
 })
 export class FuelListComponent implements OnInit {
+  readonly icons = { Eye, Pencil, Trash2, TriangleAlert };
   private cardApi = inject(FuelCardApiService);
   private txApi = inject(FuelTransactionApiService);
   private vehicleApi = inject(VehicleApiService);

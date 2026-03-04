@@ -17,4 +17,5 @@ public class Employee
 
     // Navigation
     public Driver? Driver { get; set; }
+    public AppUser? AppUser { get; set; }
 }

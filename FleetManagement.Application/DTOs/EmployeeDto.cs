@@ -11,6 +11,7 @@ public class EmployeeDto
     public string? Phone { get; set; }
     public bool IsActive { get; set; }
     public bool HasDriverProfile { get; set; }
+    public bool HasAppUser { get; set; }
 }
 
 public class CreateEmployeeDto
