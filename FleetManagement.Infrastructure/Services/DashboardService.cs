@@ -2,267 +2,308 @@ using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Interfaces;
 using FleetManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Npgsql;
 
 namespace FleetManagement.Infrastructure.Services;
 
 public class DashboardService : IDashboardService
 {
     private readonly FleetDbContext _db;
+    private readonly IMemoryCache _cache;
 
-    public DashboardService(FleetDbContext db)
+    public DashboardService(FleetDbContext db, IMemoryCache cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     public async Task<DashboardDto> GetDashboardAsync()
     {
-        var now = DateTime.UtcNow;
-        var today = DateOnly.FromDateTime(now);
-        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var overdueThreshold = now.AddDays(-14);
-        var dueSoonThreshold = today.AddDays(30);
+        if (_cache.TryGetValue("dashboard", out DashboardDto? cached) && cached != null)
+            return cached;
 
-        // --- Vehicle status counts (1 query instead of separate activeVehicles + statusBreakdown) ---
-        var statusCounts = await _db.Vehicles.AsNoTracking()
-            .Where(v => !v.IsDeleted)
-            .GroupBy(v => v.Status)
-            .Select(g => new { Status = g.Key, Count = g.Count() })
-            .ToListAsync();
-
-        var activeVehicles = statusCounts.FirstOrDefault(s => s.Status == "active")?.Count ?? 0;
-        var totalVehicles = statusCounts.Sum(s => s.Count);
-        var statusBreakdown = new VehicleStatusBreakdownDto
-        {
-            Active = activeVehicles,
-            InService = statusCounts.FirstOrDefault(s => s.Status == "service")?.Count ?? 0,
-            Retired = statusCounts.FirstOrDefault(s => s.Status == "retired")?.Count ?? 0,
-            Sold = statusCounts.FirstOrDefault(s => s.Status == "sold")?.Count ?? 0
-        };
-
-        // --- Maintenance order counts (1 grouped query instead of 4 separate COUNTs) ---
-        var orderCounts = await _db.MaintenanceOrders.AsNoTracking()
-            .GroupBy(o => o.Status)
-            .Select(g => new { Status = g.Key, Count = g.Count() })
-            .ToListAsync();
-
-        var openOrders = (orderCounts.FirstOrDefault(s => s.Status == "open")?.Count ?? 0)
-                       + (orderCounts.FirstOrDefault(s => s.Status == "in_progress")?.Count ?? 0);
-        var overdueOrders = await _db.MaintenanceOrders.AsNoTracking()
-            .CountAsync(o => o.Status == "open" && o.CreatedAt < overdueThreshold);
-
-        var kmThisMonth = await ComputeKmThisMonthAsync(monthStart);
-
-        var unpaidFines = await _db.Fines.AsNoTracking().CountAsync(f => f.PaidAt == null);
-
-        var expiredInsurance = await _db.InsurancePolicies.AsNoTracking().CountAsync(p => p.ValidTo < today);
-
-        var accidentCount = await _db.Accidents.AsNoTracking().CountAsync();
-
-        var fuelCostThisMonth = (await _db.FuelTransactions.AsNoTracking()
-            .Where(t => t.PostedAt >= monthStart)
-            .SumAsync(t => (decimal?)t.TotalCost)) ?? 0m;
-
-        var inspectionsDue = await _db.Inspections.AsNoTracking()
-            .Where(i => i.ValidTo != null && i.ValidTo <= dueSoonThreshold)
-            .CountAsync();
-
-        var complianceReminders = await BuildComplianceRemindersAsync(today, dueSoonThreshold);
-        var assignmentSummary = await BuildAssignmentSummaryAsync(totalVehicles);
-        var charts = await BuildChartDataAsync(now, statusBreakdown);
-
-        return new DashboardDto
-        {
-            ActiveVehicles = activeVehicles,
-            OpenMaintenanceOrders = openOrders,
-            KmThisMonth = kmThisMonth,
-            UnpaidFines = unpaidFines,
-            ExpiredInsurance = expiredInsurance,
-            AccidentCount = accidentCount,
-            FuelCostThisMonth = fuelCostThisMonth,
-            InspectionsDue = inspectionsDue,
-            ComplianceReminders = complianceReminders,
-            AssignmentSummary = assignmentSummary,
-            WorkOrderSummary = new WorkOrderSummaryDto
-            {
-                Open = orderCounts.FirstOrDefault(s => s.Status == "open")?.Count ?? 0,
-                InProgress = orderCounts.FirstOrDefault(s => s.Status == "in_progress")?.Count ?? 0,
-                Completed = orderCounts.FirstOrDefault(s => s.Status == "closed")?.Count ?? 0,
-                Overdue = overdueOrders
-            },
-            FuelCostByMonth = charts.FuelByMonth,
-            MaintenanceCostByMonth = charts.MaintByMonth,
-            VehicleStatusBreakdown = statusBreakdown,
-            AccidentsByMonth = charts.AccidentsByMonth,
-            FinesByMonth = charts.FinesByMonth,
-        };
+        var result = await BuildDashboardInternalAsync();
+        _cache.Set("dashboard", result, TimeSpan.FromSeconds(45));
+        return result;
     }
 
-    private async Task<int> ComputeKmThisMonthAsync(DateTime monthStart)
+    private async Task<DashboardDto> BuildDashboardInternalAsync()
     {
-        // Fetch only the minimal projection needed
-        var logs = await _db.OdometerLogs.AsNoTracking()
-            .Where(o => o.LogDate >= DateOnly.FromDateTime(monthStart.AddMonths(-1)))
-            .Select(o => new { o.VehicleId, o.OdometerKm, o.LogDate })
-            .ToListAsync();
+        var conn = (NpgsqlConnection)_db.Database.GetDbConnection();
+        var wasOpen = conn.State == System.Data.ConnectionState.Open;
+        if (!wasOpen) await conn.OpenAsync();
 
-        var monthStartDate = DateOnly.FromDateTime(monthStart);
-        int total = 0;
-
-        foreach (var group in logs.GroupBy(o => o.VehicleId))
+        try
         {
-            var sorted = group.OrderBy(o => o.LogDate).ToList();
-            var thisMonth = sorted.Where(o => o.LogDate >= monthStartDate).ToList();
+            var (stats, kmThisMonth) = await ReadStatsAsync(conn);
+            var charts = await ReadChartDataAsync(conn);
+            var compliance = await ReadComplianceRemindersAsync(conn);
+
+            return new DashboardDto
+            {
+                ActiveVehicles = stats.ActiveVehicles,
+                OpenMaintenanceOrders = stats.OpenOrders,
+                KmThisMonth = kmThisMonth,
+                UnpaidFines = stats.UnpaidFines,
+                ExpiredInsurance = stats.ExpiredInsurance,
+                AccidentCount = stats.TotalAccidents,
+                FuelCostThisMonth = stats.FuelCostThisMonth,
+                InspectionsDue = stats.ExpiringInspections,
+                ComplianceReminders = compliance,
+                AssignmentSummary = new AssignmentSummaryDto
+                {
+                    TotalVehicles = stats.TotalVehicles,
+                    Assigned = stats.AssignedVehicles,
+                    Unassigned = stats.TotalVehicles - stats.AssignedVehicles
+                },
+                WorkOrderSummary = new WorkOrderSummaryDto
+                {
+                    Open = stats.OpenOnlyOrders,
+                    InProgress = stats.InProgressOrders,
+                    Completed = stats.CompletedOrders,
+                    Overdue = stats.OverdueOrders
+                },
+                VehicleStatusBreakdown = new VehicleStatusBreakdownDto
+                {
+                    Active = stats.ActiveVehicles,
+                    InService = stats.InShopVehicles,
+                    Retired = stats.RetiredVehicles,
+                    Sold = stats.SoldVehicles
+                },
+                FuelCostByMonth = charts.Select(c => c.FuelCost).ToList(),
+                MaintenanceCostByMonth = charts.Select(c => c.MaintCost).ToList(),
+                AccidentsByMonth = charts.Select(c => c.Accidents).ToList(),
+                FinesByMonth = charts.Select(c => c.Fines).ToList()
+            };
+        }
+        finally
+        {
+            if (!wasOpen) await conn.CloseAsync();
+        }
+    }
+
+    // ── Query 1: All scalar stat counts in one round-trip ────────────────────
+    private static async Task<(DashboardStats stats, int kmThisMonth)> ReadStatsAsync(NpgsqlConnection conn)
+    {
+        const string sql = """
+            SELECT
+              (SELECT count(*) FROM fleet.vehicle WHERE NOT is_deleted) AS total_vehicles,
+              (SELECT count(*) FROM fleet.vehicle WHERE NOT is_deleted AND status = 'active') AS active_vehicles,
+              (SELECT count(*) FROM fleet.vehicle WHERE NOT is_deleted AND status = 'service') AS in_shop_vehicles,
+              (SELECT count(*) FROM fleet.vehicle WHERE NOT is_deleted AND status = 'retired') AS retired_vehicles,
+              (SELECT count(*) FROM fleet.vehicle WHERE NOT is_deleted AND status = 'sold') AS sold_vehicles,
+              (SELECT count(*) FROM fleet.maintenance_order WHERE status IN ('open','in_progress')) AS open_orders,
+              (SELECT count(*) FROM fleet.maintenance_order WHERE status = 'open') AS open_only_orders,
+              (SELECT count(*) FROM fleet.maintenance_order WHERE status = 'in_progress') AS in_progress_orders,
+              (SELECT count(*) FROM fleet.maintenance_order WHERE status = 'closed') AS completed_orders,
+              (SELECT count(*) FROM fleet.maintenance_order WHERE status = 'open' AND reported_at < now() - interval '14 days') AS overdue_orders,
+              (SELECT count(*) FROM fleet.fine WHERE paid_at IS NULL) AS unpaid_fines,
+              (SELECT count(*) FROM fleet.insurance_policy WHERE valid_to < now()::date) AS expired_insurance,
+              (SELECT count(*) FROM fleet.accident) AS total_accidents,
+              (SELECT count(*) FROM fleet.inspection WHERE valid_to IS NOT NULL AND valid_to BETWEEN now()::date AND now()::date + interval '30 days') AS expiring_inspections,
+              (SELECT COALESCE(SUM(total_cost), 0) FROM fleet.fuel_transaction WHERE posted_at >= date_trunc('month', now())) AS fuel_cost_this_month,
+              (SELECT count(DISTINCT vehicle_id) FROM fleet.vehicle_assignment WHERE assigned_to IS NULL) AS assigned_vehicles
+            """;
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        await using var r = await cmd.ExecuteReaderAsync();
+        await r.ReadAsync();
+
+        // count(*) returns bigint in PostgreSQL — cast to int
+        static int C(NpgsqlDataReader rd, string col) => (int)rd.GetInt64(rd.GetOrdinal(col));
+
+        var stats = new DashboardStats
+        {
+            TotalVehicles = C(r, "total_vehicles"),
+            ActiveVehicles = C(r, "active_vehicles"),
+            InShopVehicles = C(r, "in_shop_vehicles"),
+            RetiredVehicles = C(r, "retired_vehicles"),
+            SoldVehicles = C(r, "sold_vehicles"),
+            OpenOrders = C(r, "open_orders"),
+            OpenOnlyOrders = C(r, "open_only_orders"),
+            InProgressOrders = C(r, "in_progress_orders"),
+            CompletedOrders = C(r, "completed_orders"),
+            OverdueOrders = C(r, "overdue_orders"),
+            UnpaidFines = C(r, "unpaid_fines"),
+            ExpiredInsurance = C(r, "expired_insurance"),
+            TotalAccidents = C(r, "total_accidents"),
+            ExpiringInspections = C(r, "expiring_inspections"),
+            FuelCostThisMonth = r.GetDecimal(r.GetOrdinal("fuel_cost_this_month")),
+            AssignedVehicles = C(r, "assigned_vehicles")
+        };
+
+        // Need a second read for odometer — close this reader first
+        await r.CloseAsync();
+
+        int kmThisMonth = await ReadKmThisMonthAsync(conn);
+        return (stats, kmThisMonth);
+    }
+
+    // ── Query 4: KM this month via odometer logs ─────────────────────────────
+    private static async Task<int> ReadKmThisMonthAsync(NpgsqlConnection conn)
+    {
+        const string sql = """
+            SELECT vehicle_id, odometer_km, log_date
+            FROM fleet.odometer_log
+            WHERE log_date >= (date_trunc('month', now()) - interval '1 month')::date
+            ORDER BY vehicle_id, log_date
+            """;
+
+        var rows = new List<(int vehicleId, int odometerKm, DateOnly logDate)>();
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        await using var r = await cmd.ExecuteReaderAsync();
+        while (await r.ReadAsync())
+            rows.Add((r.GetInt32(0), r.GetInt32(1), r.GetFieldValue<DateOnly>(2)));
+
+        var monthStart = DateOnly.FromDateTime(new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1));
+        int total = 0;
+        foreach (var group in rows.GroupBy(o => o.vehicleId))
+        {
+            var sorted = group.OrderBy(o => o.logDate).ToList();
+            var thisMonth = sorted.Where(o => o.logDate >= monthStart).ToList();
             if (thisMonth.Count == 0) continue;
 
-            var maxThisMonth = thisMonth.Max(o => o.OdometerKm);
-            var beforeMonth = sorted.Where(o => o.LogDate < monthStartDate).ToList();
+            var maxThisMonth = thisMonth.Max(o => o.odometerKm);
+            var beforeMonth = sorted.Where(o => o.logDate < monthStart).ToList();
             var baseline = beforeMonth.Count > 0
-                ? beforeMonth.Last().OdometerKm
-                : thisMonth.Min(o => o.OdometerKm);
+                ? beforeMonth.Last().odometerKm
+                : thisMonth.Min(o => o.odometerKm);
 
             total += Math.Max(0, maxThisMonth - baseline);
         }
-
         return total;
     }
 
-    private async Task<List<ComplianceReminderDto>> BuildComplianceRemindersAsync(
-        DateOnly today, DateOnly dueSoonThreshold)
+    // ── Query 2: Monthly chart data (6 months) ───────────────────────────────
+    private static async Task<List<MonthlyChartRow>> ReadChartDataAsync(NpgsqlConnection conn)
     {
+        const string sql = """
+            SELECT
+              to_char(month, 'YYYY-MM') AS month_key,
+              COALESCE(SUM(fuel_cost), 0) AS fuel_cost,
+              COALESCE(SUM(maint_cost), 0) AS maint_cost,
+              COALESCE(SUM(accident_count), 0) AS accidents,
+              COALESCE(SUM(fine_count), 0) AS fines
+            FROM generate_series(
+              date_trunc('month', now()) - interval '5 months',
+              date_trunc('month', now()),
+              '1 month'
+            ) AS month
+            LEFT JOIN (
+              SELECT date_trunc('month', posted_at) AS m, SUM(total_cost) AS fuel_cost
+              FROM fleet.fuel_transaction GROUP BY 1
+            ) f ON f.m = month
+            LEFT JOIN (
+              SELECT date_trunc('month', reported_at) AS m, SUM(total_cost) AS maint_cost
+              FROM fleet.maintenance_order WHERE status = 'closed' GROUP BY 1
+            ) mt ON mt.m = month
+            LEFT JOIN (
+              SELECT date_trunc('month', occurred_at) AS m, count(*) AS accident_count
+              FROM fleet.accident GROUP BY 1
+            ) a ON a.m = month
+            LEFT JOIN (
+              SELECT date_trunc('month', occurred_at) AS m, count(*) AS fine_count
+              FROM fleet.fine GROUP BY 1
+            ) fi ON fi.m = month
+            GROUP BY month
+            ORDER BY month
+            """;
+
+        var rows = new List<MonthlyChartRow>();
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        await using var r = await cmd.ExecuteReaderAsync();
+        while (await r.ReadAsync())
+        {
+            rows.Add(new MonthlyChartRow
+            {
+                MonthKey = r.GetString(0),
+                FuelCost = r.GetDecimal(1),
+                MaintCost = r.GetDecimal(2),
+                Accidents = (int)r.GetInt64(3),
+                Fines = (int)r.GetInt64(4)
+            });
+        }
+        return rows;
+    }
+
+    // ── Query 3: Compliance reminders ────────────────────────────────────────
+    private static async Task<List<ComplianceReminderDto>> ReadComplianceRemindersAsync(NpgsqlConnection conn)
+    {
+        const string sql = """
+            SELECT c.vehicle_id, v.registration_number, c.type, c.expires_at
+            FROM (
+              SELECT vehicle_id, 'Insurance' AS type, valid_to AS expires_at
+              FROM fleet.insurance_policy
+              WHERE valid_to BETWEEN now()::date - interval '30 days' AND now()::date + interval '30 days'
+              UNION ALL
+              SELECT vehicle_id, 'Registration', valid_to
+              FROM fleet.registration_record
+              WHERE valid_to BETWEEN now()::date - interval '30 days' AND now()::date + interval '30 days'
+              UNION ALL
+              SELECT vehicle_id, 'Inspection', valid_to
+              FROM fleet.inspection
+              WHERE valid_to IS NOT NULL
+                AND valid_to BETWEEN now()::date - interval '30 days' AND now()::date + interval '30 days'
+            ) c
+            JOIN fleet.vehicle v ON v.vehicle_id = c.vehicle_id
+            ORDER BY c.expires_at ASC
+            LIMIT 20
+            """;
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var reminders = new List<ComplianceReminderDto>();
 
-        // Insurance
-        var insurance = await _db.InsurancePolicies.AsNoTracking()
-            .Where(p => p.ValidTo <= dueSoonThreshold)
-            .Select(p => new { p.VehicleId, p.Vehicle.RegistrationNumber, p.ValidTo })
-            .ToListAsync();
-
-        foreach (var p in insurance)
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        await using var r = await cmd.ExecuteReaderAsync();
+        while (await r.ReadAsync())
         {
-            var daysLeft = p.ValidTo.DayNumber - today.DayNumber;
+            var vehicleId = r.GetInt32(0);
+            var regNumber = r.GetString(1);
+            var type = r.GetString(2);
+            var expiresAt = r.GetFieldValue<DateOnly>(3);
+            var daysLeft = expiresAt.DayNumber - today.DayNumber;
+
             reminders.Add(new ComplianceReminderDto
             {
-                VehicleId = p.VehicleId,
-                RegistrationNumber = p.RegistrationNumber,
-                Type = "Insurance",
-                ExpiresAt = p.ValidTo,
+                VehicleId = vehicleId,
+                RegistrationNumber = regNumber,
+                Type = type,
+                ExpiresAt = expiresAt,
                 DaysLeft = daysLeft,
                 Status = daysLeft < 0 ? "expired" : "due_soon"
             });
         }
-
-        // Registration
-        var registration = await _db.RegistrationRecords.AsNoTracking()
-            .Where(r => r.ValidTo <= dueSoonThreshold)
-            .Select(r => new { r.VehicleId, r.Vehicle.RegistrationNumber, r.ValidTo })
-            .ToListAsync();
-
-        foreach (var r in registration)
-        {
-            var daysLeft = r.ValidTo.DayNumber - today.DayNumber;
-            reminders.Add(new ComplianceReminderDto
-            {
-                VehicleId = r.VehicleId,
-                RegistrationNumber = r.RegistrationNumber,
-                Type = "Registration",
-                ExpiresAt = r.ValidTo,
-                DaysLeft = daysLeft,
-                Status = daysLeft < 0 ? "expired" : "due_soon"
-            });
-        }
-
-        // Inspection
-        var inspections = await _db.Inspections.AsNoTracking()
-            .Where(i => i.ValidTo != null && i.ValidTo <= dueSoonThreshold)
-            .Select(i => new { i.VehicleId, i.Vehicle.RegistrationNumber, ValidTo = i.ValidTo!.Value })
-            .ToListAsync();
-
-        foreach (var i in inspections)
-        {
-            var daysLeft = i.ValidTo.DayNumber - today.DayNumber;
-            reminders.Add(new ComplianceReminderDto
-            {
-                VehicleId = i.VehicleId,
-                RegistrationNumber = i.RegistrationNumber,
-                Type = "Inspection",
-                ExpiresAt = i.ValidTo,
-                DaysLeft = daysLeft,
-                Status = daysLeft < 0 ? "expired" : "due_soon"
-            });
-        }
-
-        // Return top 5 by daysLeft ascending (most urgent first)
-        return reminders.OrderBy(r => r.DaysLeft).Take(5).ToList();
+        return reminders;
     }
 
-    private async Task<AssignmentSummaryDto> BuildAssignmentSummaryAsync(int totalVehicles)
+    // ── Private DTOs for internal mapping ────────────────────────────────────
+    private sealed class DashboardStats
     {
-        // A vehicle is "assigned" if it has an active assignment (AssignedTo is null = currently active)
-        var assignedVehicleIds = await _db.VehicleAssignments.AsNoTracking()
-            .Where(a => a.AssignedTo == null)
-            .Select(a => a.VehicleId)
-            .Distinct()
-            .CountAsync();
-
-        return new AssignmentSummaryDto
-        {
-            TotalVehicles = totalVehicles,
-            Assigned = assignedVehicleIds,
-            Unassigned = totalVehicles - assignedVehicleIds
-        };
+        public int TotalVehicles { get; init; }
+        public int ActiveVehicles { get; init; }
+        public int InShopVehicles { get; init; }
+        public int RetiredVehicles { get; init; }
+        public int SoldVehicles { get; init; }
+        public int OpenOrders { get; init; }
+        public int OpenOnlyOrders { get; init; }
+        public int InProgressOrders { get; init; }
+        public int CompletedOrders { get; init; }
+        public int OverdueOrders { get; init; }
+        public int UnpaidFines { get; init; }
+        public int ExpiredInsurance { get; init; }
+        public int TotalAccidents { get; init; }
+        public int ExpiringInspections { get; init; }
+        public decimal FuelCostThisMonth { get; init; }
+        public int AssignedVehicles { get; init; }
     }
 
-    private async Task<(
-        List<decimal> FuelByMonth,
-        List<decimal> MaintByMonth,
-        List<int> AccidentsByMonth,
-        List<int> FinesByMonth)> BuildChartDataAsync(DateTime now, VehicleStatusBreakdownDto statusBreakdown)
+    private sealed class MonthlyChartRow
     {
-        // Month buckets: [month-5, month-4, ..., current month]
-        var months = Enumerable.Range(0, 6)
-            .Select(i => new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-(5 - i)))
-            .ToList();
-
-        var rangeStart = months[0];
-
-        // Fuel cost by month
-        var fuelRaw = await _db.FuelTransactions.AsNoTracking()
-            .Where(t => t.PostedAt >= rangeStart)
-            .Select(t => new { t.PostedAt, t.TotalCost })
-            .ToListAsync();
-
-        var fuelByMonth = months.Select(m =>
-            fuelRaw.Where(t => t.PostedAt.Year == m.Year && t.PostedAt.Month == m.Month)
-                   .Sum(t => t.TotalCost)).ToList();
-
-        // Maintenance cost by month (closed orders, by closedAt)
-        var maintRaw = await _db.MaintenanceOrders.AsNoTracking()
-            .Where(o => o.Status == "closed" && o.ClosedAt >= rangeStart && o.TotalCost != null)
-            .Select(o => new { o.ClosedAt, o.TotalCost })
-            .ToListAsync();
-
-        var maintByMonth = months.Select(m =>
-            maintRaw.Where(o => o.ClosedAt!.Value.Year == m.Year && o.ClosedAt!.Value.Month == m.Month)
-                    .Sum(o => o.TotalCost ?? 0m)).ToList();
-
-        // Accidents by month
-        var accidentsRaw = await _db.Accidents.AsNoTracking()
-            .Where(a => a.OccurredAt >= rangeStart)
-            .Select(a => a.OccurredAt)
-            .ToListAsync();
-
-        var accidentsByMonth = months.Select(m =>
-            accidentsRaw.Count(d => d.Year == m.Year && d.Month == m.Month)).ToList();
-
-        // Fines by month
-        var finesRaw = await _db.Fines.AsNoTracking()
-            .Where(f => f.OccurredAt >= rangeStart)
-            .Select(f => f.OccurredAt)
-            .ToListAsync();
-
-        var finesByMonth = months.Select(m =>
-            finesRaw.Count(d => d.Year == m.Year && d.Month == m.Month)).ToList();
-
-        return (fuelByMonth, maintByMonth, accidentsByMonth, finesByMonth);
+        public string MonthKey { get; init; } = string.Empty;
+        public decimal FuelCost { get; init; }
+        public decimal MaintCost { get; init; }
+        public int Accidents { get; init; }
+        public int Fines { get; init; }
     }
 }

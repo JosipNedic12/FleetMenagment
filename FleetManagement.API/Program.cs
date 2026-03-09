@@ -96,6 +96,7 @@ builder.Services.AddScoped<IFineRepository, FineRepository>();
 builder.Services.AddScoped<IAccidentRepository, AccidentRepository>();
 builder.Services.AddScoped<IInspectionRepository, InspectionRepository>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddMemoryCache();
 var app = builder.Build();
 
 // Ensure uploads folder exists
