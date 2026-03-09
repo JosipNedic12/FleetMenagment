@@ -33,6 +33,16 @@ type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | '
   imports: [CommonModule, RouterModule, BadgeComponent, LucideAngularModule, FileUploadComponent, DocumentListComponent],
   template: `
     <div class="page">
+
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb">
+        <a routerLink="/dashboard">Dashboard</a>
+        <span class="bc-sep">›</span>
+        <a routerLink="/vehicles">Vehicles</a>
+        <span class="bc-sep">›</span>
+        <span>{{ vehicle()?.registrationNumber ?? 'Detail' }}</span>
+      </nav>
+
       <div class="page-header">
         <div style="display:flex; align-items:center; gap:12px">
           <button class="back-btn" (click)="goBack()">
@@ -51,7 +61,7 @@ type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | '
         @if (vehicle()) {
           <app-badge
             [label]="vehicle()!.status"
-            [variant]="vehicle()!.status === 'active' ? 'success' : vehicle()!.status === 'service' ? 'warning' : 'neutral'"
+            [variant]="statusVariant(vehicle()!.status)"
           />
         }
       </div>
@@ -75,58 +85,78 @@ type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | '
 
         <!-- Overview -->
         @if (activeTab() === 'overview') {
-          <div class="section-card">
-            <div class="kv-grid">
-              <div class="kv-row">
-                <span class="kv-label">Registration Number</span>
-                <span class="kv-value mono">{{ vehicle()!.registrationNumber }}</span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">Make</span>
-                <span class="kv-value">{{ vehicle()!.make }}</span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">Model</span>
-                <span class="kv-value">{{ vehicle()!.model }}</span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">Year</span>
-                <span class="kv-value">{{ vehicle()!.year }}</span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">Category</span>
-                <span class="kv-value">{{ vehicle()!.category }}</span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">Fuel Type</span>
-                <span class="kv-value">{{ vehicle()!.fuelType }}</span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">VIN</span>
-                <span class="kv-value mono">{{ vehicle()!.vin || '—' }}</span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">Color</span>
-                <span class="kv-value">{{ vehicle()!.color || '—' }}</span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">Status</span>
-                <span class="kv-value">
-                  <app-badge
-                    [label]="vehicle()!.status"
-                    [variant]="vehicle()!.status === 'active' ? 'success' : vehicle()!.status === 'service' ? 'warning' : 'neutral'"
-                  />
-                </span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">Odometer</span>
-                <span class="kv-value">{{ vehicle()!.currentOdometerKm | number }} km</span>
-              </div>
-              <div class="kv-row kv-full">
-                <span class="kv-label">Notes</span>
-                <span class="kv-value">{{ vehicle()!.notes || '—' }}</span>
+          <div class="overview-grid">
+
+            <!-- Vehicle Info -->
+            <div class="info-group">
+              <div class="info-group-title">Vehicle Info</div>
+              <div class="kv-grid">
+                <div class="kv-row">
+                  <span class="kv-label">Registration Number</span>
+                  <span class="kv-value mono">{{ vehicle()!.registrationNumber }}</span>
+                </div>
+                <div class="kv-row">
+                  <span class="kv-label">Make</span>
+                  <span class="kv-value">{{ vehicle()!.make }}</span>
+                </div>
+                <div class="kv-row">
+                  <span class="kv-label">Model</span>
+                  <span class="kv-value">{{ vehicle()!.model }}</span>
+                </div>
+                <div class="kv-row">
+                  <span class="kv-label">Year</span>
+                  <span class="kv-value">{{ vehicle()!.year }}</span>
+                </div>
+                <div class="kv-row kv-full">
+                  <span class="kv-label">Category</span>
+                  <span class="kv-value">{{ vehicle()!.category }}</span>
+                </div>
               </div>
             </div>
+
+            <!-- Status & Operations -->
+            <div class="info-group">
+              <div class="info-group-title">Status &amp; Operations</div>
+              <div class="kv-grid">
+                <div class="kv-row kv-full">
+                  <span class="kv-label">Status</span>
+                  <span class="kv-value">
+                    <app-badge
+                      [label]="vehicle()!.status"
+                      [variant]="statusVariant(vehicle()!.status)"
+                    />
+                  </span>
+                </div>
+                <div class="kv-row">
+                  <span class="kv-label">Odometer</span>
+                  <span class="kv-value">{{ vehicle()!.currentOdometerKm | number }} km</span>
+                </div>
+                <div class="kv-row">
+                  <span class="kv-label">Color</span>
+                  <span class="kv-value">{{ vehicle()!.color || '—' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Technical Details -->
+            <div class="info-group info-group--full">
+              <div class="info-group-title">Technical Details</div>
+              <div class="kv-grid kv-grid--3">
+                <div class="kv-row">
+                  <span class="kv-label">Fuel Type</span>
+                  <span class="kv-value">{{ vehicle()!.fuelType }}</span>
+                </div>
+                <div class="kv-row">
+                  <span class="kv-label">VIN</span>
+                  <span class="kv-value mono">{{ vehicle()!.vin || '—' }}</span>
+                </div>
+                <div class="kv-row">
+                  <span class="kv-label">Notes</span>
+                  <span class="kv-value">{{ vehicle()!.notes || '—' }}</span>
+                </div>
+              </div>
+            </div>
+
           </div>
         }
 
@@ -337,20 +367,35 @@ type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | '
 
     .mono { font-family: monospace; }
 
+    /* Breadcrumb */
+    .breadcrumb {
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 14px; font-size: 13px;
+    }
+    .breadcrumb a { color: #6366f1; text-decoration: none; font-weight: 500; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .bc-sep { color: var(--text-muted); }
+    .breadcrumb span:last-child { color: var(--text-secondary); font-weight: 500; }
+
+    /* Underline tab bar */
     .tabs {
-      display: flex; gap: 4px; flex-wrap: wrap;
-      margin-bottom: 20px; background: #f8fafc;
-      border-radius: 10px; padding: 4px; width: fit-content; max-width: 100%;
+      display: flex; gap: 0; flex-wrap: wrap;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #f1f5f9;
+      width: 100%;
     }
     .tab {
       display: flex; align-items: center; gap: 6px;
-      padding: 8px 14px; border: none; background: none;
-      border-radius: 8px; font-size: 13px; font-weight: 500;
+      padding: 10px 16px; border: none; background: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      font-size: 13px; font-weight: 500;
       color: var(--text-muted); cursor: pointer;
-      transition: all 0.15s; white-space: nowrap; font-family: inherit;
+      transition: color 0.15s, border-color 0.2s, background 0.15s;
+      white-space: nowrap; font-family: inherit;
     }
-    .tab:hover { background: white; color: var(--text-primary); }
-    .tab.active { background: white; color: var(--brand); font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .tab:hover { background: #f8fafc; color: var(--text-primary); }
+    .tab.active { color: var(--brand); font-weight: 600; border-bottom-color: var(--brand); background: none; }
     .tab-count {
       background: #e2e8f0; color: #64748b;
       border-radius: 10px; padding: 1px 7px;
@@ -363,30 +408,56 @@ type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | '
       border-radius: 12px; padding: 24px;
     }
 
-    /* Overview key-value grid */
+    /* Overview grouped layout */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .info-group {
+      background: #fff; border: 1.5px solid #f1f5f9;
+      border-radius: 12px; overflow: hidden;
+    }
+    .info-group--full { grid-column: 1 / -1; }
+    .info-group-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--text-muted);
+      padding: 12px 16px; border-bottom: 1px solid #f1f5f9;
+      background: #f8fafc;
+    }
+
+    /* Key-value grid */
     .kv-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 0;
     }
+    .kv-grid--3 { grid-template-columns: repeat(3, 1fr); }
     .kv-row {
       display: flex; flex-direction: column; gap: 4px;
       padding: 14px 16px;
       border-bottom: 1px solid #f1f5f9;
     }
     .kv-row:nth-child(odd):not(.kv-full) { border-right: 1px solid #f1f5f9; }
-    .kv-full { grid-column: 1 / -1; }
+    .kv-full { grid-column: 1 / -1; border-right: none !important; }
     .kv-label {
       font-size: 11px; font-weight: 600; color: var(--text-muted);
       text-transform: uppercase; letter-spacing: 0.5px;
     }
     .kv-value { font-size: 14px; color: var(--text-primary); word-break: break-all; }
 
+    @media (max-width: 768px) {
+      .overview-grid { grid-template-columns: 1fr; }
+      .info-group--full { grid-column: 1; }
+      .kv-grid--3 { grid-template-columns: 1fr 1fr; }
+    }
+
     @media (max-width: 600px) {
       .kv-grid { grid-template-columns: 1fr; }
+      .kv-grid--3 { grid-template-columns: 1fr; }
       .kv-row:nth-child(odd):not(.kv-full) { border-right: none; }
       .tabs { width: 100%; }
-      .tab { font-size: 12px; padding: 7px 10px; }
+      .tab { font-size: 12px; padding: 8px 10px; }
     }
   `]
 })
@@ -477,6 +548,15 @@ export class VehicleDetailComponent implements OnInit {
   onDocumentUploaded(doc: Document): void {
     this.documents.update(docs => [doc, ...docs]);
     this.docList?.loadDocuments();
+  }
+
+  statusVariant(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
+    switch (status) {
+      case 'active':          return 'success';
+      case 'service':         return 'warning';
+      case 'out_of_service':  return 'danger';
+      default:                return 'neutral';
+    }
   }
 
   getCount(tab: Tab): number {

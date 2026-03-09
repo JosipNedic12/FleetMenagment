@@ -1,9 +1,9 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { VehicleApiService, LookupApiService } from '../../../core/auth/feature-api.services';
-import { LucideAngularModule, Eye, Pencil, Trash2 } from 'lucide-angular';
+import { LucideAngularModule, Eye, Pencil, Trash2, Car as CarIcon } from 'lucide-angular';
 import { Vehicle, CreateVehicleDto, UpdateVehicleDto, MakeDto, ModelDto, VehicleCategoryDto, FuelTypeDto } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
@@ -38,24 +38,45 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
       </div>
 
       <div class="table-card">
-        @if (loading()) { <div class="table-loading">Loading…</div> }
-        @else if (filtered().length === 0) { <div class="table-empty">No vehicles found.</div> }
-        @else {
+        @if (loading()) {
+          <div class="skeleton-header"></div>
+          @for (i of skeletonRows; track i) {
+            <div class="skeleton-row">
+              <div class="skeleton-cell w-24"></div>
+              <div class="skeleton-cell w-40"></div>
+              <div class="skeleton-cell w-16"></div>
+              <div class="skeleton-cell w-24"></div>
+              <div class="skeleton-cell w-24"></div>
+              <div class="skeleton-cell w-32"></div>
+              <div class="skeleton-cell w-16"></div>
+              <div class="skeleton-cell w-16"></div>
+            </div>
+          }
+        } @else if (sorted().length === 0) {
+          <div class="table-empty-state">
+            <div class="empty-icon">
+              <lucide-icon [img]="icons.CarIcon" [size]="44" [strokeWidth]="1.3"></lucide-icon>
+            </div>
+            <h3>No vehicles found</h3>
+            <p>Try adjusting your search or filter, or add your first vehicle.</p>
+            <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreate()">+ Add Vehicle</button>
+          </div>
+        } @else {
           <table class="table">
             <thead>
               <tr>
-                <th>Reg#</th>
-                <th>Make / Model</th>
-                <th>Year</th>
+                <th class="sortable" [class.sort-asc]="sortCol()==='reg'&&sortDir()==='asc'" [class.sort-desc]="sortCol()==='reg'&&sortDir()==='desc'" (click)="sort('reg')">Reg#</th>
+                <th class="sortable" [class.sort-asc]="sortCol()==='make'&&sortDir()==='asc'" [class.sort-desc]="sortCol()==='make'&&sortDir()==='desc'" (click)="sort('make')">Make / Model</th>
+                <th class="sortable" [class.sort-asc]="sortCol()==='year'&&sortDir()==='asc'" [class.sort-desc]="sortCol()==='year'&&sortDir()==='desc'" (click)="sort('year')">Year</th>
                 <th>Category</th>
                 <th>Fuel</th>
-                <th>Odometer</th>
+                <th class="sortable" [class.sort-asc]="sortCol()==='odo'&&sortDir()==='asc'" [class.sort-desc]="sortCol()==='odo'&&sortDir()==='desc'" (click)="sort('odo')">Odometer</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              @for (row of filtered(); track row.vehicleId) {
+              @for (row of sorted(); track row.vehicleId) {
                 <tr>
                   <td><strong class="mono">{{ row.registrationNumber }}</strong></td>
                   <td>{{ row.make }} {{ row.model }}</td>
@@ -149,7 +170,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
           <div class="modal-actions">
             <button class="btn btn-secondary" (click)="closeCreate()">Cancel</button>
             <button class="btn btn-primary" [disabled]="saving()" (click)="saveCreate()">
-              {{ saving() ? 'Saving…' : 'Add Vehicle' }}
+              @if (saving()) { <span class="btn-spinner"></span> Saving… } @else { Add Vehicle }
             </button>
           </div>
         </div>
@@ -184,7 +205,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
           <div class="modal-actions">
             <button class="btn btn-secondary" (click)="closeEdit()">Cancel</button>
             <button class="btn btn-primary" [disabled]="saving()" (click)="saveEdit()">
-              {{ saving() ? 'Saving…' : 'Update' }}
+              @if (saving()) { <span class="btn-spinner"></span> Saving… } @else { Update }
             </button>
           </div>
         </div>
@@ -202,7 +223,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
   styles: []
 })
 export class VehiclesListComponent implements OnInit {
-  readonly icons = { Eye, Pencil, Trash2 };
+  readonly icons = { Eye, Pencil, Trash2, CarIcon };
   private api = inject(VehicleApiService);
   private lookupApi = inject(LookupApiService);
   auth = inject(AuthService);
@@ -218,6 +239,10 @@ export class VehiclesListComponent implements OnInit {
   deleteTarget: Vehicle | null = null;
   filter = signal<'all' | VehicleStatus>('all');
   readonly currentYear = new Date().getFullYear();
+  readonly skeletonRows = [1, 2, 3, 4, 5, 6];
+
+  sortCol = signal('');
+  sortDir = signal<'asc' | 'desc'>('asc');
 
   createForm: CreateVehicleDto = this.emptyCreateForm();
   editForm: UpdateVehicleDto = {};
@@ -233,6 +258,31 @@ export class VehiclesListComponent implements OnInit {
     );
     return list;
   });
+
+  sorted = computed(() => {
+    const col = this.sortCol();
+    const dir = this.sortDir();
+    if (!col) return this.filtered();
+    return [...this.filtered()].sort((a, b) => {
+      let va: string | number = '';
+      let vb: string | number = '';
+      if (col === 'reg')  { va = a.registrationNumber; vb = b.registrationNumber; }
+      if (col === 'make') { va = a.make + a.model;      vb = b.make + b.model; }
+      if (col === 'year') { va = a.year;                vb = b.year; }
+      if (col === 'odo')  { va = a.currentOdometerKm;   vb = b.currentOdometerKm; }
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return dir === 'asc' ? cmp : -cmp;
+    });
+  });
+
+  sort(col: string): void {
+    if (this.sortCol() === col) {
+      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortCol.set(col);
+      this.sortDir.set('asc');
+    }
+  }
 
   ngOnInit(): void {
     this.load();
@@ -291,6 +341,12 @@ export class VehiclesListComponent implements OnInit {
   }
 
   closeEdit(): void { this.showEdit = false; this.editId = null; this.formError.set(''); }
+
+  @HostListener('keydown.escape')
+  onEscape(): void {
+    if (this.showCreate) { this.closeCreate(); return; }
+    if (this.showEdit)   { this.closeEdit();   return; }
+  }
 
   confirmDelete(row: Vehicle): void { this.deleteTarget = row; }
   doDelete(): void {

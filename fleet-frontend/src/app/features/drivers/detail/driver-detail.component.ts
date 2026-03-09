@@ -22,6 +22,16 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents';
   imports: [CommonModule, RouterModule, BadgeComponent, LucideAngularModule],
   template: `
     <div class="page">
+
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb">
+        <a routerLink="/dashboard">Dashboard</a>
+        <span class="bc-sep">›</span>
+        <a routerLink="/drivers">Drivers</a>
+        <span class="bc-sep">›</span>
+        <span>{{ driver()?.fullName ?? 'Detail' }}</span>
+      </nav>
+
       <div class="page-header">
         <div style="display:flex; align-items:center; gap:12px">
           <button class="back-btn" (click)="goBack()">
@@ -64,49 +74,69 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents';
 
         <!-- Overview -->
         @if (activeTab() === 'overview') {
-          <div class="section-card">
-            <div class="kv-grid">
-              <div class="kv-row">
-                <span class="kv-label">Full Name</span>
-                <span class="kv-value">{{ driver()!.fullName }}</span>
+          <div class="overview-grid">
+
+            <!-- Avatar + Personal Info -->
+            <div class="info-group">
+              <div class="info-group-title">Personal Info</div>
+              <div class="driver-header">
+                <div class="avatar">{{ getInitials(driver()!.fullName) }}</div>
+                <div class="driver-header-details">
+                  <span class="driver-name">{{ driver()!.fullName }}</span>
+                  <span class="driver-dept">{{ driver()!.department || 'No department' }}</span>
+                </div>
               </div>
-              <div class="kv-row">
-                <span class="kv-label">License Number</span>
-                <span class="kv-value mono">{{ driver()!.licenseNumber }}</span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">License Expiry</span>
-                <span class="kv-value" [class.expired-text]="driver()!.licenseExpired">
-                  {{ driver()!.licenseExpiry | date:'dd.MM.yyyy' }}
-                </span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">Department</span>
-                <span class="kv-value">{{ driver()!.department || '—' }}</span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">License Status</span>
-                <span class="kv-value">
-                  <app-badge
-                    [label]="driver()!.licenseExpired ? 'Expired' : 'Valid'"
-                    [variant]="driver()!.licenseExpired ? 'danger' : 'success'"
-                  />
-                </span>
-              </div>
-              <div class="kv-row">
-                <span class="kv-label">License Categories</span>
-                <span class="kv-value">
-                  @for (cat of driver()!.licenseCategories; track cat) {
-                    <span class="cat-chip">{{ cat }}</span>
-                  }
-                  @if (driver()!.licenseCategories.length === 0) { — }
-                </span>
-              </div>
-              <div class="kv-row kv-full">
-                <span class="kv-label">Notes</span>
-                <span class="kv-value">{{ driver()!.notes || '—' }}</span>
+              <div class="kv-grid">
+                <div class="kv-row kv-full">
+                  <span class="kv-label">Full Name</span>
+                  <span class="kv-value">{{ driver()!.fullName }}</span>
+                </div>
+                <div class="kv-row kv-full">
+                  <span class="kv-label">Department</span>
+                  <span class="kv-value">{{ driver()!.department || '—' }}</span>
+                </div>
+                <div class="kv-row kv-full">
+                  <span class="kv-label">Notes</span>
+                  <span class="kv-value">{{ driver()!.notes || '—' }}</span>
+                </div>
               </div>
             </div>
+
+            <!-- License -->
+            <div class="info-group">
+              <div class="info-group-title">License</div>
+              <div class="kv-grid">
+                <div class="kv-row kv-full">
+                  <span class="kv-label">License Number</span>
+                  <span class="kv-value mono">{{ driver()!.licenseNumber }}</span>
+                </div>
+                <div class="kv-row kv-full">
+                  <span class="kv-label">License Expiry</span>
+                  <span class="kv-value" [class.expired-text]="driver()!.licenseExpired">
+                    {{ driver()!.licenseExpiry | date:'dd.MM.yyyy' }}
+                  </span>
+                </div>
+                <div class="kv-row kv-full">
+                  <span class="kv-label">License Status</span>
+                  <span class="kv-value">
+                    <app-badge
+                      [label]="driver()!.licenseExpired ? 'Expired' : 'Valid'"
+                      [variant]="driver()!.licenseExpired ? 'danger' : 'success'"
+                    />
+                  </span>
+                </div>
+                <div class="kv-row kv-full">
+                  <span class="kv-label">License Categories</span>
+                  <span class="kv-value cat-list">
+                    @for (cat of driver()!.licenseCategories; track cat) {
+                      <span class="cat-chip">{{ cat }}</span>
+                    }
+                    @if (driver()!.licenseCategories.length === 0) { <span>—</span> }
+                  </span>
+                </div>
+              </div>
+            </div>
+
           </div>
         }
 
@@ -199,24 +229,38 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents';
 
     .mono { font-family: monospace; }
     .expired-text { color: #dc2626; font-weight: 600; }
-    .cat-chip { display:inline-block; background:#e0f2fe; color:#0369a1; border-radius:4px; padding:1px 6px; font-size:11px; font-weight:600; margin:0 2px; }
     .link { color: #2563eb; text-decoration: none; }
     .link:hover { text-decoration: underline; }
 
+    /* Breadcrumb */
+    .breadcrumb {
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 14px; font-size: 13px;
+    }
+    .breadcrumb a { color: #6366f1; text-decoration: none; font-weight: 500; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .bc-sep { color: var(--text-muted); }
+    .breadcrumb span:last-child { color: var(--text-secondary); font-weight: 500; }
+
+    /* Underline tab bar */
     .tabs {
-      display: flex; gap: 4px; flex-wrap: wrap;
-      margin-bottom: 20px; background: #f8fafc;
-      border-radius: 10px; padding: 4px; width: fit-content; max-width: 100%;
+      display: flex; gap: 0; flex-wrap: wrap;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #f1f5f9;
+      width: 100%;
     }
     .tab {
       display: flex; align-items: center; gap: 6px;
-      padding: 8px 14px; border: none; background: none;
-      border-radius: 8px; font-size: 13px; font-weight: 500;
+      padding: 10px 16px; border: none; background: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      font-size: 13px; font-weight: 500;
       color: var(--text-muted); cursor: pointer;
-      transition: all 0.15s; white-space: nowrap; font-family: inherit;
+      transition: color 0.15s, border-color 0.2s, background 0.15s;
+      white-space: nowrap; font-family: inherit;
     }
-    .tab:hover { background: white; color: var(--text-primary); }
-    .tab.active { background: white; color: var(--brand); font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .tab:hover { background: #f8fafc; color: var(--text-primary); }
+    .tab.active { color: var(--brand); font-weight: 600; border-bottom-color: var(--brand); background: none; }
     .tab-count {
       background: #e2e8f0; color: #64748b;
       border-radius: 10px; padding: 1px 7px;
@@ -229,6 +273,40 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents';
       border-radius: 12px; padding: 24px;
     }
 
+    /* Overview grouped layout */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .info-group {
+      background: #fff; border: 1.5px solid #f1f5f9;
+      border-radius: 12px; overflow: hidden;
+    }
+    .info-group-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--text-muted);
+      padding: 12px 16px; border-bottom: 1px solid #f1f5f9;
+      background: #f8fafc;
+    }
+
+    /* Driver avatar header */
+    .driver-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 16px 0;
+    }
+    .avatar {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white; font-size: 18px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; letter-spacing: 0.5px;
+    }
+    .driver-header-details { display: flex; flex-direction: column; gap: 2px; }
+    .driver-name { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+    .driver-dept { font-size: 12px; color: var(--text-muted); }
+
+    /* Key-value grid */
     .kv-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -240,18 +318,32 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents';
       border-bottom: 1px solid #f1f5f9;
     }
     .kv-row:nth-child(odd):not(.kv-full) { border-right: 1px solid #f1f5f9; }
-    .kv-full { grid-column: 1 / -1; }
+    .kv-full { grid-column: 1 / -1; border-right: none !important; }
     .kv-label {
       font-size: 11px; font-weight: 600; color: var(--text-muted);
       text-transform: uppercase; letter-spacing: 0.5px;
     }
     .kv-value { font-size: 14px; color: var(--text-primary); word-break: break-all; }
 
+    /* License category pills */
+    .cat-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+    .cat-chip {
+      display: inline-flex; align-items: center;
+      background: #e0f2fe; color: #0369a1;
+      border-radius: 20px; padding: 3px 10px;
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    @media (max-width: 768px) {
+      .overview-grid { grid-template-columns: 1fr; }
+    }
+
     @media (max-width: 600px) {
       .kv-grid { grid-template-columns: 1fr; }
       .kv-row:nth-child(odd):not(.kv-full) { border-right: none; }
       .tabs { width: 100%; }
-      .tab { font-size: 12px; padding: 7px 10px; }
+      .tab { font-size: 12px; padding: 8px 10px; }
     }
   `]
 })
@@ -303,6 +395,10 @@ export class DriverDetailComponent implements OnInit {
   setTab(tab: Tab): void { this.activeTab.set(tab); }
 
   goBack(): void { this.router.navigate(['/drivers']); }
+
+  getInitials(name: string): string {
+    return name.split(' ').filter(Boolean).slice(0, 2).map(n => n[0].toUpperCase()).join('');
+  }
 
   getCount(tab: Tab): number {
     switch (tab) {

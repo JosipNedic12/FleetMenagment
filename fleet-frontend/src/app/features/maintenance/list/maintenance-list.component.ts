@@ -1,8 +1,8 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MaintenanceOrderApiService, VehicleApiService, VendorApiService, LookupApiService } from '../../../core/auth/feature-api.services';
-import { LucideAngularModule, Eye, Pencil, Trash2, Check, X } from 'lucide-angular';
+import { LucideAngularModule, Eye, Pencil, Trash2, Check, X, Play, Plus, Wrench as WrenchIcon } from 'lucide-angular';
 import {
   MaintenanceOrder, CreateMaintenanceOrderDto, UpdateMaintenanceOrderDto,
   CloseMaintenanceOrderDto, CancelMaintenanceOrderDto,
@@ -42,24 +42,45 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
       </div>
 
       <div class="table-card">
-        @if (loading()) { <div class="table-loading">Loading…</div> }
-        @else if (filtered().length === 0) { <div class="table-empty">No orders found.</div> }
-        @else {
+        @if (loading()) {
+          <div class="skeleton-header"></div>
+          @for (i of skeletonRows; track i) {
+            <div class="skeleton-row">
+              <div class="skeleton-cell w-24"></div>
+              <div class="skeleton-cell w-32"></div>
+              <div class="skeleton-cell w-24"></div>
+              <div class="skeleton-cell w-24"></div>
+              <div class="skeleton-cell w-24"></div>
+              <div class="skeleton-cell w-16"></div>
+              <div class="skeleton-cell w-24"></div>
+              <div class="skeleton-cell w-16"></div>
+            </div>
+          }
+        } @else if (sorted().length === 0) {
+          <div class="table-empty-state">
+            <div class="empty-icon">
+              <lucide-icon [img]="icons.WrenchIcon" [size]="44" [strokeWidth]="1.3"></lucide-icon>
+            </div>
+            <h3>No maintenance orders found</h3>
+            <p>Try adjusting your search or filter, or create a new order.</p>
+            <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreate()">+ New Order</button>
+          </div>
+        } @else {
           <table class="table">
             <thead>
               <tr>
-                <th>Vehicle</th>
-                <th>Vendor</th>
+                <th class="sortable" [class.sort-asc]="sortCol()==='reg'&&sortDir()==='asc'" [class.sort-desc]="sortCol()==='reg'&&sortDir()==='desc'" (click)="sort('reg')">Vehicle</th>
+                <th class="sortable" [class.sort-asc]="sortCol()==='vendor'&&sortDir()==='asc'" [class.sort-desc]="sortCol()==='vendor'&&sortDir()==='desc'" (click)="sort('vendor')">Vendor</th>
                 <th>Status</th>
-                <th>Reported</th>
+                <th class="sortable" [class.sort-asc]="sortCol()==='reported'&&sortDir()==='asc'" [class.sort-desc]="sortCol()==='reported'&&sortDir()==='desc'" (click)="sort('reported')">Reported</th>
                 <th>Scheduled</th>
                 <th>Items</th>
-                <th>Total</th>
+                <th class="sortable" [class.sort-asc]="sortCol()==='cost'&&sortDir()==='asc'" [class.sort-desc]="sortCol()==='cost'&&sortDir()==='desc'" (click)="sort('cost')">Total</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              @for (row of filtered(); track row.orderId) {
+              @for (row of sorted(); track row.orderId) {
                 <tr>
                   <td><strong class="mono">{{ row.registrationNumber }}</strong></td>
                   <td>{{ row.vendorName ?? '—' }}</td>
@@ -73,14 +94,14 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
                   <td class="actions">
                     <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     @if (row.status === 'open') {
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon start-btn" title="Start" (click)="startOrder(row)">▶</button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon start-btn" title="Start order" (click)="startOrder(row)"><lucide-icon [img]="icons.Play" [size]="14" [strokeWidth]="2"></lucide-icon></button>
                     }
                     @if (row.status === 'in_progress') {
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon close-btn" title="Close" (click)="openClose(row)"><lucide-icon [img]="icons.Check" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Cancel" (click)="openCancel(row)"><lucide-icon [img]="icons.X" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon close-btn" title="Close order" (click)="openClose(row)"><lucide-icon [img]="icons.Check" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Cancel order" (click)="openCancel(row)"><lucide-icon [img]="icons.X" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
                     }
                     @if (row.status === 'open' || row.status === 'in_progress') {
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Add Item" (click)="openAddItem(row)">＋</button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Add item" (click)="openAddItem(row)"><lucide-icon [img]="icons.Plus" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
                     }
                   </td>
                 </tr>
@@ -147,7 +168,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
           <div class="modal-actions">
             <button class="btn btn-secondary" (click)="closeCreate()">Cancel</button>
             <button class="btn btn-primary" [disabled]="saving()" (click)="saveCreate()">
-              {{ saving() ? 'Saving…' : 'Create Order' }}
+              @if (saving()) { <span class="btn-spinner"></span> Saving… } @else { Create Order }
             </button>
           </div>
         </div>
@@ -182,7 +203,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
           <div class="modal-actions">
             <button class="btn btn-secondary" (click)="closeEdit()">Cancel</button>
             <button class="btn btn-primary" [disabled]="saving()" (click)="saveEdit()">
-              {{ saving() ? 'Saving…' : 'Update' }}
+              @if (saving()) { <span class="btn-spinner"></span> Saving… } @else { Update }
             </button>
           </div>
         </div>
@@ -201,7 +222,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
           <div class="modal-actions">
             <button class="btn btn-secondary" (click)="showClose = false">Cancel</button>
             <button class="btn btn-primary" [disabled]="saving()" (click)="saveClose()">
-              {{ saving() ? 'Saving…' : 'Close Order' }}
+              @if (saving()) { <span class="btn-spinner"></span> Saving… } @else { Close Order }
             </button>
           </div>
         </div>
@@ -220,7 +241,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
           <div class="modal-actions">
             <button class="btn btn-secondary" (click)="showCancel = false">Back</button>
             <button class="btn btn-danger" [disabled]="saving()" (click)="saveCancel()">
-              {{ saving() ? 'Saving…' : 'Cancel Order' }}
+              @if (saving()) { <span class="btn-spinner"></span> Saving… } @else { Cancel Order }
             </button>
           </div>
         </div>
@@ -258,7 +279,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
           <div class="modal-actions">
             <button class="btn btn-secondary" (click)="showAddItem = false">Cancel</button>
             <button class="btn btn-primary" [disabled]="saving()" (click)="saveAddItem()">
-              {{ saving() ? 'Saving…' : 'Add Item' }}
+              @if (saving()) { <span class="btn-spinner"></span> Saving… } @else { Add Item }
             </button>
           </div>
         </div>
@@ -284,7 +305,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
   `]
 })
 export class MaintenanceListComponent implements OnInit {
-  readonly icons = { Eye, Pencil, Trash2, Check, X };
+  readonly icons = { Eye, Pencil, Trash2, Check, X, Play, Plus, WrenchIcon };
   private api = inject(MaintenanceOrderApiService);
   private vehicleApi = inject(VehicleApiService);
   private vendorApi = inject(VendorApiService);
@@ -302,6 +323,10 @@ export class MaintenanceListComponent implements OnInit {
   actionId: number | null = null;
   deleteTarget: MaintenanceOrder | null = null;
   filter = signal<'all' | OrderStatus>('all');
+  readonly skeletonRows = [1, 2, 3, 4, 5, 6];
+
+  sortCol = signal('');
+  sortDir = signal<'asc' | 'desc'>('asc');
 
   createForm: CreateMaintenanceOrderDto = { vehicleId: 0, vendorId: 0, scheduledAt: '', odometerKm: 0, description: '' };
   editForm: UpdateMaintenanceOrderDto = {};
@@ -320,6 +345,31 @@ export class MaintenanceListComponent implements OnInit {
     );
     return list;
   });
+
+  sorted = computed(() => {
+    const col = this.sortCol();
+    const dir = this.sortDir();
+    if (!col) return this.filtered();
+    return [...this.filtered()].sort((a, b) => {
+      let va: string | number = '';
+      let vb: string | number = '';
+      if (col === 'reg')      { va = a.registrationNumber;  vb = b.registrationNumber; }
+      if (col === 'vendor')   { va = a.vendorName ?? '';    vb = b.vendorName ?? ''; }
+      if (col === 'reported') { va = a.reportedAt;          vb = b.reportedAt; }
+      if (col === 'cost')     { va = a.totalCost ?? 0;      vb = b.totalCost ?? 0; }
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return dir === 'asc' ? cmp : -cmp;
+    });
+  });
+
+  sort(col: string): void {
+    if (this.sortCol() === col) {
+      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortCol.set(col);
+      this.sortDir.set('asc');
+    }
+  }
 
   ngOnInit(): void {
     this.load();
@@ -388,6 +438,15 @@ export class MaintenanceListComponent implements OnInit {
     });
   }
   closeEdit(): void { this.showEdit = false; this.editId = null; this.formError.set(''); }
+
+  @HostListener('keydown.escape')
+  onEscape(): void {
+    if (this.showCreate)  { this.closeCreate();        return; }
+    if (this.showEdit)    { this.closeEdit();           return; }
+    if (this.showClose)   { this.showClose = false;    return; }
+    if (this.showCancel)  { this.showCancel = false;   return; }
+    if (this.showAddItem) { this.showAddItem = false;  return; }
+  }
 
   startOrder(row: MaintenanceOrder): void {
     this.api.start(row.orderId).subscribe({ next: () => this.load(), error: () => {} });

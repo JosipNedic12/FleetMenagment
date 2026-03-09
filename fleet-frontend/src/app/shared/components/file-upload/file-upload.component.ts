@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Upload, File, X } from 'lucide-angular';
+import { LucideAngularModule, Upload, File, FileText, Image, FileSpreadsheet, X } from 'lucide-angular';
 import { DocumentApiService } from '../../../core/auth/feature-api.services';
 import { Document } from '../../../core/models/models';
 
@@ -26,7 +26,7 @@ const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
         <lucide-icon [img]="icons.Upload" [size]="28" [strokeWidth]="1.5" class="drop-icon"></lucide-icon>
         @if (selectedFile()) {
           <div class="file-info">
-            <lucide-icon [img]="icons.File" [size]="14" [strokeWidth]="2"></lucide-icon>
+            <lucide-icon [img]="getFileIcon(selectedFile()!.name)" [size]="14" [strokeWidth]="2"></lucide-icon>
             <span class="file-name">{{ selectedFile()!.name }}</span>
             <span class="file-size">({{ formatSize(selectedFile()!.size) }})</span>
             <button class="clear-btn" (click)="clearFile($event)">
@@ -39,6 +39,12 @@ const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
         }
       </div>
 
+      @if (uploading()) {
+        <div class="upload-progress-bar">
+          <div class="fill"></div>
+        </div>
+      }
+
       <input
         #fileInput
         type="file"
@@ -48,7 +54,10 @@ const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
       />
 
       @if (error()) {
-        <p class="upload-error">{{ error() }}</p>
+        <div class="upload-error-row">
+          <p class="upload-error">{{ error() }}</p>
+          <button class="retry-btn" (click)="upload()">Retry</button>
+        </div>
       }
 
       <div class="upload-controls">
@@ -84,13 +93,13 @@ const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
       gap: 8px; padding: 28px 20px;
       border: 2px dashed #cbd5e1; border-radius: 12px;
       background: #f8fafc; cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
     }
     .drop-zone:hover { border-color: #94a3b8; }
-    .drop-zone.drag-over { border-color: #3b82f6; background: #eff6ff; }
+    .drop-zone.drag-over { border-style: solid; border-color: var(--brand); background: rgba(37,99,235,0.04); box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
 
-    .drop-icon { color: #94a3b8; }
-    .drop-zone.drag-over .drop-icon { color: #3b82f6; }
+    .drop-icon { color: #94a3b8; transition: color 0.2s; }
+    .drop-zone.drag-over .drop-icon { color: var(--brand); }
 
     .drop-label { margin: 0; font-size: 14px; color: var(--text-secondary); }
     .drop-link { color: var(--brand); font-weight: 600; }
@@ -109,7 +118,32 @@ const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
     }
     .clear-btn:hover { color: #ef4444; }
 
+    .upload-progress-bar {
+      height: 4px; border-radius: 2px;
+      background: #e2e8f0; overflow: hidden;
+    }
+    .upload-progress-bar .fill {
+      height: 100%; background: var(--brand); border-radius: 2px;
+      animation: progressPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes progressPulse {
+      0%   { width: 15%; }
+      50%  { width: 80%; }
+      100% { width: 95%; }
+    }
+
+    .upload-error-row { display: flex; align-items: center; gap: 10px; }
     .upload-error { margin: 0; font-size: 13px; color: #dc2626; }
+
+    .retry-btn {
+      display: inline-flex; align-items: center;
+      padding: 5px 12px; border-radius: 6px;
+      border: 1.5px solid var(--brand); background: white; color: var(--brand);
+      font-size: 12px; font-weight: 600; font-family: inherit;
+      cursor: pointer; white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
+    }
+    .retry-btn:hover { background: var(--brand-subtle); }
 
     .upload-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .upload-fields { display: flex; gap: 8px; flex: 1; min-width: 0; flex-wrap: wrap; }
@@ -150,7 +184,7 @@ export class FileUploadComponent {
   @Input() entityId = 0;
   @Output() uploaded = new EventEmitter<Document>();
 
-  readonly icons = { Upload, File, X };
+  readonly icons = { Upload, File, FileText, Image, FileSpreadsheet, X };
   readonly categories = CATEGORIES;
   readonly accept = ACCEPT;
 
@@ -162,6 +196,14 @@ export class FileUploadComponent {
   notesValue = '';
 
   constructor(private docApi: DocumentApiService) {}
+
+  getFileIcon(filename: string): any {
+    const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return Image;
+    if (ext === 'pdf') return FileText;
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return FileSpreadsheet;
+    return File;
+  }
 
   onDragOver(e: DragEvent): void {
     e.preventDefault();

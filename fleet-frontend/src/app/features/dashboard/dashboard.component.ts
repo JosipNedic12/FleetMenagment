@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { NgChartsModule } from 'ng2-charts';
@@ -6,7 +6,7 @@ import { Chart, ChartData, ChartOptions, registerables } from 'chart.js';
 import { LucideAngularModule, LucideIconData } from 'lucide-angular';
 import {
   Car, Wrench, MapPin, Shield, Clipboard, Search, TriangleAlert, Siren, Fuel,
-  AlertCircle, Clock, CheckCircle, Users,
+  AlertCircle, Clock, CheckCircle, Users, RefreshCw,
 } from 'lucide-angular';
 import {
   DashboardApiService, DashboardData, ComplianceReminder,
@@ -34,7 +34,19 @@ interface StatCard {
           <h1 class="page-title">Dashboard</h1>
           <p class="page-subtitle">Fleet compliance overview</p>
         </div>
-        <span class="last-updated">Updated just now</span>
+        <div class="header-right">
+          <span class="last-updated">
+            @if (secondsAgo() < 5) {
+              Updated just now
+            } @else {
+              Last refreshed: {{ secondsAgo() }}s ago
+            }
+          </span>
+          <button class="refresh-btn" (click)="refresh()" [disabled]="loading()">
+            <lucide-icon [img]="refreshIcon" [size]="14" [strokeWidth]="2" [class.spinning]="loading()"></lucide-icon>
+            Refresh
+          </button>
+        </div>
       </div>
 
       @if (loading()) {
@@ -56,8 +68,8 @@ interface StatCard {
       } @else {
         <!-- ── Stat Cards ─────────────────────────────────────────── -->
         <div class="stats-grid">
-          @for (card of cards(); track card.label) {
-            <a [routerLink]="card.route" class="stat-card" [style.--accent]="card.accent">
+          @for (card of cards(); track card.label; let i = $index) {
+            <a [routerLink]="card.route" class="stat-card" [style.--accent]="card.accent" [style.animation-delay]="(i * 60) + 'ms'">
               <div class="stat-icon" [style.background]="card.accent + '18'" [style.color]="card.accent">
                 <lucide-icon [img]="card.icon" [size]="20" [strokeWidth]="1.8"></lucide-icon>
               </div>
@@ -75,7 +87,7 @@ interface StatCard {
         <div class="widgets-grid">
 
           <!-- Compliance Reminders -->
-          <div class="chart-card widget-card">
+          <div class="chart-card widget-card" style="animation-delay:0ms">
             <div class="chart-card-header">
               <div class="chart-card-title-group">
                 <div class="chart-icon" style="background:#ef44441a; color:#ef4444">
@@ -125,7 +137,7 @@ interface StatCard {
           </div>
 
           <!-- Vehicle Assignments -->
-          <div class="chart-card widget-card">
+          <div class="chart-card widget-card" style="animation-delay:100ms">
             <div class="chart-card-header">
               <div class="chart-card-title-group">
                 <div class="chart-icon" style="background:#6366f11a; color:#6366f1">
@@ -158,7 +170,7 @@ interface StatCard {
           </div>
 
           <!-- Work Orders -->
-          <div class="chart-card widget-card">
+          <div class="chart-card widget-card" style="animation-delay:200ms">
             <div class="chart-card-header">
               <div class="chart-card-title-group">
                 <div class="chart-icon" style="background:#f974161a; color:#f97416">
@@ -190,6 +202,30 @@ interface StatCard {
                 <span class="wo-label">Overdue</span>
               </div>
             </div>
+            <!-- Segmented progress bar -->
+            @if (woTotal() > 0) {
+              <div class="wo-bar-wrap">
+                <div class="wo-bar">
+                  <div class="wo-seg wo-seg--open"
+                    [style.flex]="dashboard()?.workOrderSummary?.open ?? 0"
+                    title="Open: {{ dashboard()?.workOrderSummary?.open ?? 0 }}">
+                  </div>
+                  <div class="wo-seg wo-seg--progress"
+                    [style.flex]="dashboard()?.workOrderSummary?.inProgress ?? 0"
+                    title="In Progress: {{ dashboard()?.workOrderSummary?.inProgress ?? 0 }}">
+                  </div>
+                  <div class="wo-seg wo-seg--done"
+                    [style.flex]="dashboard()?.workOrderSummary?.completed ?? 0"
+                    title="Completed: {{ dashboard()?.workOrderSummary?.completed ?? 0 }}">
+                  </div>
+                  <div class="wo-seg wo-seg--overdue"
+                    [style.flex]="dashboard()?.workOrderSummary?.overdue ?? 0"
+                    title="Overdue: {{ dashboard()?.workOrderSummary?.overdue ?? 0 }}">
+                  </div>
+                </div>
+                <span class="wo-bar-label">{{ woTotal() }} total</span>
+              </div>
+            }
           </div>
 
         </div>
@@ -197,7 +233,7 @@ interface StatCard {
         <!-- ── Charts ─────────────────────────────────────────────── -->
         <div class="section-title">Analytics</div>
         <div class="charts-grid">
-          <div class="chart-card">
+          <div class="chart-card" style="animation-delay:0ms">
             <div class="chart-card-header">
               <div class="chart-card-title-group">
                 <div class="chart-icon" style="background:#14b8a61a; color:#14b8a6">
@@ -216,7 +252,7 @@ interface StatCard {
             </div>
           </div>
 
-          <div class="chart-card">
+          <div class="chart-card" style="animation-delay:100ms">
             <div class="chart-card-header">
               <div class="chart-card-title-group">
                 <div class="chart-icon" style="background:#f974161a; color:#f97416">
@@ -235,7 +271,7 @@ interface StatCard {
             </div>
           </div>
 
-          <div class="chart-card">
+          <div class="chart-card" style="animation-delay:200ms">
             <div class="chart-card-header">
               <div class="chart-card-title-group">
                 <div class="chart-icon" style="background:#10b9811a; color:#10b981">
@@ -254,7 +290,7 @@ interface StatCard {
             </div>
           </div>
 
-          <div class="chart-card">
+          <div class="chart-card" style="animation-delay:300ms">
             <div class="chart-card-header">
               <div class="chart-card-title-group">
                 <div class="chart-icon" style="background:#ef44441a; color:#ef4444">
@@ -281,7 +317,20 @@ interface StatCard {
     .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; }
     .page-title { font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
     .page-subtitle { font-size: 14px; color: var(--text-muted); margin: 0; }
-    .last-updated { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+    .header-right { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+    .last-updated { font-size: 12px; color: var(--text-muted); }
+    .refresh-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+      background: white; color: var(--text-secondary); font-size: 12px;
+      font-weight: 500; cursor: pointer; font-family: inherit;
+      transition: all 0.15s;
+    }
+    .refresh-btn:hover:not(:disabled) { border-color: #cbd5e1; color: var(--text-primary); }
+    .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinning { animation: spin 0.8s linear infinite; display: block; }
 
     .stats-grid {
       display: grid;
@@ -295,18 +344,18 @@ interface StatCard {
       padding: 20px;
       text-decoration: none;
       border: 1.5px solid #f1f5f9;
-      transition: all 0.2s;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
       display: flex;
       flex-direction: column;
       gap: 12px;
       border-left: 4px solid var(--accent);
-      animation: fadeSlideUp 0.4s ease both;
+      animation: fadeSlideUp 0.45s ease both;
     }
     @keyframes fadeSlideUp {
-      from { opacity: 0; transform: translateY(12px); }
+      from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.10); }
     .stat-icon {
       width: 40px; height: 40px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
@@ -331,7 +380,7 @@ interface StatCard {
       margin-bottom: 32px;
     }
 
-    .widget-card { display: flex; flex-direction: column; }
+    .widget-card { display: flex; flex-direction: column; animation: fadeSlideUp 0.45s ease both; }
     .widget-empty { font-size: 13px; color: var(--text-muted); margin: 12px 0 0; }
     .widget-link { font-size: 12px; color: #6366f1; text-decoration: none; font-weight: 500; }
     .widget-link:hover { text-decoration: underline; }
@@ -346,7 +395,9 @@ interface StatCard {
     .compliance-table th { text-align: left; font-weight: 600; color: var(--text-muted); padding: 4px 6px; border-bottom: 1px solid #f1f5f9; }
     .compliance-table td { padding: 6px 6px; border-bottom: 1px solid #f8fafc; color: var(--text-primary); }
     .compliance-row--expired td { background: #fef2f2; }
+    .compliance-row--expired td:first-child { border-left: 3px solid #ef4444; }
     .compliance-row--due_soon td { background: #fffbeb; }
+    .compliance-row--due_soon td:first-child { border-left: 3px solid #f59e0b; }
     .reg-cell { font-weight: 600; }
 
     .type-chip { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
@@ -389,6 +440,15 @@ interface StatCard {
     .wo-count { font-size: 28px; font-weight: 800; color: var(--text-primary); line-height: 1; }
     .wo-label { font-size: 11px; color: var(--text-muted); text-align: center; }
 
+    .wo-bar-wrap { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+    .wo-bar { flex: 1; height: 8px; border-radius: 4px; overflow: hidden; display: flex; }
+    .wo-seg { height: 100%; min-width: 4px; transition: flex 0.6s ease; }
+    .wo-seg--open { background: #f97416; }
+    .wo-seg--progress { background: #6366f1; }
+    .wo-seg--done { background: #10b981; }
+    .wo-seg--overdue { background: #ef4444; }
+    .wo-bar-label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
     /* ── Charts ── */
     .charts-grid {
       display: grid;
@@ -401,7 +461,8 @@ interface StatCard {
       border-radius: 12px;
       padding: 20px 24px;
       border: 1.5px solid #f1f5f9;
-      animation: fadeSlideUp 0.5s ease both;
+      animation: fadeSlideUp 0.45s ease both;
+      overflow: hidden;
     }
 
     .chart-card-header {
@@ -436,26 +497,35 @@ interface StatCard {
 
     .chart-wrap {
       position: relative;
+      width: 100%;
       height: 220px;
+      overflow: hidden;
     }
 
     .chart-wrap--doughnut {
+      position: relative;
+      width: 100%;
       height: 220px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      overflow: hidden;
+    }
+
+    @media (max-width: 1024px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 900px) {
       .widgets-grid { grid-template-columns: 1fr; }
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 600px) {
+      .page { padding: 16px; }
+      .stats-grid { grid-template-columns: 1fr; }
       .charts-grid { grid-template-columns: 1fr; }
     }
   `]
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   loading = signal(true);
   cards = signal<StatCard[]>([]);
   dashboard = signal<DashboardData | null>(null);
@@ -474,14 +544,22 @@ export class DashboardComponent implements OnInit {
   readonly clockIcon = Clock;
   readonly checkCircleIcon = CheckCircle;
   readonly usersIcon = Users;
+  readonly refreshIcon = RefreshCw;
 
   expiredCount = signal(0);
   dueSoonCount = signal(0);
   assignedPct = signal(0);
+  secondsAgo = signal(0);
+  woTotal = signal(0);
+
+  private refreshedAt: Date | null = null;
+  private tickInterval: ReturnType<typeof setInterval> | null = null;
+  private resizeObserver?: ResizeObserver;
 
   barOptions: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
+    resizeDelay: 100,
     animation: { duration: 800, easing: 'easeInOutQuart' },
     plugins: {
       legend: { display: false },
@@ -500,6 +578,7 @@ export class DashboardComponent implements OnInit {
   doughnutOptions: ChartOptions<'doughnut'> = {
     responsive: true,
     maintainAspectRatio: false,
+    resizeDelay: 100,
     animation: { duration: 900, animateRotate: true, animateScale: true },
     plugins: {
       legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } },
@@ -511,6 +590,7 @@ export class DashboardComponent implements OnInit {
   lineOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
+    resizeDelay: 100,
     animation: { duration: 1000, easing: 'easeInOutCubic' },
     plugins: {
       legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } },
@@ -525,9 +605,42 @@ export class DashboardComponent implements OnInit {
   constructor(private dashboardApi: DashboardApiService) {}
 
   ngOnInit(): void {
+    this.loadData();
+    this.tickInterval = setInterval(() => {
+      if (this.refreshedAt) {
+        this.secondsAgo.set(Math.floor((Date.now() - this.refreshedAt.getTime()) / 1000));
+      }
+    }, 1000);
+  }
+
+  ngAfterViewInit(): void {
+    const container = document.querySelector('.page');
+    if (container) {
+      this.resizeObserver = new ResizeObserver(() => {
+        setTimeout(() => {
+          Object.values(Chart.instances).forEach(chart => chart.resize());
+        }, 300);
+      });
+      this.resizeObserver.observe(container);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.tickInterval) clearInterval(this.tickInterval);
+    this.resizeObserver?.disconnect();
+  }
+
+  refresh(): void {
+    this.loading.set(true);
+    this.loadData();
+  }
+
+  private loadData(): void {
     this.dashboardApi.getDashboard().subscribe({
       next: (data) => {
         this.dashboard.set(data);
+        this.refreshedAt = new Date();
+        this.secondsAgo.set(0);
 
         // ── Stat cards ─────────────────────────────────────────────
         this.cards.set([
@@ -549,6 +662,10 @@ export class DashboardComponent implements OnInit {
         // ── Assignment widget ──────────────────────────────────────
         const total = data.assignmentSummary.totalVehicles;
         this.assignedPct.set(total > 0 ? Math.round((data.assignmentSummary.assigned / total) * 100) : 0);
+
+        // ── Work orders total ──────────────────────────────────────
+        const wo = data.workOrderSummary;
+        this.woTotal.set((wo?.open ?? 0) + (wo?.inProgress ?? 0) + (wo?.completed ?? 0) + (wo?.overdue ?? 0));
 
         // ── Charts ─────────────────────────────────────────────────
         const labels = last6MonthLabels();

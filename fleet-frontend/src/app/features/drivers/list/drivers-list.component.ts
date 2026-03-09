@@ -1,9 +1,9 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { DriverApiService, EmployeeApiService, LookupApiService } from '../../../core/auth/feature-api.services';
-import { LucideAngularModule, Eye, Pencil, Trash2 } from 'lucide-angular';
+import { LucideAngularModule, Eye, Pencil, Trash2, UserRound as UserRoundIcon } from 'lucide-angular';
 import { Driver, CreateDriverDto, UpdateDriverDto, Employee, LicenseCategoryDto } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
@@ -34,22 +34,41 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
       </div>
 
       <div class="table-card">
-        @if (loading()) { <div class="table-loading">Loading…</div> }
-        @else if (filtered().length === 0) { <div class="table-empty">No drivers found.</div> }
-        @else {
+        @if (loading()) {
+          <div class="skeleton-header"></div>
+          @for (i of skeletonRows; track i) {
+            <div class="skeleton-row">
+              <div class="skeleton-cell w-40"></div>
+              <div class="skeleton-cell w-32"></div>
+              <div class="skeleton-cell w-24"></div>
+              <div class="skeleton-cell w-24"></div>
+              <div class="skeleton-cell w-32"></div>
+              <div class="skeleton-cell w-16"></div>
+            </div>
+          }
+        } @else if (sorted().length === 0) {
+          <div class="table-empty-state">
+            <div class="empty-icon">
+              <lucide-icon [img]="icons.UserRoundIcon" [size]="44" [strokeWidth]="1.3"></lucide-icon>
+            </div>
+            <h3>No drivers found</h3>
+            <p>Try adjusting your search or filter, or add your first driver.</p>
+            <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreate()">+ Add Driver</button>
+          </div>
+        } @else {
           <table class="table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Department</th>
+                <th class="sortable" [class.sort-asc]="sortCol()==='name'&&sortDir()==='asc'" [class.sort-desc]="sortCol()==='name'&&sortDir()==='desc'" (click)="sort('name')">Name</th>
+                <th class="sortable" [class.sort-asc]="sortCol()==='dept'&&sortDir()==='asc'" [class.sort-desc]="sortCol()==='dept'&&sortDir()==='desc'" (click)="sort('dept')">Department</th>
                 <th>License #</th>
-                <th>Expiry</th>
+                <th class="sortable" [class.sort-asc]="sortCol()==='expiry'&&sortDir()==='asc'" [class.sort-desc]="sortCol()==='expiry'&&sortDir()==='desc'" (click)="sort('expiry')">Expiry</th>
                 <th>Categories</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              @for (row of filtered(); track row.driverId) {
+              @for (row of sorted(); track row.driverId) {
                 <tr>
                   <td><strong>{{ row.fullName }}</strong></td>
                   <td>{{ row.department ?? '—' }}</td>
@@ -69,8 +88,8 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
                   </td>
                   <td class="actions">
                     <a [routerLink]="['/drivers', row.driverId]" class="btn-icon" title="View"><lucide-icon [img]="icons.Eye" [size]="15" [strokeWidth]="2"></lucide-icon></a>
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -125,7 +144,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
           <div class="modal-actions">
             <button class="btn btn-secondary" (click)="closeCreate()">Cancel</button>
             <button class="btn btn-primary" [disabled]="saving()" (click)="saveCreate()">
-              {{ saving() ? 'Saving…' : 'Add Driver' }}
+              @if (saving()) { <span class="btn-spinner"></span> Saving… } @else { Add Driver }
             </button>
           </div>
         </div>
@@ -168,7 +187,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
           <div class="modal-actions">
             <button class="btn btn-secondary" (click)="closeEdit()">Cancel</button>
             <button class="btn btn-primary" [disabled]="saving()" (click)="saveEdit()">
-              {{ saving() ? 'Saving…' : 'Update' }}
+              @if (saving()) { <span class="btn-spinner"></span> Saving… } @else { Update }
             </button>
           </div>
         </div>
@@ -191,7 +210,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
   `]
 })
 export class DriversListComponent implements OnInit {
-  readonly icons = { Eye, Pencil, Trash2 };
+  readonly icons = { Eye, Pencil, Trash2, UserRoundIcon };
   private api = inject(DriverApiService);
   private employeeApi = inject(EmployeeApiService);
   private lookupApi = inject(LookupApiService);
@@ -205,6 +224,10 @@ export class DriversListComponent implements OnInit {
   editId: number | null = null;
   deleteTarget: Driver | null = null;
   filter = signal<'all' | 'valid' | 'expired'>('all');
+  readonly skeletonRows = [1, 2, 3, 4, 5, 6];
+
+  sortCol = signal('');
+  sortDir = signal<'asc' | 'desc'>('asc');
 
   createForm: CreateDriverDto = this.emptyCreateForm();
   editForm: UpdateDriverDto = {};
@@ -223,6 +246,30 @@ export class DriversListComponent implements OnInit {
     );
     return list;
   });
+
+  sorted = computed(() => {
+    const col = this.sortCol();
+    const dir = this.sortDir();
+    if (!col) return this.filtered();
+    return [...this.filtered()].sort((a, b) => {
+      let va: string = '';
+      let vb: string = '';
+      if (col === 'name')   { va = a.fullName;           vb = b.fullName; }
+      if (col === 'dept')   { va = a.department ?? '';   vb = b.department ?? ''; }
+      if (col === 'expiry') { va = a.licenseExpiry;      vb = b.licenseExpiry; }
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return dir === 'asc' ? cmp : -cmp;
+    });
+  });
+
+  sort(col: string): void {
+    if (this.sortCol() === col) {
+      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortCol.set(col);
+      this.sortDir.set('asc');
+    }
+  }
 
   ngOnInit(): void {
     this.load();
@@ -295,6 +342,12 @@ export class DriversListComponent implements OnInit {
   }
 
   closeEdit(): void { this.showEdit = false; this.editId = null; this.formError.set(''); }
+
+  @HostListener('keydown.escape')
+  onEscape(): void {
+    if (this.showCreate) { this.closeCreate(); return; }
+    if (this.showEdit)   { this.closeEdit();   return; }
+  }
 
   confirmDelete(row: Driver): void { this.deleteTarget = row; }
   doDelete(): void {
