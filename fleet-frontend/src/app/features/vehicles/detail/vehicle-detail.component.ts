@@ -1,8 +1,8 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { LucideAngularModule, ArrowLeft, Car, Wrench, Fuel, Users, Shield, ClipboardCheck, TriangleAlert, Siren } from 'lucide-angular';
+import { LucideAngularModule, ArrowLeft, Car, Wrench, Fuel, Users, Shield, ClipboardCheck, TriangleAlert, Siren, FileText } from 'lucide-angular';
 import {
   VehicleApiService,
   VehicleAssignmentApiService,
@@ -14,20 +14,23 @@ import {
   InspectionApiService,
   FineApiService,
   AccidentApiService,
+  DocumentApiService,
 } from '../../../core/auth/feature-api.services';
 import {
   Vehicle, VehicleAssignment, MaintenanceOrder,
   FuelTransaction, OdometerLog, InsurancePolicy,
-  RegistrationRecord, Inspection, Fine, Accident,
+  RegistrationRecord, Inspection, Fine, Accident, Document,
 } from '../../../core/models/models';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
+import { FileUploadComponent } from '../../../shared/components/file-upload/file-upload.component';
+import { DocumentListComponent } from '../../../shared/components/document-list/document-list.component';
 
-type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | 'inspections' | 'fines' | 'accidents';
+type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | 'inspections' | 'fines' | 'accidents' | 'documents';
 
 @Component({
   selector: 'app-vehicle-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, BadgeComponent, LucideAngularModule],
+  imports: [CommonModule, RouterModule, BadgeComponent, LucideAngularModule, FileUploadComponent, DocumentListComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -303,6 +306,22 @@ type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | '
           </div>
         }
 
+        <!-- Documents -->
+        @if (activeTab() === 'documents') {
+          <div class="section-card">
+            <app-file-upload
+              [entityType]="'Vehicle'"
+              [entityId]="vehicle()!.vehicleId"
+              (uploaded)="onDocumentUploaded($event)"
+            />
+            <app-document-list
+              #docList
+              [entityType]="'Vehicle'"
+              [entityId]="vehicle()!.vehicleId"
+            />
+          </div>
+        }
+
       }
     </div>
   `,
@@ -372,7 +391,7 @@ type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | '
   `]
 })
 export class VehicleDetailComponent implements OnInit {
-  readonly icons = { ArrowLeft, Car, Wrench, Fuel, Users, Shield, ClipboardCheck, TriangleAlert, Siren };
+  readonly icons = { ArrowLeft, Car, Wrench, Fuel, Users, Shield, ClipboardCheck, TriangleAlert, Siren, FileText };
 
   readonly tabs: { id: Tab; label: string; icon: any }[] = [
     { id: 'overview',     label: 'Overview',    icon: Car },
@@ -383,6 +402,7 @@ export class VehicleDetailComponent implements OnInit {
     { id: 'inspections',  label: 'Inspections',  icon: ClipboardCheck },
     { id: 'fines',        label: 'Fines',        icon: TriangleAlert },
     { id: 'accidents',    label: 'Accidents',    icon: Siren },
+    { id: 'documents',    label: 'Documents',    icon: FileText },
   ];
 
   activeTab  = signal<Tab>('overview');
@@ -396,7 +416,10 @@ export class VehicleDetailComponent implements OnInit {
   inspections  = signal<Inspection[]>([]);
   fines        = signal<Fine[]>([]);
   accidents    = signal<Accident[]>([]);
+  documents    = signal<Document[]>([]);
   loading      = signal(true);
+
+  @ViewChild('docList') docList?: DocumentListComponent;
 
   constructor(
     private route: ActivatedRoute,
@@ -411,6 +434,7 @@ export class VehicleDetailComponent implements OnInit {
     private inspectionApi: InspectionApiService,
     private fineApi: FineApiService,
     private accidentApi: AccidentApiService,
+    private documentApi: DocumentApiService,
   ) {}
 
   ngOnInit(): void {
@@ -426,6 +450,7 @@ export class VehicleDetailComponent implements OnInit {
       inspections:  this.inspectionApi.getByVehicle(id),
       fines:        this.fineApi.getByVehicle(id),
       accidents:    this.accidentApi.getByVehicle(id),
+      documents:    this.documentApi.getByEntity('Vehicle', id),
     }).subscribe({
       next: r => {
         this.vehicle.set(r.vehicle);
@@ -438,6 +463,7 @@ export class VehicleDetailComponent implements OnInit {
         this.inspections.set(r.inspections);
         this.fines.set(r.fines);
         this.accidents.set(r.accidents);
+        this.documents.set(r.documents);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
@@ -448,6 +474,11 @@ export class VehicleDetailComponent implements OnInit {
 
   goBack(): void { this.router.navigate(['/vehicles']); }
 
+  onDocumentUploaded(doc: Document): void {
+    this.documents.update(docs => [doc, ...docs]);
+    this.docList?.loadDocuments();
+  }
+
   getCount(tab: Tab): number {
     switch (tab) {
       case 'maintenance':  return this.maintenance().length;
@@ -457,6 +488,7 @@ export class VehicleDetailComponent implements OnInit {
       case 'inspections':  return this.inspections().length;
       case 'fines':        return this.fines().length;
       case 'accidents':    return this.accidents().length;
+      case 'documents':    return this.documents().length;
       default:             return 0;
     }
   }

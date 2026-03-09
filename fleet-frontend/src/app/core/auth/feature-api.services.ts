@@ -20,7 +20,8 @@ import {
   RegistrationRecord, CreateRegistrationRecordDto, UpdateRegistrationRecordDto,
   Inspection, CreateInspectionDto, UpdateInspectionDto,
   Fine, CreateFineDto, UpdateFineDto, MarkFinePaidDto,
-  Accident, CreateAccidentDto, UpdateAccidentDto,ChangePasswordDto
+  Accident, CreateAccidentDto, UpdateAccidentDto,ChangePasswordDto,
+  Document
 } from '../models/models';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -517,5 +518,53 @@ export class DashboardApiService extends ApiService {
 
   getDashboard(): Observable<DashboardData> {
     return this.get<DashboardData>('Dashboard');
+  }
+}
+
+// ─── Documents ────────────────────────────────────────────────────────────────
+
+@Injectable({ providedIn: 'root' })
+export class DocumentApiService extends ApiService {
+  constructor(http: HttpClient) { super(http); }
+
+  getByEntity(entityType: string, entityId: number): Observable<Document[]> {
+    return this.get<Document[]>(`documents?entityType=${entityType}&entityId=${entityId}`);
+  }
+
+  upload(entityType: string, entityId: number, file: File, category?: string, notes?: string): Observable<Document> {
+    const fd = new FormData();
+    fd.append('entityType', entityType);
+    fd.append('entityId', String(entityId));
+    fd.append('file', file);
+    if (category) fd.append('category', category);
+    if (notes) fd.append('notes', notes);
+    return this.http.post<Document>(`${this.base}/documents`, fd);
+  }
+
+  download(documentId: number): void {
+    window.open(`${this.base}/documents/${documentId}/download`, '_blank');
+  }
+
+  deleteDoc(documentId: number): Observable<void> {
+    return this.delete<void>(`documents/${documentId}`);
+  }
+}
+
+// ─── Search ───────────────────────────────────────────────────────────────────
+
+export interface SearchResult {
+  type: 'Vehicle' | 'Driver' | 'Maintenance';
+  id: number;
+  title: string;
+  subtitle: string;
+  route: string;
+}
+
+@Injectable({ providedIn: 'root' })
+export class SearchApiService extends ApiService {
+  constructor(http: HttpClient) { super(http); }
+
+  search(q: string): Observable<SearchResult[]> {
+    return this.http.get<SearchResult[]>(`${this.base}/search`, { params: { q } });
   }
 }

@@ -98,6 +98,9 @@ builder.Services.AddScoped<IInspectionRepository, InspectionRepository>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 var app = builder.Build();
 
+// Ensure uploads folder exists
+Directory.CreateDirectory(app.Configuration["FileStorage:UploadPath"] ?? "uploads");
+
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();

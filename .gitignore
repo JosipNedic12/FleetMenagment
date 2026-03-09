@@ -4,3 +4,4 @@ obj/
 *.user
 appsettings.Development.json
 .claude/
+uploads/

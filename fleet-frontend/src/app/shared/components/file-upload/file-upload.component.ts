@@ -1,0 +1,233 @@
+import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { LucideAngularModule, Upload, File, X } from 'lucide-angular';
+import { DocumentApiService } from '../../../core/auth/feature-api.services';
+import { Document } from '../../../core/models/models';
+
+const CATEGORIES = ['policy', 'invoice', 'photo', 'certificate', 'report', 'receipt', 'claim', 'license', 'other'];
+const MAX_BYTES = 10 * 1024 * 1024;
+const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
+
+@Component({
+  selector: 'app-file-upload',
+  standalone: true,
+  imports: [CommonModule, FormsModule, LucideAngularModule],
+  template: `
+    <div class="upload-wrapper">
+      <div
+        class="drop-zone"
+        [class.drag-over]="isDragging()"
+        (click)="fileInput.click()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave()"
+        (drop)="onDrop($event)"
+      >
+        <lucide-icon [img]="icons.Upload" [size]="28" [strokeWidth]="1.5" class="drop-icon"></lucide-icon>
+        @if (selectedFile()) {
+          <div class="file-info">
+            <lucide-icon [img]="icons.File" [size]="14" [strokeWidth]="2"></lucide-icon>
+            <span class="file-name">{{ selectedFile()!.name }}</span>
+            <span class="file-size">({{ formatSize(selectedFile()!.size) }})</span>
+            <button class="clear-btn" (click)="clearFile($event)">
+              <lucide-icon [img]="icons.X" [size]="13" [strokeWidth]="2.5"></lucide-icon>
+            </button>
+          </div>
+        } @else {
+          <p class="drop-label">Drag & drop a file here, or <span class="drop-link">browse</span></p>
+          <p class="drop-hint">PDF, JPG, PNG, DOC, XLS — max 10 MB</p>
+        }
+      </div>
+
+      <input
+        #fileInput
+        type="file"
+        [accept]="accept"
+        style="display:none"
+        (change)="onFileSelected($event)"
+      />
+
+      @if (error()) {
+        <p class="upload-error">{{ error() }}</p>
+      }
+
+      <div class="upload-controls">
+        <div class="upload-fields">
+          <select class="ctrl-select" [(ngModel)]="selectedCategory">
+            <option value="">Category (optional)</option>
+            @for (cat of categories; track cat) {
+              <option [value]="cat">{{ cat }}</option>
+            }
+          </select>
+          <input class="ctrl-input" type="text" placeholder="Notes (optional)" [(ngModel)]="notesValue" />
+        </div>
+        <button
+          class="upload-btn"
+          [disabled]="!selectedFile() || uploading()"
+          (click)="upload()"
+        >
+          @if (uploading()) {
+            <span class="spinner"></span> Uploading…
+          } @else {
+            <lucide-icon [img]="icons.Upload" [size]="14" [strokeWidth]="2"></lucide-icon>
+            Upload
+          }
+        </button>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .upload-wrapper { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+
+    .drop-zone {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; padding: 28px 20px;
+      border: 2px dashed #cbd5e1; border-radius: 12px;
+      background: #f8fafc; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .drop-zone:hover { border-color: #94a3b8; }
+    .drop-zone.drag-over { border-color: #3b82f6; background: #eff6ff; }
+
+    .drop-icon { color: #94a3b8; }
+    .drop-zone.drag-over .drop-icon { color: #3b82f6; }
+
+    .drop-label { margin: 0; font-size: 14px; color: var(--text-secondary); }
+    .drop-link { color: var(--brand); font-weight: 600; }
+    .drop-hint { margin: 0; font-size: 12px; color: var(--text-muted); }
+
+    .file-info {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--text-primary);
+    }
+    .file-name { font-weight: 500; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-size { color: var(--text-muted); }
+    .clear-btn {
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none; cursor: pointer;
+      color: var(--text-muted); padding: 2px; line-height: 1;
+    }
+    .clear-btn:hover { color: #ef4444; }
+
+    .upload-error { margin: 0; font-size: 13px; color: #dc2626; }
+
+    .upload-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .upload-fields { display: flex; gap: 8px; flex: 1; min-width: 0; flex-wrap: wrap; }
+
+    .ctrl-select, .ctrl-input {
+      flex: 1; min-width: 120px;
+      padding: 7px 10px; font-size: 13px; font-family: inherit;
+      border: 1.5px solid #e2e8f0; border-radius: 8px;
+      background: white; color: var(--text-primary);
+      outline: none; transition: border-color 0.15s;
+    }
+    .ctrl-select:focus, .ctrl-input:focus { border-color: var(--brand); }
+
+    .upload-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 8px; border: none;
+      background: var(--brand); color: white;
+      font-size: 13px; font-weight: 600; font-family: inherit;
+      cursor: pointer; white-space: nowrap;
+      transition: opacity 0.15s;
+    }
+    .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .upload-btn:not(:disabled):hover { opacity: 0.88; }
+
+    .spinner {
+      width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  `]
+})
+export class FileUploadComponent {
+  @Input() entityType = '';
+  @Input() entityId = 0;
+  @Output() uploaded = new EventEmitter<Document>();
+
+  readonly icons = { Upload, File, X };
+  readonly categories = CATEGORIES;
+  readonly accept = ACCEPT;
+
+  isDragging = signal(false);
+  selectedFile = signal<File | null>(null);
+  uploading = signal(false);
+  error = signal<string | null>(null);
+  selectedCategory = '';
+  notesValue = '';
+
+  constructor(private docApi: DocumentApiService) {}
+
+  onDragOver(e: DragEvent): void {
+    e.preventDefault();
+    this.isDragging.set(true);
+  }
+
+  onDragLeave(): void {
+    this.isDragging.set(false);
+  }
+
+  onDrop(e: DragEvent): void {
+    e.preventDefault();
+    this.isDragging.set(false);
+    const file = e.dataTransfer?.files[0];
+    if (file) this.selectFile(file);
+  }
+
+  onFileSelected(e: Event): void {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) this.selectFile(file);
+    input.value = '';
+  }
+
+  clearFile(e: Event): void {
+    e.stopPropagation();
+    this.selectedFile.set(null);
+    this.error.set(null);
+  }
+
+  upload(): void {
+    const file = this.selectedFile();
+    if (!file) return;
+    this.error.set(null);
+    this.uploading.set(true);
+    this.docApi.upload(
+      this.entityType, this.entityId, file,
+      this.selectedCategory || undefined,
+      this.notesValue || undefined
+    ).subscribe({
+      next: doc => {
+        this.uploading.set(false);
+        this.selectedFile.set(null);
+        this.selectedCategory = '';
+        this.notesValue = '';
+        this.uploaded.emit(doc);
+      },
+      error: () => {
+        this.uploading.set(false);
+        this.error.set('Upload failed. Please try again.');
+      }
+    });
+  }
+
+  formatSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  private selectFile(file: File): void {
+    if (file.size > MAX_BYTES) {
+      this.error.set('File exceeds the 10 MB limit.');
+      return;
+    }
+    this.error.set(null);
+    this.selectedFile.set(file);
+  }
+}

@@ -10,6 +10,7 @@ export * from './registration.models';
 export * from './inspection.models';
 export * from './fine.models';
 export * from './accident.models';
+export * from './document.models';
 
 
 

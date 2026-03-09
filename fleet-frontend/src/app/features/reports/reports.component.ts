@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule } from 'lucide-angular';
-import { Fuel, Wrench, MapPin, CalendarDays } from 'lucide-angular';
+import { Fuel, Wrench, MapPin, CalendarDays, Download, FileText } from 'lucide-angular';
 import { forkJoin } from 'rxjs';
 import {
   VehicleApiService,
@@ -13,6 +13,7 @@ import {
   InspectionApiService,
 } from '../../core/auth/feature-api.services';
 import { Vehicle, FuelTransaction, MaintenanceOrder, OdometerLog, InsurancePolicy, RegistrationRecord, Inspection } from '../../core/models/models';
+import { exportCsv, exportPdf, CsvColumn } from '../../shared/utils/csv-export';
 
 type Tab = 'fuel' | 'maintenance' | 'utilization' | 'compliance';
 
@@ -92,6 +93,17 @@ interface ComplianceRow {
         <!-- FUEL REPORT -->
         @if (activeTab() === 'fuel') {
           <div class="report-section">
+            <div class="section-header">
+              <h2 class="section-title">Fuel Cost Report</h2>
+              <div class="export-actions">
+                <button class="btn-export" (click)="exportFuelCsv()">
+                  <lucide-icon [img]="icons.Download" [size]="12" [strokeWidth]="2"></lucide-icon> CSV
+                </button>
+                <button class="btn-export" (click)="exportFuelPdf()">
+                  <lucide-icon [img]="icons.FileText" [size]="12" [strokeWidth]="2"></lucide-icon> PDF
+                </button>
+              </div>
+            </div>
             <div class="report-summary">
               <div class="summary-card">
                 <span class="s-value">{{ totalFuelCost() | number:'1.2-2' }} €</span>
@@ -143,6 +155,17 @@ interface ComplianceRow {
         <!-- MAINTENANCE REPORT -->
         @if (activeTab() === 'maintenance') {
           <div class="report-section">
+            <div class="section-header">
+              <h2 class="section-title">Maintenance Spend Report</h2>
+              <div class="export-actions">
+                <button class="btn-export" (click)="exportMaintenanceCsv()">
+                  <lucide-icon [img]="icons.Download" [size]="12" [strokeWidth]="2"></lucide-icon> CSV
+                </button>
+                <button class="btn-export" (click)="exportMaintenancePdf()">
+                  <lucide-icon [img]="icons.FileText" [size]="12" [strokeWidth]="2"></lucide-icon> PDF
+                </button>
+              </div>
+            </div>
             <div class="report-summary">
               <div class="summary-card">
                 <span class="s-value">{{ totalMaintCost() | number:'1.2-2' }} €</span>
@@ -194,6 +217,17 @@ interface ComplianceRow {
         <!-- UTILIZATION REPORT -->
         @if (activeTab() === 'utilization') {
           <div class="report-section">
+            <div class="section-header">
+              <h2 class="section-title">Fleet Utilization Report</h2>
+              <div class="export-actions">
+                <button class="btn-export" (click)="exportUtilizationCsv()">
+                  <lucide-icon [img]="icons.Download" [size]="12" [strokeWidth]="2"></lucide-icon> CSV
+                </button>
+                <button class="btn-export" (click)="exportUtilizationPdf()">
+                  <lucide-icon [img]="icons.FileText" [size]="12" [strokeWidth]="2"></lucide-icon> PDF
+                </button>
+              </div>
+            </div>
             <div class="report-summary">
               <div class="summary-card">
                 <span class="s-value">{{ activeVehicleCount() }}</span>
@@ -239,6 +273,17 @@ interface ComplianceRow {
         <!-- COMPLIANCE EXPIRY -->
         @if (activeTab() === 'compliance') {
           <div class="report-section">
+            <div class="section-header">
+              <h2 class="section-title">Compliance Expiry Report</h2>
+              <div class="export-actions">
+                <button class="btn-export" (click)="exportComplianceCsv()">
+                  <lucide-icon [img]="icons.Download" [size]="12" [strokeWidth]="2"></lucide-icon> CSV
+                </button>
+                <button class="btn-export" (click)="exportCompliancePdf()">
+                  <lucide-icon [img]="icons.FileText" [size]="12" [strokeWidth]="2"></lucide-icon> PDF
+                </button>
+              </div>
+            </div>
             <div class="report-summary">
               <div class="summary-card accent-red">
                 <span class="s-value">{{ expiredCount() }}</span>
@@ -294,6 +339,12 @@ interface ComplianceRow {
 
     .report-section { display: flex; flex-direction: column; gap: 20px; }
 
+    .section-header { display: flex; align-items: center; justify-content: space-between; }
+    .section-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0; }
+    .export-actions { display: flex; gap: 8px; }
+    .btn-export { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1.5px solid #e2e8f0; background: white; color: var(--text-secondary); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .btn-export:hover { border-color: var(--brand); color: var(--brand); background: #f8f9ff; }
+
     .report-summary { display: flex; gap: 16px; flex-wrap: wrap; }
     .summary-card { background: white; border: 1.5px solid #f1f5f9; border-radius: 10px; padding: 16px 20px; min-width: 140px; display: flex; flex-direction: column; gap: 4px; }
     .summary-card.accent-red { border-left: 4px solid #ef4444; }
@@ -327,7 +378,7 @@ interface ComplianceRow {
   `]
 })
 export class ReportsComponent implements OnInit {
-  readonly icons = { Fuel, Wrench, MapPin, CalendarDays };
+  readonly icons = { Fuel, Wrench, MapPin, CalendarDays, Download, FileText };
   loading = signal(true);
   activeTab = signal<Tab>('fuel');
 
@@ -417,6 +468,32 @@ export class ReportsComponent implements OnInit {
   totalFuelLiters = computed(() => this.fuelRows().reduce((s, r) => s + r.totalLiters, 0));
   avgCostPerLiter = computed(() => this.totalFuelLiters() > 0 ? this.totalFuelCost() / this.totalFuelLiters() : 0);
 
+  exportFuelCsv(): void {
+    const months = this.fuelMonths();
+    const cols: CsvColumn<FuelRow>[] = [
+      { header: 'Registration', value: r => r.reg },
+      { header: 'Vehicle', value: r => r.makeModel },
+      { header: 'Transactions', value: r => r.txCount },
+      { header: 'Liters', value: r => r.totalLiters.toFixed(0) },
+      { header: 'Total Cost (€)', value: r => r.totalCost.toFixed(2) },
+      { header: 'Avg per Fill (€)', value: r => (r.txCount > 0 ? r.totalCost / r.txCount : 0).toFixed(2) },
+      ...months.map(m => ({ header: m, value: (r: FuelRow) => (r.months[m] ?? 0).toFixed(2) })),
+    ];
+    exportCsv('fuel-report.csv', this.fuelRows(), cols);
+  }
+
+  exportFuelPdf(): void {
+    const cols: CsvColumn<FuelRow>[] = [
+      { header: 'Registration', value: r => r.reg },
+      { header: 'Vehicle', value: r => r.makeModel },
+      { header: 'Transactions', value: r => r.txCount },
+      { header: 'Liters', value: r => r.totalLiters.toFixed(0) },
+      { header: 'Total Cost (€)', value: r => r.totalCost.toFixed(2) },
+      { header: 'Avg per Fill (€)', value: r => (r.txCount > 0 ? r.totalCost / r.txCount : 0).toFixed(2) },
+    ];
+    exportPdf('fuel-report.pdf', 'Fuel Cost Report', `Generated ${new Date().toLocaleDateString()}`, this.fuelRows(), cols);
+  }
+
   // ─── Maintenance report ────────────────────────────────────────────────────
 
   maintenanceRows = computed<MaintenanceRow[]>(() => {
@@ -455,6 +532,32 @@ export class ReportsComponent implements OnInit {
   totalMaintOrders = computed(() => this.maintenanceRows().reduce((s, r) => s + r.orderCount, 0));
   totalMaintPartsCost = computed(() => this.maintenanceRows().reduce((s, r) => s + r.partsCost, 0));
   totalMaintLaborCost = computed(() => this.maintenanceRows().reduce((s, r) => s + r.laborCost, 0));
+
+  exportMaintenanceCsv(): void {
+    const cols: CsvColumn<MaintenanceRow>[] = [
+      { header: 'Registration', value: r => r.reg },
+      { header: 'Vehicle', value: r => r.makeModel },
+      { header: 'Orders', value: r => r.orderCount },
+      { header: 'Parts (€)', value: r => r.partsCost.toFixed(2) },
+      { header: 'Labor (€)', value: r => r.laborCost.toFixed(2) },
+      { header: 'Total (€)', value: r => r.totalCost.toFixed(2) },
+      { header: 'Avg per Order (€)', value: r => (r.orderCount > 0 ? r.totalCost / r.orderCount : 0).toFixed(2) },
+    ];
+    exportCsv('maintenance-report.csv', this.maintenanceRows(), cols);
+  }
+
+  exportMaintenancePdf(): void {
+    const cols: CsvColumn<MaintenanceRow>[] = [
+      { header: 'Registration', value: r => r.reg },
+      { header: 'Vehicle', value: r => r.makeModel },
+      { header: 'Orders', value: r => r.orderCount },
+      { header: 'Parts (€)', value: r => r.partsCost.toFixed(2) },
+      { header: 'Labor (€)', value: r => r.laborCost.toFixed(2) },
+      { header: 'Total (€)', value: r => r.totalCost.toFixed(2) },
+      { header: 'Avg per Order (€)', value: r => (r.orderCount > 0 ? r.totalCost / r.orderCount : 0).toFixed(2) },
+    ];
+    exportPdf('maintenance-report.pdf', 'Maintenance Spend Report', `Generated ${new Date().toLocaleDateString()}`, this.maintenanceRows(), cols);
+  }
 
   // ─── Utilization report ────────────────────────────────────────────────────
 
@@ -505,6 +608,30 @@ export class ReportsComponent implements OnInit {
     return active.length > 0 ? this.totalKmThisMonth() / active.length : 0;
   });
 
+  exportUtilizationCsv(): void {
+    const cols: CsvColumn<UtilizationRow>[] = [
+      { header: 'Registration', value: r => r.reg },
+      { header: 'Vehicle', value: r => r.makeModel },
+      { header: 'Status', value: r => r.status },
+      { header: 'KM This Month', value: r => r.kmThisMonth.toFixed(0) },
+      { header: 'Total Odometer (km)', value: r => r.kmTotal.toFixed(0) },
+      { header: 'Last Log Date', value: r => r.lastLogDate ?? '' },
+    ];
+    exportCsv('utilization-report.csv', this.utilizationRows(), cols);
+  }
+
+  exportUtilizationPdf(): void {
+    const cols: CsvColumn<UtilizationRow>[] = [
+      { header: 'Registration', value: r => r.reg },
+      { header: 'Vehicle', value: r => r.makeModel },
+      { header: 'Status', value: r => r.status },
+      { header: 'KM This Month', value: r => r.kmThisMonth.toFixed(0) },
+      { header: 'Total Odometer (km)', value: r => r.kmTotal.toFixed(0) },
+      { header: 'Last Log Date', value: r => r.lastLogDate ?? '—' },
+    ];
+    exportPdf('utilization-report.pdf', 'Fleet Utilization Report', `Generated ${new Date().toLocaleDateString()}`, this.utilizationRows(), cols);
+  }
+
   // ─── Compliance expiry ─────────────────────────────────────────────────────
 
   complianceRows = computed<ComplianceRow[]>(() => {
@@ -543,4 +670,28 @@ export class ReportsComponent implements OnInit {
   expiredCount = computed(() => this.complianceRows().filter(r => r.status === 'expired').length);
   expiringCount = computed(() => this.complianceRows().filter(r => r.status === 'soon').length);
   okCount = computed(() => this.complianceRows().filter(r => r.status === 'ok').length);
+
+  exportComplianceCsv(): void {
+    const cols: CsvColumn<ComplianceRow>[] = [
+      { header: 'Registration', value: r => r.reg },
+      { header: 'Vehicle', value: r => r.makeModel },
+      { header: 'Type', value: r => r.type },
+      { header: 'Expires', value: r => r.expiresAt },
+      { header: 'Days Left', value: r => r.daysLeft },
+      { header: 'Status', value: r => r.status },
+    ];
+    exportCsv('compliance-report.csv', this.complianceRows(), cols);
+  }
+
+  exportCompliancePdf(): void {
+    const cols: CsvColumn<ComplianceRow>[] = [
+      { header: 'Registration', value: r => r.reg },
+      { header: 'Vehicle', value: r => r.makeModel },
+      { header: 'Type', value: r => r.type },
+      { header: 'Expires', value: r => r.expiresAt },
+      { header: 'Days Left', value: r => r.daysLeft },
+      { header: 'Status', value: r => r.status },
+    ];
+    exportPdf('compliance-report.pdf', 'Compliance Expiry Report', `Generated ${new Date().toLocaleDateString()}`, this.complianceRows(), cols);
+  }
 }

@@ -33,6 +33,7 @@ public class FleetDbContext : DbContext
     public DbSet<Fine> Fines => Set<Fine>();
     public DbSet<Accident> Accidents => Set<Accident>();
     public DbSet<Inspection> Inspections => Set<Inspection>();
+    public DbSet<Document> Documents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -468,6 +469,25 @@ public class FleetDbContext : DbContext
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
 
             entity.HasOne(e => e.Vehicle).WithMany().HasForeignKey(e => e.VehicleId);
+        });
+
+        modelBuilder.Entity<Document>(entity =>
+        {
+            entity.ToTable("document", "fleet");
+            entity.HasKey(e => e.DocumentId);
+            entity.Property(e => e.DocumentId).HasColumnName("document_id");
+            entity.Property(e => e.EntityType).HasColumnName("entity_type");
+            entity.Property(e => e.EntityId).HasColumnName("entity_id");
+            entity.Property(e => e.Category).HasColumnName("category");
+            entity.Property(e => e.FileName).HasColumnName("file_name");
+            entity.Property(e => e.ContentType).HasColumnName("content_type");
+            entity.Property(e => e.FilePath).HasColumnName("file_path");
+            entity.Property(e => e.FileSize).HasColumnName("file_size");
+            entity.Property(e => e.UploadedBy).HasColumnName("uploaded_by");
+            entity.Property(e => e.UploadedAt).HasColumnName("uploaded_at");
+            entity.Property(e => e.Notes).HasColumnName("notes");
+
+            entity.HasIndex(e => new { e.EntityType, e.EntityId }).HasDatabaseName("ix_document_entity_type_entity_id");
         });
     }
 }
