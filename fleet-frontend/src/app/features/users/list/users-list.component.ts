@@ -191,16 +191,17 @@ import { LucideAngularModule, Eye } from 'lucide-angular';
       display: flex; align-items: center; justify-content: center;
       border: 1px solid var(--border);
       border-radius: 6px;
-      background: white;
+      background: var(--hover-bg);
+      color: var(--text-muted);
       cursor: pointer;
       font-size: 14px;
       transition: all 0.15s;
     }
-    .action-btn:hover { background: #f8fafc; border-color: var(--brand); }
+    .action-btn:hover { background: var(--brand-subtle); border-color: var(--brand); color: var(--brand); }
 
     /* ── Detail Modal ──────────────────────────────────────── */
     .detail-modal {
-      background: white;
+      background: var(--card-bg);
       border-radius: 14px;
       width: 90%;
       max-width: 480px;
@@ -266,11 +267,11 @@ import { LucideAngularModule, Eye } from 'lucide-angular';
     .form-input {
       width: 100%;
       padding: 10px 14px;
-      border: 1.5px solid #e2e8f0;
+      border: 1.5px solid var(--border);
       border-radius: 8px;
       font-size: 14px;
       color: var(--text-primary);
-      background: white;
+      background: var(--input-bg);
       box-sizing: border-box;
       outline: none;
       transition: border-color 0.15s;

@@ -296,7 +296,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
   `,
   styles: [`
     .start-btn { color:#16a34a; } .close-btn { color:#2563eb; } .warning-btn { color:#d97706; }
-    .items-row td { background:#f8fafc; padding:6px 16px; }
+    .items-row td { background:var(--subtle-bg); padding:6px 16px; }
     .items-list { display:flex; flex-wrap:wrap; gap:6px; }
     .item-chip { background:#e0f2fe; color:#0369a1; border-radius:4px; padding:2px 8px; font-size:12px; display:flex; align-items:center; gap:4px; }
     .item-del { background:none; border:none; cursor:pointer; color:#ef4444; font-size:14px; padding:0; line-height:1; }

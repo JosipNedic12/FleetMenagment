@@ -54,13 +54,13 @@ type GroupedResults = { type: string; items: SearchResult[] }[];
   styles: [`
     .search-wrapper { position: relative; width: 340px; }
     .search-input-row { display: flex; align-items: center; gap: 8px; background: var(--input-bg, #f8fafc); border: 1.5px solid var(--border, #e2e8f0); border-radius: 8px; padding: 0 12px; height: 36px; transition: border-color 0.15s; }
-    .search-input-row:focus-within { border-color: var(--brand, #2563eb); background: #fff; }
+    .search-input-row:focus-within { border-color: var(--brand, #2563eb); background: var(--input-bg, #fff); }
     .search-icon { color: var(--text-muted, #94a3b8); flex-shrink: 0; }
     .search-input { flex: 1; border: none; background: transparent; outline: none; font-size: 13.5px; color: var(--text-primary, #0f172a); min-width: 0; }
     .search-input::placeholder { color: var(--text-muted, #94a3b8); }
     .spinner { width: 14px; height: 14px; border: 2px solid var(--border, #e2e8f0); border-top-color: var(--brand, #2563eb); border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .dropdown { position: absolute; top: calc(100% + 6px); left: 0; width: 100%; background: #fff; border: 1.5px solid var(--border, #e2e8f0); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 500; max-height: 380px; overflow-y: auto; padding: 6px 0; }
+    .dropdown { position: absolute; top: calc(100% + 6px); left: 0; width: 100%; background: var(--card-bg, #fff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 500; max-height: 380px; overflow-y: auto; padding: 6px 0; }
     .group-label { font-size: 10px; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase; color: var(--text-muted, #94a3b8); padding: 8px 14px 4px; }
     .result-item { display: flex; flex-direction: column; gap: 1px; width: 100%; text-align: left; padding: 7px 14px; background: none; border: none; cursor: pointer; transition: background 0.12s; }
     .result-item:hover { background: var(--brand-subtle, #eff6ff); }

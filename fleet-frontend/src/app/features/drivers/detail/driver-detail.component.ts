@@ -220,12 +220,12 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents';
   styles: [`
     .back-btn {
       display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
-      background: white; color: var(--text-secondary); font-size: 13px;
+      padding: 6px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--card-bg); color: var(--text-secondary); font-size: 13px;
       font-weight: 500; cursor: pointer; font-family: inherit;
       transition: all 0.15s;
     }
-    .back-btn:hover { border-color: #cbd5e1; color: var(--text-primary); }
+    .back-btn:hover { border-color: var(--border); color: var(--text-primary); }
 
     .mono { font-family: monospace; }
     .expired-text { color: #dc2626; font-weight: 600; }
@@ -246,7 +246,7 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents';
     .tabs {
       display: flex; gap: 0; flex-wrap: wrap;
       margin-bottom: 20px;
-      border-bottom: 2px solid #f1f5f9;
+      border-bottom: 2px solid var(--border);
       width: 100%;
     }
     .tab {
@@ -259,17 +259,17 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents';
       transition: color 0.15s, border-color 0.2s, background 0.15s;
       white-space: nowrap; font-family: inherit;
     }
-    .tab:hover { background: #f8fafc; color: var(--text-primary); }
+    .tab:hover { background: var(--hover-bg); color: var(--text-primary); }
     .tab.active { color: var(--brand); font-weight: 600; border-bottom-color: var(--brand); background: none; }
     .tab-count {
-      background: #e2e8f0; color: #64748b;
+      background: var(--border); color: var(--text-muted);
       border-radius: 10px; padding: 1px 7px;
       font-size: 11px; font-weight: 500;
     }
-    .tab.active .tab-count { background: #ede9fe; color: var(--brand); }
+    .tab.active .tab-count { background: var(--brand-subtle); color: var(--brand); }
 
     .section-card {
-      background: #fff; border: 1.5px solid #f1f5f9;
+      background: var(--card-bg); border: 1.5px solid var(--border);
       border-radius: 12px; padding: 24px;
     }
 
@@ -280,14 +280,14 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents';
       gap: 16px;
     }
     .info-group {
-      background: #fff; border: 1.5px solid #f1f5f9;
+      background: var(--card-bg); border: 1.5px solid var(--border);
       border-radius: 12px; overflow: hidden;
     }
     .info-group-title {
       font-size: 11px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.6px; color: var(--text-muted);
-      padding: 12px 16px; border-bottom: 1px solid #f1f5f9;
-      background: #f8fafc;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      background: var(--subtle-bg);
     }
 
     /* Driver avatar header */
@@ -315,9 +315,9 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents';
     .kv-row {
       display: flex; flex-direction: column; gap: 4px;
       padding: 14px 16px;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid var(--border);
     }
-    .kv-row:nth-child(odd):not(.kv-full) { border-right: 1px solid #f1f5f9; }
+    .kv-row:nth-child(odd):not(.kv-full) { border-right: 1px solid var(--border); }
     .kv-full { grid-column: 1 / -1; border-right: none !important; }
     .kv-label {
       font-size: 11px; font-weight: 600; color: var(--text-muted);

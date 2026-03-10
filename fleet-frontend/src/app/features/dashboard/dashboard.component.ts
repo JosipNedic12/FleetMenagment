@@ -322,8 +322,8 @@ interface StatCard {
     .last-updated { font-size: 12px; color: var(--text-muted); }
     .refresh-btn {
       display: inline-flex; align-items: center; gap: 5px;
-      padding: 5px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
-      background: white; color: var(--text-secondary); font-size: 12px;
+      padding: 5px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--card-bg); color: var(--text-secondary); font-size: 12px;
       font-weight: 500; cursor: pointer; font-family: inherit;
       transition: all 0.15s;
     }
@@ -339,11 +339,11 @@ interface StatCard {
       margin-bottom: 32px;
     }
     .stat-card {
-      background: white;
+      background: var(--card-bg);
       border-radius: 12px;
       padding: 20px;
       text-decoration: none;
-      border: 1.5px solid #f1f5f9;
+      border: 1.5px solid var(--border);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       display: flex;
       flex-direction: column;
@@ -366,8 +366,8 @@ interface StatCard {
     .stat-sub { display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
     .loading-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; margin-bottom: 32px; }
-    .stat-skeleton { height: 120px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200%; border-radius: 12px; animation: shimmer 1.4s infinite; }
-    .chart-skeleton { height: 280px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200%; border-radius: 12px; animation: shimmer 1.4s infinite; }
+    .stat-skeleton { height: 120px; background: linear-gradient(90deg, var(--subtle-bg) 25%, var(--border) 50%, var(--subtle-bg) 75%); background-size: 200%; border-radius: 12px; animation: shimmer 1.4s infinite; }
+    .chart-skeleton { height: 280px; background: linear-gradient(90deg, var(--subtle-bg) 25%, var(--border) 50%, var(--subtle-bg) 75%); background-size: 200%; border-radius: 12px; animation: shimmer 1.4s infinite; }
     @keyframes shimmer { to { background-position: -200% 0; } }
 
     .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 16px; }
@@ -387,36 +387,36 @@ interface StatCard {
 
     .widget-badges { display: flex; gap: 6px; align-items: center; }
     .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
-    .badge--red { background: #fef2f2; color: #ef4444; }
-    .badge--amber { background: #fffbeb; color: #f59e0b; }
+    .badge--red { background: rgba(239,68,68,0.12); color: #ef4444; }
+    .badge--amber { background: rgba(245,158,11,0.12); color: #f59e0b; }
 
     /* Compliance table */
     .compliance-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
-    .compliance-table th { text-align: left; font-weight: 600; color: var(--text-muted); padding: 4px 6px; border-bottom: 1px solid #f1f5f9; }
-    .compliance-table td { padding: 6px 6px; border-bottom: 1px solid #f8fafc; color: var(--text-primary); }
-    .compliance-row--expired td { background: #fef2f2; }
+    .compliance-table th { text-align: left; font-weight: 600; color: var(--text-muted); padding: 4px 6px; border-bottom: 1px solid var(--border); }
+    .compliance-table td { padding: 6px 6px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+    .compliance-row--expired td { background: var(--row-danger-bg); }
     .compliance-row--expired td:first-child { border-left: 3px solid #ef4444; }
-    .compliance-row--due_soon td { background: #fffbeb; }
+    .compliance-row--due_soon td { background: var(--row-warn-bg); }
     .compliance-row--due_soon td:first-child { border-left: 3px solid #f59e0b; }
     .reg-cell { font-weight: 600; }
 
     .type-chip { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
-    .type-chip--insurance { background: #eff6ff; color: #3b82f6; }
-    .type-chip--registration { background: #f5f3ff; color: #8b5cf6; }
-    .type-chip--inspection { background: #ecfdf5; color: #10b981; }
+    .type-chip--insurance { background: rgba(59,130,246,0.12); color: #3b82f6; }
+    .type-chip--registration { background: rgba(139,92,246,0.12); color: #8b5cf6; }
+    .type-chip--inspection { background: rgba(16,185,129,0.12); color: #10b981; }
 
     .days-badge { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; }
-    .days-badge--expired { background: #fef2f2; color: #ef4444; }
-    .days-badge--soon { background: #fffbeb; color: #f59e0b; }
+    .days-badge--expired { background: rgba(239,68,68,0.12); color: #ef4444; }
+    .days-badge--soon { background: rgba(245,158,11,0.12); color: #f59e0b; }
 
     /* Assignment widget */
     .assignment-numbers { display: flex; align-items: center; justify-content: center; gap: 0; margin: 16px 0 12px; }
     .assign-block { display: flex; flex-direction: column; align-items: center; flex: 1; }
     .assign-value { font-size: 40px; font-weight: 800; line-height: 1; }
     .assign-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-    .assign-divider { width: 1px; height: 48px; background: #f1f5f9; }
+    .assign-divider { width: 1px; height: 48px; background: var(--border); }
     .assign-bar-wrap { display: flex; align-items: center; gap: 10px; }
-    .assign-bar { flex: 1; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+    .assign-bar { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
     .assign-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
     .assign-pct { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
 
@@ -434,9 +434,9 @@ interface StatCard {
       gap: 4px;
       padding: 12px 8px;
       border-radius: 8px;
-      background: #f8fafc;
+      background: var(--subtle-bg);
     }
-    .wo-stat--overdue { background: #fef2f2; }
+    .wo-stat--overdue { background: var(--row-danger-bg); }
     .wo-count { font-size: 28px; font-weight: 800; color: var(--text-primary); line-height: 1; }
     .wo-label { font-size: 11px; color: var(--text-muted); text-align: center; }
 
@@ -457,10 +457,10 @@ interface StatCard {
     }
 
     .chart-card {
-      background: white;
+      background: var(--card-bg);
       border-radius: 12px;
       padding: 20px 24px;
-      border: 1.5px solid #f1f5f9;
+      border: 1.5px solid var(--border);
       animation: fadeSlideUp 0.45s ease both;
       overflow: hidden;
     }
@@ -571,7 +571,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     },
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 12 } } },
-      y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } } }
+      y: { grid: { color: () => getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e2e8f0' }, ticks: { font: { size: 11 } } }
     }
   };
 
@@ -598,7 +598,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     },
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 12 } } },
-      y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 }, stepSize: 1 }, beginAtZero: true }
+      y: { grid: { color: () => getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e2e8f0' }, ticks: { font: { size: 11 }, stepSize: 1 }, beginAtZero: true }
     }
   };
 

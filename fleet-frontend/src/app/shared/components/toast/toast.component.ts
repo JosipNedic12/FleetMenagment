@@ -46,7 +46,7 @@ import { LucideAngularModule, CheckCircle, XCircle, TriangleAlert, Info, X } fro
       gap: 10px;
       padding: 12px 16px 15px;
       border-radius: 10px;
-      background: white;
+      background: var(--card-bg);
       box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
       min-width: 280px;
       max-width: 440px;
@@ -89,7 +89,7 @@ import { LucideAngularModule, CheckCircle, XCircle, TriangleAlert, Info, X } fro
       flex: 1;
       font-size: 13.5px;
       font-weight: 500;
-      color: #1e293b;
+      color: var(--text-primary);
       line-height: 1.4;
       padding-left: 4px;
     }
@@ -107,7 +107,7 @@ import { LucideAngularModule, CheckCircle, XCircle, TriangleAlert, Info, X } fro
       flex-shrink: 0;
       transition: color 0.15s, background 0.15s;
     }
-    .toast-close:hover { color: #475569; background: #f1f5f9; }
+    .toast-close:hover { color: var(--text-secondary); background: var(--hover-bg); }
 
     .toast-progress {
       position: absolute;

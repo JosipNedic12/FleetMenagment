@@ -92,7 +92,7 @@ const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 8px; padding: 28px 20px;
       border: 2px dashed #cbd5e1; border-radius: 12px;
-      background: #f8fafc; cursor: pointer;
+      background: var(--subtle-bg); cursor: pointer;
       transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
     }
     .drop-zone:hover { border-color: #94a3b8; }
@@ -120,7 +120,7 @@ const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
 
     .upload-progress-bar {
       height: 4px; border-radius: 2px;
-      background: #e2e8f0; overflow: hidden;
+      background: var(--border); overflow: hidden;
     }
     .upload-progress-bar .fill {
       height: 100%; background: var(--brand); border-radius: 2px;
@@ -138,7 +138,7 @@ const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
     .retry-btn {
       display: inline-flex; align-items: center;
       padding: 5px 12px; border-radius: 6px;
-      border: 1.5px solid var(--brand); background: white; color: var(--brand);
+      border: 1.5px solid var(--brand); background: var(--card-bg); color: var(--brand);
       font-size: 12px; font-weight: 600; font-family: inherit;
       cursor: pointer; white-space: nowrap;
       transition: background 0.15s, color 0.15s;
@@ -152,7 +152,7 @@ const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
       flex: 1; min-width: 120px;
       padding: 7px 10px; font-size: 13px; font-family: inherit;
       border: 1.5px solid #e2e8f0; border-radius: 8px;
-      background: white; color: var(--text-primary);
+      background: var(--input-bg); color: var(--text-primary);
       outline: none; transition: border-color 0.15s;
     }
     .ctrl-select:focus, .ctrl-input:focus { border-color: var(--brand); }

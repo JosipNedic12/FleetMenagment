@@ -286,7 +286,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
   `,
   styles: [`
     .tab-row { display:flex; gap:2px; margin-bottom:16px; }
-    .tab-row button { padding:8px 20px; border:1.5px solid #e2e8f0; background:white; border-radius:7px; font-size:14px; cursor:pointer; color:var(--text-muted); transition:all .15s; }
+    .tab-row button { padding:8px 20px; border:1.5px solid var(--border); background:var(--card-bg); border-radius:7px; font-size:14px; cursor:pointer; color:var(--text-muted); transition:all .15s; }
     .tab-active { background:var(--brand) !important; color:white !important; border-color:var(--brand) !important; }
     .section-actions { display:flex; gap:12px; margin-bottom:16px; align-items:center; }
     .suspicious-row { background:#fff7ed; }

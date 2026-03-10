@@ -1,4 +1,4 @@
-import { Component, computed, signal, Input, Output, EventEmitter } from '@angular/core';
+import { Component, signal, Input, Output, EventEmitter } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { inject } from '@angular/core';
@@ -27,18 +27,6 @@ interface NavItem { label: string; route: string; icon: LucideIconData; }
       <a routerLink="/dashboard" class="sidebar-logo" title="MaxFleet – Go to Dashboard">
         <img src="maxfleet-logo.png" alt="MaxFleet" class="logo-img" />
         @if (!collapsed()) { <span class="logo-text">MaxFleet</span> }
-      </a>
-
-      <!-- User -->
-      <a routerLink="/profile" class="sidebar-user sidebar-user-link" routerLinkActive="user-active">
-        <div class="user-avatar">{{ initials() }}</div>
-        @if (!collapsed()) {
-          <div class="user-info">
-            <span class="user-name">{{ auth.fullName() }}</span>
-            <span class="user-role">{{ auth.role() }}</span>
-          </div>
-          <lucide-icon [img]="chevronRight" [size]="14" class="user-arrow" [strokeWidth]="2"></lucide-icon>
-        }
       </a>
 
       <!-- Nav -->
@@ -129,7 +117,7 @@ interface NavItem { label: string; route: string; icon: LucideIconData; }
     .toggle-btn {
       position: absolute; top: 20px; right: -12px;
       width: 24px; height: 24px; border-radius: 50%;
-      background: var(--sidebar-bg);
+      background: var(--topbar-bg);
       border: 1px solid var(--sidebar-border);
       color: var(--sidebar-muted);
       cursor: pointer;
@@ -156,33 +144,6 @@ interface NavItem { label: string; route: string; icon: LucideIconData; }
     .collapsed .sidebar-logo { justify-content: center; padding: 20px 0 16px; }
     .logo-img { width: 60px; height: 60px; object-fit: contain; flex-shrink: 0; }
     .logo-text { font-size: 17px; font-weight: 700; color: var(--sidebar-text); letter-spacing: -0.3px; }
-
-    /* ── User ── */
-    .sidebar-user {
-      display: flex; align-items: center; gap: 10px;
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--sidebar-border);
-      white-space: nowrap;
-    }
-    .collapsed .sidebar-user { justify-content: center; padding: 14px 0; }
-    .sidebar-user-link {
-      text-decoration: none; cursor: pointer;
-      transition: background 0.15s;
-      position: relative;
-    }
-    .sidebar-user-link:hover { background: var(--sidebar-hover); }
-    .sidebar-user-link.user-active { background: rgba(37,99,235,0.1); }
-    .user-arrow { margin-left: auto; color: var(--sidebar-muted); transition: transform 0.15s, color 0.15s; display: flex; }
-    .sidebar-user-link:hover .user-arrow { color: var(--sidebar-text); transform: translateX(2px); }
-    .user-avatar {
-      width: 34px; height: 34px; border-radius: 50%;
-      background: var(--brand); color: white;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 700; flex-shrink: 0;
-    }
-    .user-name { display: block; font-size: 13px; font-weight: 600; color: var(--sidebar-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-role { display: block; font-size: 11px; color: var(--sidebar-muted); }
-    .user-info { overflow: hidden; flex: 1; min-width: 0; }
 
     /* ── Nav groups ── */
     .sidebar-nav {
@@ -317,7 +278,4 @@ export class SidebarComponent {
     { label: 'Accidents',    route: '/accidents',    icon: Siren },
   ];
 
-  initials = computed(() =>
-    this.auth.fullName().split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-  );
 }

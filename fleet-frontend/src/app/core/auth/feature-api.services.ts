@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
+import { Notification } from '../models/notification.models';
 import {
   LoginDto, AuthResponse, CreateAppUserDto,
   MakeDto, ModelDto, VehicleCategoryDto, FuelTypeDto, LicenseCategoryDto, MaintenanceTypeDto,
@@ -566,5 +567,28 @@ export class SearchApiService extends ApiService {
 
   search(q: string): Observable<SearchResult[]> {
     return this.http.get<SearchResult[]>(`${this.base}/search`, { params: { q } });
+  }
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+@Injectable({ providedIn: 'root' })
+export class NotificationApiService extends ApiService {
+  constructor(http: HttpClient) { super(http); }
+
+  getAll(): Observable<Notification[]> {
+    return this.get<Notification[]>('Notifications');
+  }
+
+  getUnreadCount(): Observable<{ count: number }> {
+    return this.get<{ count: number }>('Notifications/unread-count');
+  }
+
+  markAsRead(id: number): Observable<void> {
+    return this.put<void>(`Notifications/${id}/read`, {});
+  }
+
+  markAllAsRead(): Observable<void> {
+    return this.put<void>('Notifications/read-all', {});
   }
 }

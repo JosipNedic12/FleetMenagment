@@ -191,7 +191,7 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
 
     /* ── Cards ────────────────────────────────────────────── */
     .profile-card {
-      background: white;
+      background: var(--card-bg);
       border-radius: 12px;
       border: 1.5px solid var(--border);
       overflow: hidden;
@@ -276,8 +276,8 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
       border-radius: 5px;
       font-size: 11px;
       font-weight: 600;
-      background: #f1f5f9;
-      color: #94a3b8;
+      background: var(--subtle-bg);
+      color: var(--text-muted);
     }
     .perm.active {
       background: #dcfce7;
@@ -306,7 +306,7 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
       font-size: 14px;
       font-family: inherit;
       color: var(--text-primary);
-      background: white;
+      background: var(--input-bg);
       outline: none;
       transition: border-color 0.15s;
     }
@@ -323,7 +323,7 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
     }
     .strength-bar {
       height: 3px;
-      background: #f1f5f9;
+      background: var(--border);
       border-radius: 3px;
       margin-top: 8px;
       overflow: hidden;
@@ -435,7 +435,7 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
 
     /* ── Session Info ──────────────────────────────────────── */
     .session-info {
-      background: #f8fafc;
+      background: var(--subtle-bg);
       border-radius: 8px;
       padding: 14px 16px;
       display: flex;

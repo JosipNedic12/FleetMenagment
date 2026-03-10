@@ -71,8 +71,8 @@ import { LucideAngularModule, Trash2, TriangleAlert, X } from 'lucide-angular';
       transition: color 0.15s, background 0.15s;
     }
     .modal-close-btn:hover {
-      color: #475569;
-      background: #f1f5f9;
+      color: var(--text-secondary);
+      background: var(--hover-bg);
     }
   `]
 })

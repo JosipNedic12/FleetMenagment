@@ -81,7 +81,7 @@ import { Document } from '../../../core/models/models';
     .action-btn {
       display: inline-flex; align-items: center; justify-content: center;
       width: 30px; height: 30px; border-radius: 6px;
-      border: 1.5px solid #e2e8f0; background: white;
+      border: 1.5px solid var(--border); background: var(--card-bg);
       color: var(--text-secondary); cursor: pointer;
       transition: all 0.15s;
     }

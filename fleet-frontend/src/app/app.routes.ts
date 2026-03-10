@@ -27,11 +27,16 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
       },
-      // ── User profile ──
+      // ── User profile & settings ──
       {
         path: 'profile',
         loadComponent: () =>
           import('./features/profile/profile.component').then(m => m.ProfileComponent)
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./features/settings/settings.component').then(m => m.SettingsComponent)
       },
       // ── Admin: User management ──
       {
