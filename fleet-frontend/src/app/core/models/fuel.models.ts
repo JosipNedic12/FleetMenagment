@@ -64,3 +64,10 @@ export interface CreateFuelTransactionDto {
   receiptNumber?: string;
   notes?: string;
 }
+
+export interface UpdateFuelTransactionDto {
+  postedAt?: string;
+  odometerKm?: number;
+  totalCost?: number;
+  notes?: string;
+}

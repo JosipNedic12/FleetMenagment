@@ -42,8 +42,11 @@ const TYPE_COLOR: Record<string, string> = {
 const ENTITY_ROUTES: Record<string, string> = {
   vehicle:     '/vehicles',
   maintenance: '/maintenance',
-  insurance:   '/insurance',
-  inspection:  '/inspections',
+  fuel:        '/fuel',
+  assignment:  '/assignments',
+  insurance:    '/insurance',
+  registration: '/registration',
+  inspection:   '/inspections',
   fine:        '/fines',
   accident:    '/accidents',
 };

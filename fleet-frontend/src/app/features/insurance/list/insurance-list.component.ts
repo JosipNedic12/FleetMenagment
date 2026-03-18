@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { InsurancePolicyApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, Paperclip } from 'lucide-angular';
 import { InsurancePolicy, CreateInsurancePolicyDto, Vehicle } from '../../../core/models/models';
@@ -61,7 +62,7 @@ import { DocumentListComponent } from '../../../shared/components/document-list/
             </thead>
             <tbody>
               @for (row of filtered(); track row.policyId) {
-                <tr>
+                <tr (click)="goToDetail(row)">
                   <td><strong>{{ row.registrationNumber }}</strong></td>
                   <td class="mono">{{ row.policyNumber }}</td>
                   <td>{{ row.insurer }}</td>
@@ -75,9 +76,9 @@ import { DocumentListComponent } from '../../../shared/components/document-list/
                     />
                   </td>
                   <td class="actions">
-                    <button class="btn-icon" title="Documents" (click)="openDocs(row)"><lucide-icon [img]="icons.Paperclip" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button class="btn-icon" title="Documents" (click)="$event.stopPropagation(); openDocs(row)"><lucide-icon [img]="icons.Paperclip" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="$event.stopPropagation(); startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="$event.stopPropagation(); confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -178,6 +179,8 @@ import { DocumentListComponent } from '../../../shared/components/document-list/
   `,
   styles: [`
     .modal-box--wide { width: min(720px, 95vw); }
+    tbody tr { cursor:pointer; transition:background 0.12s; }
+    tbody tr:hover { background:var(--hover-bg); }
   `]
 })
 export class InsuranceListComponent implements OnInit {
@@ -187,6 +190,7 @@ export class InsuranceListComponent implements OnInit {
   docsTarget: InsurancePolicy | null = null;
   private api = inject(InsurancePolicyApiService);
   private vehicleApi = inject(VehicleApiService);
+  private router = inject(Router);
   auth = inject(AuthService);
 
   policies = signal<InsurancePolicy[]>([]);
@@ -260,6 +264,8 @@ export class InsuranceListComponent implements OnInit {
       error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
     });
   }
+
+  goToDetail(row: InsurancePolicy): void { this.router.navigate(['/insurance', row.policyId]); }
 
   openDocs(row: InsurancePolicy): void { this.docsTarget = row; }
 

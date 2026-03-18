@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AccidentApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, TriangleAlert } from 'lucide-angular';
 import { Accident, CreateAccidentDto, Vehicle, Driver } from '../../../core/models/models';
@@ -53,7 +54,7 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
             </thead>
             <tbody>
               @for (row of filtered(); track row.accidentId) {
-                <tr>
+                <tr (click)="goToDetail(row)">
                   <td><strong>{{ row.registrationNumber }}</strong></td>
                   <td>{{ row.driverName ?? '—' }}</td>
                   <td>{{ row.occurredAt | date:'dd.MM.yyyy' }}</td>
@@ -67,8 +68,8 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
                   <td>{{ row.damageEstimate != null ? (row.damageEstimate | currency:'EUR':'symbol':'1.2-2') : '—' }}</td>
                   <td class="mono">{{ row.policeReport ?? '—' }}</td>
                   <td class="actions">
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="$event.stopPropagation(); startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="$event.stopPropagation(); confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -163,6 +164,8 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
       border-radius: 8px; padding: 10px 14px;
       font-size: 13px; color: #92400e;
     }
+    tbody tr { cursor:pointer; transition:background 0.12s; }
+    tbody tr:hover { background:var(--hover-bg); }
   `]
 })
 export class AccidentsListComponent implements OnInit {
@@ -188,6 +191,8 @@ export class AccidentsListComponent implements OnInit {
     );
     return list;
   });
+
+  private router = inject(Router);
 
   constructor(
     private api: AccidentApiService,
@@ -234,6 +239,8 @@ export class AccidentsListComponent implements OnInit {
       error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
     });
   }
+
+  goToDetail(row: Accident): void { this.router.navigate(['/accidents', row.accidentId]); }
 
   confirmDelete(row: Accident): void { this.deleteTarget = row; }
   doDelete(): void {

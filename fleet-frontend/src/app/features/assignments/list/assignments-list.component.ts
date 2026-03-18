@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { VehicleAssignmentApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2 } from 'lucide-angular';
 import { VehicleAssignment, CreateVehicleAssignmentDto, UpdateVehicleAssignmentDto, Vehicle, Driver } from '../../../core/models/models';
@@ -52,7 +53,7 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
             </thead>
             <tbody>
               @for (row of filtered(); track row.assignmentId) {
-                <tr>
+                <tr (click)="goToDetail(row)">
                   <td><strong class="mono">{{ row.registrationNumber }}</strong><br><small>{{ row.vehicleMake }} {{ row.vehicleModel }}</small></td>
                   <td>{{ row.driverFullName }}</td>
                   <td>{{ row.department ?? '—' }}</td>
@@ -66,11 +67,11 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
                   </td>
                   <td class="notes-cell">{{ row.notes ?? '—' }}</td>
                   <td class="actions">
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="$event.stopPropagation(); startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     @if (row.isActive) {
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon warning" title="End Assignment" (click)="endAssignment(row)">⏹</button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon warning" title="End Assignment" (click)="$event.stopPropagation(); endAssignment(row)">⏹</button>
                     }
-                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="$event.stopPropagation(); confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -164,7 +165,9 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
       (cancelled)="deleteTarget = null"
     />
   `,
-  styles: [`.btn-icon.warning { color:#d97706; } small { color:var(--text-muted); font-size:11px; }`]
+  styles: [`.btn-icon.warning { color:#d97706; } small { color:var(--text-muted); font-size:11px; }
+    tbody tr { cursor:pointer; transition:background 0.12s; }
+    tbody tr:hover { background:var(--hover-bg); }`]
 })
 export class AssignmentsListComponent implements OnInit {
   readonly icons = { Eye, Pencil, Trash2 };
@@ -173,6 +176,7 @@ export class AssignmentsListComponent implements OnInit {
   private api = inject(VehicleAssignmentApiService);
   private vehicleApi = inject(VehicleApiService);
   private driverApi = inject(DriverApiService);
+  private router = inject(Router);
   auth = inject(AuthService);
 
   assignments = signal<VehicleAssignment[]>([]);
@@ -254,6 +258,8 @@ export class AssignmentsListComponent implements OnInit {
   endAssignment(row: VehicleAssignment): void {
     this.api.end(row.assignmentId).subscribe({ next: () => this.load(), error: () => {} });
   }
+
+  goToDetail(row: VehicleAssignment): void { this.router.navigate(['/assignments', row.assignmentId]); }
 
   confirmDelete(row: VehicleAssignment): void { this.deleteTarget = row; }
   doDelete(): void {

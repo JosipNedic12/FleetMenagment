@@ -15,7 +15,7 @@ import {
   CloseMaintenanceOrderDto, CancelMaintenanceOrderDto,
   MaintenanceItem, CreateMaintenanceItemDto,
   FuelCard, CreateFuelCardDto, UpdateFuelCardDto,
-  FuelTransaction, CreateFuelTransactionDto,
+  FuelTransaction, CreateFuelTransactionDto, UpdateFuelTransactionDto,
   OdometerLog, CreateOdometerLogDto,
   InsurancePolicy, CreateInsurancePolicyDto, UpdateInsurancePolicyDto,
   RegistrationRecord, CreateRegistrationRecordDto, UpdateRegistrationRecordDto,
@@ -283,6 +283,9 @@ export class FuelTransactionApiService extends ApiService {
   }
   create(dto: CreateFuelTransactionDto): Observable<FuelTransaction> {
     return this.post<FuelTransaction>('FuelTransactions', dto);
+  }
+  update(id: number, dto: UpdateFuelTransactionDto): Observable<FuelTransaction> {
+    return this.put<FuelTransaction>(`FuelTransactions/${id}`, dto);
   }
   markSuspicious(id: number): Observable<FuelTransaction> {
     return this.patch<FuelTransaction>(`FuelTransactions/${id}/suspicious`, {});

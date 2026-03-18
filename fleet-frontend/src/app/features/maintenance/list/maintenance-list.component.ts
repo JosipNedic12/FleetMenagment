@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MaintenanceOrderApiService, VehicleApiService, VendorApiService, LookupApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, Check, X, Play, Plus, Wrench as WrenchIcon } from 'lucide-angular';
 import {
@@ -82,7 +83,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
             </thead>
             <tbody>
               @for (row of sorted(); track row.orderId) {
-                <tr>
+                <tr (click)="goToDetail(row)">
                   <td><strong class="mono">{{ row.registrationNumber }}</strong></td>
                   <td>{{ row.vendorName ?? '—' }}</td>
                   <td>
@@ -93,16 +94,16 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
                   <td>{{ row.items.length }}</td>
                   <td>{{ row.totalCost != null ? (row.totalCost | currency:'EUR':'symbol':'1.2-2') : '—' }}</td>
                   <td class="actions">
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="$event.stopPropagation(); startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     @if (row.status === 'open') {
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon start-btn" title="Start order" (click)="startOrder(row)"><lucide-icon [img]="icons.Play" [size]="14" [strokeWidth]="2"></lucide-icon></button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon start-btn" title="Start order" (click)="$event.stopPropagation(); startOrder(row)"><lucide-icon [img]="icons.Play" [size]="14" [strokeWidth]="2"></lucide-icon></button>
                     }
                     @if (row.status === 'in_progress') {
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon close-btn" title="Close order" (click)="openClose(row)"><lucide-icon [img]="icons.Check" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Cancel order" (click)="openCancel(row)"><lucide-icon [img]="icons.X" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon close-btn" title="Close order" (click)="$event.stopPropagation(); openClose(row)"><lucide-icon [img]="icons.Check" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Cancel order" (click)="$event.stopPropagation(); openCancel(row)"><lucide-icon [img]="icons.X" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
                     }
                     @if (row.status === 'open' || row.status === 'in_progress') {
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Add item" (click)="openAddItem(row)"><lucide-icon [img]="icons.Plus" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Add item" (click)="$event.stopPropagation(); openAddItem(row)"><lucide-icon [img]="icons.Plus" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
                     }
                   </td>
                 </tr>
@@ -114,7 +115,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
                           <span class="item-chip">
                             {{ item.maintenanceTypeName }}
                             ({{ item.totalCost | currency:'EUR':'symbol':'1.0-0' }})
-                            <button *hasRole="['Admin','FleetManager']" class="item-del" title="Remove" (click)="deleteItem(item)">×</button>
+                            <button *hasRole="['Admin','FleetManager']" class="item-del" title="Remove" (click)="$event.stopPropagation(); deleteItem(item)">×</button>
                           </span>
                         }
                       </div>
@@ -307,6 +308,8 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
     .item-del { background:none; border:none; cursor:pointer; color:#ef4444; font-size:14px; padding:0; line-height:1; }
     .btn-danger { background:#ef4444; color:white; border:none; border-radius:8px; padding:8px 16px; font-size:14px; cursor:pointer; }
     .btn-danger:hover { background:#dc2626; }
+    tbody tr { cursor:pointer; transition:background 0.12s; }
+    tbody tr:hover { background:var(--hover-bg); }
   `]
 })
 export class MaintenanceListComponent implements OnInit {
@@ -317,6 +320,7 @@ export class MaintenanceListComponent implements OnInit {
   private vehicleApi = inject(VehicleApiService);
   private vendorApi = inject(VendorApiService);
   private lookupApi = inject(LookupApiService);
+  private router = inject(Router);
   auth = inject(AuthService);
 
   orders = signal<MaintenanceOrder[]>([]);
@@ -500,6 +504,8 @@ export class MaintenanceListComponent implements OnInit {
   deleteItem(item: MaintenanceItem): void {
     this.api.deleteItem(item.itemId).subscribe({ next: () => this.load(), error: () => {} });
   }
+
+  goToDetail(row: MaintenanceOrder): void { this.router.navigate(['/maintenance', row.orderId]); }
 
   confirmDelete(row: MaintenanceOrder): void { this.deleteTarget = row; }
   doDelete(): void {

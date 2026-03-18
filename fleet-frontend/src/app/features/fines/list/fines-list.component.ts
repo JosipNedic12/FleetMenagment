@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { FineApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, CreditCard } from 'lucide-angular';
 import { Fine, CreateFineDto, MarkFinePaidDto, Vehicle, Driver } from '../../../core/models/models';
@@ -55,7 +56,7 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
             </thead>
             <tbody>
               @for (row of filtered(); track row.fineId) {
-                <tr>
+                <tr (click)="goToDetail(row)">
                   <td><strong>{{ row.registrationNumber }}</strong></td>
                   <td>{{ row.driverName ?? '—' }}</td>
                   <td>{{ row.occurredAt | date:'dd.MM.yyyy' }}</td>
@@ -73,11 +74,11 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
                         *hasRole="['Admin','FleetManager']"
                         class="btn-icon"
                         title="Mark as Paid"
-                        (click)="openPayModal(row)"
+                        (click)="$event.stopPropagation(); openPayModal(row)"
                       ><lucide-icon [img]="icons.CreditCard" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     }
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" (click)="$event.stopPropagation(); startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" (click)="$event.stopPropagation(); confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -174,7 +175,11 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
       (confirmed)="doDelete()"
       (cancelled)="deleteTarget = null"
     />
-  `
+  `,
+  styles: [`
+    tbody tr { cursor:pointer; transition:background 0.12s; }
+    tbody tr:hover { background:var(--hover-bg); }
+  `]
 })
 export class FinesListComponent implements OnInit {
   readonly icons = { Eye, Pencil, Trash2, CreditCard };
@@ -206,6 +211,8 @@ export class FinesListComponent implements OnInit {
     if (q) list = list.filter(f => f.registrationNumber.toLowerCase().includes(q) || f.reason.toLowerCase().includes(q));
     return list;
   });
+
+  private router = inject(Router);
 
   constructor(private api: FineApiService, private vehicleApi: VehicleApiService, private driverApi: DriverApiService, public auth: AuthService) {}
 
@@ -248,6 +255,8 @@ export class FinesListComponent implements OnInit {
     const obs = this.editId ? this.api.update(this.editId, this.form) : this.api.create(this.form);
     obs.subscribe({ next: () => { this.load(); this.closeForm(); this.saving.set(false); }, error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); } });
   }
+
+  goToDetail(row: Fine): void { this.router.navigate(['/fines', row.fineId]); }
 
   confirmDelete(row: Fine): void { this.deleteTarget = row; }
   doDelete(): void {

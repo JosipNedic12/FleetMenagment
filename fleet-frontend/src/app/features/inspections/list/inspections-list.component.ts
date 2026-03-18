@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { InspectionApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, Paperclip } from 'lucide-angular';
 import { Inspection, CreateInspectionDto, Vehicle } from '../../../core/models/models';
@@ -54,7 +55,7 @@ import { DocumentListComponent } from '../../../shared/components/document-list/
             </thead>
             <tbody>
               @for (row of filtered(); track row.inspectionId) {
-                <tr>
+                <tr (click)="goToDetail(row)">
                   <td><strong>{{ row.registrationNumber }}</strong></td>
                   <td>{{ row.inspectedAt | date:'dd.MM.yyyy' }}</td>
                   <td>{{ row.validTo ? (row.validTo | date:'dd.MM.yyyy') : '—' }}</td>
@@ -67,9 +68,9 @@ import { DocumentListComponent } from '../../../shared/components/document-list/
                   <td>{{ row.odometerKm != null ? (row.odometerKm | number) : '—' }}</td>
                   <td class="notes-cell">{{ row.notes ?? '—' }}</td>
                   <td class="actions">
-                    <button class="btn-icon" title="Documents" (click)="openDocs(row)"><lucide-icon [img]="icons.Paperclip" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button class="btn-icon" title="Documents" (click)="$event.stopPropagation(); openDocs(row)"><lucide-icon [img]="icons.Paperclip" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="$event.stopPropagation(); startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="$event.stopPropagation(); confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -154,6 +155,8 @@ import { DocumentListComponent } from '../../../shared/components/document-list/
   `,
   styles: [`
     .modal-box--wide { width: min(720px, 95vw); }
+    tbody tr { cursor:pointer; transition:background 0.12s; }
+    tbody tr:hover { background:var(--hover-bg); }
   `]
 })
 export class InspectionsListComponent implements OnInit {
@@ -177,6 +180,8 @@ export class InspectionsListComponent implements OnInit {
     return list;
   });
 
+  private router = inject(Router);
+
   constructor(private api: InspectionApiService, private vehicleApi: VehicleApiService, public auth: AuthService) {}
 
   ngOnInit(): void { this.load(); this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v)); }
@@ -199,6 +204,8 @@ export class InspectionsListComponent implements OnInit {
     const obs = this.editId ? this.api.update(this.editId, this.form) : this.api.create(this.form);
     obs.subscribe({ next: () => { this.load(); this.closeForm(); this.saving.set(false); }, error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); } });
   }
+
+  goToDetail(row: Inspection): void { this.router.navigate(['/inspections', row.inspectionId]); }
 
   openDocs(row: Inspection): void { this.docsTarget = row; }
 

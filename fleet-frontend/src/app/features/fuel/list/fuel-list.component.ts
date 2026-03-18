@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { FuelCardApiService, FuelTransactionApiService, VehicleApiService, LookupApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, TriangleAlert } from 'lucide-angular';
 import {
@@ -66,8 +67,8 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
                       <app-badge [label]="row.isActive ? 'Active' : 'Inactive'" [variant]="row.isActive ? 'success' : 'neutral'" />
                     </td>
                     <td class="actions">
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEditCard(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                      <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDeleteCard(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="$event.stopPropagation(); startEditCard(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                      <button *hasRole="'Admin'" class="btn-icon danger" (click)="$event.stopPropagation(); confirmDeleteCard(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     </td>
                   </tr>
                 }
@@ -101,7 +102,7 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
               </thead>
               <tbody>
                 @for (row of filteredTx(); track row.transactionId) {
-                  <tr [class.suspicious-row]="row.isSuspicious">
+                  <tr [class.suspicious-row]="row.isSuspicious" (click)="goToDetail(row)">
                     <td><strong class="mono">{{ row.registrationNumber }}</strong></td>
                     <td>{{ row.postedAt | date:'dd.MM.yyyy' }}</td>
                     <td>{{ row.fuelTypeName }}</td>
@@ -113,11 +114,11 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
                     <td>{{ row.stationName ?? '—' }}</td>
                     <td class="actions">
                       @if (!row.isSuspicious) {
-                        <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Mark suspicious" (click)="markSuspicious(row)"><lucide-icon [img]="icons.TriangleAlert" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                        <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Mark suspicious" (click)="$event.stopPropagation(); markSuspicious(row)"><lucide-icon [img]="icons.TriangleAlert" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                       } @else {
                         <app-badge label="Suspicious" variant="danger" />
                       }
-                      <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDeleteTx(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                      <button *hasRole="'Admin'" class="btn-icon danger" (click)="$event.stopPropagation(); confirmDeleteTx(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     </td>
                   </tr>
                 }
@@ -296,6 +297,8 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
     .section-actions { display:flex; gap:12px; margin-bottom:16px; align-items:center; }
     .suspicious-row { background:#fff7ed; }
     .warning-btn { color:#d97706; }
+    tbody tr { cursor:pointer; transition:background 0.12s; }
+    tbody tr:hover { background:var(--hover-bg); }
   `]
 })
 export class FuelListComponent implements OnInit {
@@ -306,6 +309,7 @@ export class FuelListComponent implements OnInit {
   private txApi = inject(FuelTransactionApiService);
   private vehicleApi = inject(VehicleApiService);
   private lookupApi = inject(LookupApiService);
+  private router = inject(Router);
   auth = inject(AuthService);
 
   cards = signal<FuelCard[]>([]);
@@ -400,6 +404,8 @@ export class FuelListComponent implements OnInit {
   markSuspicious(row: FuelTransaction): void {
     this.txApi.markSuspicious(row.transactionId).subscribe({ next: () => this.loadTx(), error: () => {} });
   }
+
+  goToDetail(row: FuelTransaction): void { this.router.navigate(['/fuel', row.transactionId]); }
 
   confirmDeleteCard(row: FuelCard): void { this.deleteCardTarget = row; }
   doDeleteCard(): void {
