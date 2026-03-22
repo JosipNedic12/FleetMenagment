@@ -139,10 +139,15 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Auto-run EF migrations on startup
-using (var scope = app.Services.CreateScope())
+try
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<FleetDbContext>();
     db.Database.Migrate();
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Failed to apply migrations on startup");
 }
 
 app.Run();
