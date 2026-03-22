@@ -12,6 +12,13 @@ using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- Debug: log JWT config at startup ---
+var jwtSecret = builder.Configuration["Jwt:Secret"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+Console.WriteLine($"[STARTUP DEBUG] Jwt:Secret length = {jwtSecret?.Length ?? 0}");
+Console.WriteLine($"[STARTUP DEBUG] Jwt:Issuer = '{jwtIssuer}'");
+Console.WriteLine($"[STARTUP DEBUG] ConnectionString length = {builder.Configuration.GetConnectionString("DefaultConnection")?.Length ?? 0}");
+
 // --- CORS ---
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? new[] { "http://localhost:4200" };
