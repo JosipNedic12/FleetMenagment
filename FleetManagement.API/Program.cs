@@ -118,8 +118,7 @@ var app = builder.Build();
 // Ensure uploads folder exists
 Directory.CreateDirectory(app.Configuration["FileStorage:UploadPath"] ?? "uploads");
 
-if (app.Environment.IsDevelopment())
-    app.UseDeveloperExceptionPage();
+app.UseDeveloperExceptionPage(); // TODO: remove after debugging Railway 500
 
 app.UseSwagger();
 app.UseSwaggerUI();
