@@ -2,16 +2,19 @@ using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Exceptions;
 using FleetManagement.Application.Interfaces;
 using FleetManagement.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace FleetManagement.Infrastructure.Services;
 
 public class VehicleAssignmentService : IVehicleAssignmentService
 {
     private readonly IVehicleAssignmentRepository _repo;
+    private readonly ILogger<VehicleAssignmentService> _logger;
 
-    public VehicleAssignmentService(IVehicleAssignmentRepository repo)
+    public VehicleAssignmentService(IVehicleAssignmentRepository repo, ILogger<VehicleAssignmentService> logger)
     {
         _repo = repo;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<VehicleAssignmentDto>> GetAllAsync(bool activeOnly = false)
@@ -42,7 +45,10 @@ public class VehicleAssignmentService : IVehicleAssignmentService
     public async Task<VehicleAssignmentDto> CreateAsync(CreateVehicleAssignmentDto dto)
     {
         if (await _repo.VehicleHasActiveAssignmentAsync(dto.VehicleId))
+        {
+            _logger.LogWarning("Assignment conflict: vehicle {VehicleId} already has an active assignment", dto.VehicleId);
             throw new ConflictException("This vehicle already has an active assignment. End it before creating a new one.");
+        }
 
         var assignment = new VehicleAssignment
         {
@@ -54,6 +60,9 @@ public class VehicleAssignmentService : IVehicleAssignmentService
         };
 
         var created = await _repo.CreateAsync(assignment);
+
+        _logger.LogInformation("Assignment {AssignmentId} created: vehicle {VehicleId} assigned to driver {DriverId}", created.AssignmentId, created.VehicleId, created.DriverId);
+
         return MapToDto(created);
     }
 
@@ -72,6 +81,9 @@ public class VehicleAssignmentService : IVehicleAssignmentService
     {
         var result = await _repo.EndAssignmentAsync(id);
         if (!result) throw new NotFoundException("Assignment not found or already ended.");
+
+        _logger.LogInformation("Assignment {AssignmentId} ended", id);
+
         return true;
     }
 

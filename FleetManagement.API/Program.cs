@@ -10,15 +10,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// --- Debug: log JWT config at startup ---
-var jwtSecret = builder.Configuration["Jwt:Secret"];
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-Console.WriteLine($"[STARTUP DEBUG] Jwt:Secret length = {jwtSecret?.Length ?? 0}");
-Console.WriteLine($"[STARTUP DEBUG] Jwt:Issuer = '{jwtIssuer}'");
-Console.WriteLine($"[STARTUP DEBUG] ConnectionString length = {builder.Configuration.GetConnectionString("DefaultConnection")?.Length ?? 0}");
 
 // --- CORS ---
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -140,16 +135,43 @@ builder.Services.AddScoped<IVendorService, VendorService>();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddHostedService<NotificationGeneratorService>();
+
+// --- Serilog ---
+builder.Host.UseSerilog((ctx, lc) => lc
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Information)
+    .MinimumLevel.Override("FleetManagement", LogEventLevel.Debug)
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .Enrich.WithEnvironmentName()
+    .WriteTo.Console(
+        ctx.HostingEnvironment.IsDevelopment()
+            ? (Serilog.Formatting.ITextFormatter)new Serilog.Formatting.Display.MessageTemplateTextFormatter(
+                "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+            : new Serilog.Formatting.Json.JsonFormatter())
+    .WriteTo.File(
+        new Serilog.Formatting.Json.JsonFormatter(),
+        path: "logs/fleet-api-.json",
+        rollingInterval: RollingInterval.Day,
+        fileSizeLimitBytes: 50 * 1024 * 1024,
+        retainedFileCountLimit: 30,
+        rollOnFileSizeLimit: true));
+
 var app = builder.Build();
 
 // Ensure uploads folder exists
 Directory.CreateDirectory(app.Configuration["FileStorage:UploadPath"] ?? "uploads");
-app.UseSwagger();
-app.UseSwaggerUI();
+
+app.UseHttpsRedirection();
 
 if (app.Environment.IsDevelopment())
-    app.UseHttpsRedirection();
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
+app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseCors();
 app.UseAuthentication();

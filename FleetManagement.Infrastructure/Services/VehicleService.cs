@@ -2,16 +2,19 @@ using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Exceptions;
 using FleetManagement.Application.Interfaces;
 using FleetManagement.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace FleetManagement.Infrastructure.Services;
 
 public class VehicleService : IVehicleService
 {
     private readonly IVehicleRepository _repo;
+    private readonly ILogger<VehicleService> _logger;
 
-    public VehicleService(IVehicleRepository repo)
+    public VehicleService(IVehicleRepository repo, ILogger<VehicleService> logger)
     {
         _repo = repo;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<VehicleDto>> GetAllAsync()
@@ -30,7 +33,10 @@ public class VehicleService : IVehicleService
     public async Task<VehicleDto> CreateAsync(CreateVehicleDto dto)
     {
         if (await _repo.ExistsAsync(dto.RegistrationNumber, dto.Vin))
+        {
+            _logger.LogWarning("Duplicate vehicle check hit for RegistrationNumber {RegistrationNumber} or VIN {Vin}", dto.RegistrationNumber, dto.Vin);
             throw new ConflictException("A vehicle with this registration number or VIN already exists.");
+        }
 
         var vehicle = new Vehicle
         {
@@ -47,6 +53,9 @@ public class VehicleService : IVehicleService
         };
 
         var created = await _repo.CreateAsync(vehicle);
+
+        _logger.LogInformation("Vehicle {RegNumber} created (VehicleId: {Id})", created.RegistrationNumber, created.VehicleId);
+
         return MapToDto(created);
     }
 
@@ -60,6 +69,9 @@ public class VehicleService : IVehicleService
         });
 
         if (updated == null) throw new NotFoundException($"Vehicle with id {id} was not found.");
+
+        _logger.LogInformation("Vehicle {Id} updated", id);
+
         return MapToDto(updated);
     }
 

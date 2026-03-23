@@ -2,16 +2,19 @@ using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Exceptions;
 using FleetManagement.Application.Interfaces;
 using FleetManagement.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace FleetManagement.Infrastructure.Services;
 
 public class FineService : IFineService
 {
     private readonly IFineRepository _repo;
+    private readonly ILogger<FineService> _logger;
 
-    public FineService(IFineRepository repo)
+    public FineService(IFineRepository repo, ILogger<FineService> logger)
     {
         _repo = repo;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<FineDto>> GetAllAsync()
@@ -83,6 +86,9 @@ public class FineService : IFineService
     {
         var updated = await _repo.MarkPaidAsync(id, dto.PaidAt, dto.PaymentMethod);
         if (updated == null) throw new NotFoundException($"Fine with id {id} was not found.");
+
+        _logger.LogInformation("Fine {Id} paid via {Method}", id, dto.PaymentMethod);
+
         return MapToDto(updated);
     }
 

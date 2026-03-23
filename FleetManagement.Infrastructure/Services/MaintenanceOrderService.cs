@@ -2,16 +2,19 @@ using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Exceptions;
 using FleetManagement.Application.Interfaces;
 using FleetManagement.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace FleetManagement.Infrastructure.Services;
 
 public class MaintenanceOrderService : IMaintenanceOrderService
 {
     private readonly IMaintenanceOrderRepository _repo;
+    private readonly ILogger<MaintenanceOrderService> _logger;
 
-    public MaintenanceOrderService(IMaintenanceOrderRepository repo)
+    public MaintenanceOrderService(IMaintenanceOrderRepository repo, ILogger<MaintenanceOrderService> logger)
     {
         _repo = repo;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<MaintenanceOrderDto>> GetAllAsync()
@@ -64,7 +67,13 @@ public class MaintenanceOrderService : IMaintenanceOrderService
     public async Task<MaintenanceOrderDto?> StartAsync(int id)
     {
         var result = await _repo.SetStatusAsync(id, "in_progress");
-        if (result == null) throw new NotFoundException("Order not found or cannot be started from its current status.");
+        if (result == null)
+        {
+            _logger.LogWarning("Invalid status transition attempt: cannot start order {Id}", id);
+            throw new NotFoundException("Order not found or cannot be started from its current status.");
+        }
+
+        _logger.LogInformation("Order {Id} status changed to {Status}", id, "in_progress");
         return MapToDto(result);
     }
 
@@ -72,14 +81,25 @@ public class MaintenanceOrderService : IMaintenanceOrderService
     {
         var result = await _repo.CloseAsync(id, dto.OdometerKm);
         if (result == null)
+        {
+            _logger.LogWarning("Invalid status transition attempt: cannot close order {Id}", id);
             throw new NotFoundException("Order not found, not in_progress, or has no items. Add at least one item before closing.");
+        }
+
+        _logger.LogInformation("Order {Id} status changed to {Status}", id, "closed");
         return MapToDto(result);
     }
 
     public async Task<MaintenanceOrderDto?> CancelAsync(int id, CancelMaintenanceOrderDto dto)
     {
         var result = await _repo.CancelAsync(id, dto.CancelReason);
-        if (result == null) throw new NotFoundException("Order not found or already closed/cancelled.");
+        if (result == null)
+        {
+            _logger.LogWarning("Invalid status transition attempt: cannot cancel order {Id}", id);
+            throw new NotFoundException("Order not found or already closed/cancelled.");
+        }
+
+        _logger.LogInformation("Order {Id} status changed to {Status}", id, "cancelled");
         return MapToDto(result);
     }
 
