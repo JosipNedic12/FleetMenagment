@@ -5,3 +5,4 @@ obj/
 appsettings.Development.json
 .claude/
 uploads/
+elk/data/

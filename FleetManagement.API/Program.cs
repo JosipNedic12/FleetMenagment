@@ -149,9 +149,9 @@ builder.Host.UseSerilog((ctx, lc) => lc
         ctx.HostingEnvironment.IsDevelopment()
             ? (Serilog.Formatting.ITextFormatter)new Serilog.Formatting.Display.MessageTemplateTextFormatter(
                 "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
-            : new Serilog.Formatting.Json.JsonFormatter())
+            : new Serilog.Formatting.Compact.CompactJsonFormatter())
     .WriteTo.File(
-        new Serilog.Formatting.Json.JsonFormatter(),
+        new Serilog.Formatting.Compact.CompactJsonFormatter(),
         path: "logs/fleet-api-.json",
         rollingInterval: RollingInterval.Day,
         fileSizeLimitBytes: 50 * 1024 * 1024,

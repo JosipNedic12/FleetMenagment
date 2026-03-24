@@ -1,0 +1,17 @@
+filebeat.inputs:
+  - type: filestream
+    id: fleet-api-logs
+    paths:
+      - /var/log/fleet/fleet-api-*.json
+    parsers:
+      - ndjson:
+          keys_under_root: true
+          add_error_key: true
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "fleet-logs-%{+yyyy.MM.dd}"
+
+setup.ilm.enabled: false
+setup.template.name: fleet-logs
+setup.template.pattern: "fleet-logs-*"
