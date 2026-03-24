@@ -12,6 +12,8 @@ services:
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.17.0
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     ports:
       - "5601:5601"
     depends_on:
@@ -19,9 +21,12 @@ services:
 
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.17.0
+    user: root
+    entrypoint: >
+      bash -c "chmod go-w /usr/share/filebeat/filebeat.yml && filebeat run -e"
     volumes:
-      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-      - ../FleetManagement.API/logs:/var/log/fleet:ro
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml
+      - C:/Users/Josip/Source/Repos/FleetManagement/FleetManagement.API/logs:/var/log/fleet:ro
     depends_on:
       - elasticsearch
 
