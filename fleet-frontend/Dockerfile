@@ -3,10 +3,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
-RUN npm run build -- --configuration production
+RUN npm run build:en && npm run build:hr
 
 FROM nginx:alpine
-COPY --from=build /app/dist/fleet-frontend/browser /usr/share/nginx/html
+COPY --from=build /app/dist/fleet-frontend/browser/en /usr/share/nginx/html/en
+COPY --from=build /app/dist/fleet-frontend/browser/hr /usr/share/nginx/html/hr
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

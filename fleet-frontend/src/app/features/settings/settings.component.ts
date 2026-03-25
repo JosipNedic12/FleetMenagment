@@ -2,7 +2,8 @@ import { Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { ThemeService, ThemeDefinition } from '../../core/services/theme.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { LucideAngularModule, Palette, User, KeyRound, Check } from 'lucide-angular';
+import { LanguageService, AppLocale } from '../../core/services/language.service';
+import { LucideAngularModule, Palette, User, KeyRound, Check, Globe } from 'lucide-angular';
 import { DatePipe } from '@angular/common';
 
 @Component({
@@ -41,6 +42,34 @@ import { DatePipe } from '@angular/common';
                 </div>
                 <span class="theme-name">{{ t.label }}</span>
                 @if (themeService.activeTheme() === t.key) {
+                  <div class="theme-check">
+                    <lucide-icon [img]="checkIcon" [size]="11" [strokeWidth]="3"></lucide-icon>
+                  </div>
+                }
+              </button>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- LANGUAGE -->
+      <section class="settings-section">
+        <div class="section-header">
+          <lucide-icon [img]="globeIcon" [size]="16" [strokeWidth]="1.8"></lucide-icon>
+          <h2 class="section-title">Language</h2>
+        </div>
+        <div class="section-body">
+          <p class="section-label">Interface Language</p>
+          <div class="theme-grid" style="grid-template-columns: repeat(2, 1fr); max-width: 300px;">
+            @for (lang of langs; track lang.code) {
+              <button
+                class="theme-card"
+                [class.theme-card--active]="langService.currentLocale() === lang.code"
+                (click)="langService.switchTo(lang.code)"
+                [attr.aria-pressed]="langService.currentLocale() === lang.code">
+                <div class="theme-preview" style="font-size:26px; line-height:1">{{ lang.flag }}</div>
+                <span class="theme-name">{{ lang.label }}</span>
+                @if (langService.currentLocale() === lang.code) {
                   <div class="theme-check">
                     <lucide-icon [img]="checkIcon" [size]="11" [strokeWidth]="3"></lucide-icon>
                   </div>
@@ -237,11 +266,18 @@ export class SettingsComponent {
   readonly themeService = inject(ThemeService);
   readonly auth = inject(AuthService);
   readonly router = inject(Router);
+  readonly langService = inject(LanguageService);
 
   readonly paletteIcon = Palette;
   readonly userIcon = User;
   readonly keyIcon = KeyRound;
   readonly checkIcon = Check;
+  readonly globeIcon = Globe;
+
+  readonly langs: { code: AppLocale; label: string; flag: string }[] = [
+    { code: 'en', label: 'English',  flag: '🇬🇧' },
+    { code: 'hr', label: 'Hrvatski', flag: '🇭🇷' },
+  ];
 
   readonly sessionExpiry = computed(() => {
     const u = this.auth.user();

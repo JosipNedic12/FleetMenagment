@@ -44,6 +44,9 @@
             "scripts": []
           },
           "configurations": {
+            "en": {
+              "localize": ["en"]
+            },
             "hr": {
               "localize": ["hr"]
             },
@@ -93,6 +96,12 @@
             },
             "development": {
               "buildTarget": "fleet-frontend:build:development"
+            },
+            "hr": {
+              "buildTarget": "fleet-frontend:build:development,hr"
+            },
+            "en": {
+              "buildTarget": "fleet-frontend:build:development,en"
             }
           },
           "defaultConfiguration": "development"

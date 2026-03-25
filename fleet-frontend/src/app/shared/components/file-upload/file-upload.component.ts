@@ -34,7 +34,7 @@ const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
             </button>
           </div>
         } @else {
-          <p class="drop-label" i18n="@@shared.fileUpload.dropLabel">Drag &amp; drop a file here, or <span class="drop-link">browse</span></p>
+          <p class="drop-label" i18n="@@shared.fileUpload.dropLabel">Drag &amp; drop a file here, or browse</p>
           <p class="drop-hint" i18n="@@shared.fileUpload.dropHint">PDF, JPG, PNG, DOC, XLS — max 10 MB</p>
         }
       </div>

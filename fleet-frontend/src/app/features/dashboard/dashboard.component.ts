@@ -12,6 +12,7 @@ import {
   DashboardApiService, DashboardData, ComplianceReminder,
 } from '../../core/auth/feature-api.services';
 import { formatEu } from '../../shared/pipes/eu-number.pipe';
+import { TranslateService } from '../../core/services/translate.service';
 
 Chart.register(...registerables);
 
@@ -560,24 +561,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private tickInterval: ReturnType<typeof setInterval> | null = null;
   private resizeObserver?: ResizeObserver;
 
-  barOptions: ChartOptions<'bar'> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    resizeDelay: 100,
-    animation: { duration: 800, easing: 'easeInOutQuart' },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: ctx => ` ${(ctx.parsed.y ?? 0).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} EUR`
-        }
-      }
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 12 } } },
-      y: { grid: { color: () => getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e2e8f0' }, ticks: { font: { size: 11 }, callback: (v) => (v as number).toLocaleString('de-DE') } }
-    }
-  };
+  barOptions!: ChartOptions<'bar'>;
 
   doughnutOptions: ChartOptions<'doughnut'> = {
     responsive: true,
@@ -606,7 +590,26 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   };
 
-  constructor(private dashboardApi: DashboardApiService) {}
+  constructor(private dashboardApi: DashboardApiService, private ts: TranslateService) {
+    this.barOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      resizeDelay: 100,
+      animation: { duration: 800, easing: 'easeInOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${(ctx.parsed.y ?? 0).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${this.ts.currencySuffix}`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 12 } } },
+        y: { grid: { color: () => getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e2e8f0' }, ticks: { font: { size: 11 }, callback: (v) => (v as number).toLocaleString('de-DE') } }
+      }
+    };
+  }
 
   ngOnInit(): void {
     this.loadData();
@@ -648,14 +651,14 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
         // ── Stat cards ─────────────────────────────────────────────
         this.cards.set([
-          { label: 'Vehicles', value: formatEu(data.activeVehicles), sub: `${data.activeVehicles} active`, route: '/vehicles', icon: Car, accent: '#10b981' },
-          { label: 'Open Orders', value: formatEu(data.openMaintenanceOrders), sub: 'Maintenance in progress', route: '/maintenance', icon: Wrench, accent: '#f97316' },
-          { label: 'KM This Month', value: formatEu(data.kmThisMonth), sub: 'From odometer logs', route: '/odometer', icon: MapPin, accent: '#6366f1' },
-          { label: 'Expired Insurance', value: formatEu(data.expiredInsurance), sub: 'Policies expired', route: '/insurance', icon: Shield, accent: '#3b82f6' },
-          { label: 'Inspections Due', value: formatEu(data.inspectionsDue), sub: 'Within 30 days', route: '/inspections', icon: Search, accent: '#06b6d4' },
-          { label: 'Fines', value: formatEu(data.unpaidFines), sub: 'Unpaid fines', route: '/fines', icon: TriangleAlert, accent: '#f59e0b' },
-          { label: 'Accidents', value: formatEu(data.accidentCount), sub: 'Reported incidents', route: '/accidents', icon: Siren, accent: '#ef4444' },
-          { label: 'Fuel Cost This Month', value: formatEu(data.fuelCostThisMonth), sub: 'EUR spent on fuel', route: '/fuel', icon: Fuel, accent: '#14b8a6' },
+          { label: this.ts.vehicles,         value: formatEu(data.activeVehicles),        sub: this.ts.activeCount(data.activeVehicles), route: '/vehicles',    icon: Car,           accent: '#10b981' },
+          { label: this.ts.openOrders,       value: formatEu(data.openMaintenanceOrders), sub: this.ts.subMaintenanceInProgress,          route: '/maintenance', icon: Wrench,        accent: '#f97316' },
+          { label: this.ts.kmThisMonth,      value: formatEu(data.kmThisMonth),           sub: this.ts.subFromOdometerLogs,               route: '/odometer',    icon: MapPin,        accent: '#6366f1' },
+          { label: this.ts.expiredInsurance, value: formatEu(data.expiredInsurance),       sub: this.ts.subPoliciesExpired,                route: '/insurance',   icon: Shield,        accent: '#3b82f6' },
+          { label: this.ts.inspectionsDue,   value: formatEu(data.inspectionsDue),         sub: this.ts.subWithin30Days,                   route: '/inspections', icon: Search,        accent: '#06b6d4' },
+          { label: this.ts.fines,            value: formatEu(data.unpaidFines),            sub: this.ts.subUnpaidFines,                    route: '/fines',       icon: TriangleAlert, accent: '#f59e0b' },
+          { label: this.ts.accidents,        value: formatEu(data.accidentCount),          sub: this.ts.subReportedIncidents,              route: '/accidents',   icon: Siren,         accent: '#ef4444' },
+          { label: this.ts.fuelCostThisMonth,value: formatEu(data.fuelCostThisMonth),      sub: this.ts.subEurSpentOnFuel,                 route: '/fuel',        icon: Fuel,          accent: '#14b8a6' },
         ]);
 
         // ── Compliance widget ──────────────────────────────────────
@@ -672,12 +675,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.woTotal.set((wo?.open ?? 0) + (wo?.inProgress ?? 0) + (wo?.completed ?? 0) + (wo?.overdue ?? 0));
 
         // ── Charts ─────────────────────────────────────────────────
-        const labels = last6MonthLabels();
+        const labels = last6MonthLabels(this.ts.months);
 
         this.fuelChartData.set({
           labels,
           datasets: [{
-            label: 'Fuel Cost (EUR)',
+            label: this.ts.fuelCostEur,
             data: data.fuelCostByMonth,
             backgroundColor: '#14b8a6',
             borderRadius: 6,
@@ -688,7 +691,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.maintChartData.set({
           labels,
           datasets: [{
-            label: 'Maintenance Cost (EUR)',
+            label: this.ts.maintenanceCostEur,
             data: data.maintenanceCostByMonth,
             backgroundColor: '#f97316',
             borderRadius: 6,
@@ -698,7 +701,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
         const sb = data.vehicleStatusBreakdown;
         this.statusChartData.set({
-          labels: ['Active', 'In Service', 'Retired', 'Sold'],
+          labels: this.ts.vehicleStatusLabels,
           datasets: [{
             data: [sb.active, sb.inService, sb.retired, sb.sold],
             backgroundColor: ['#10b981', '#f97316', '#94a3b8', '#ef4444'],
@@ -710,7 +713,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           labels,
           datasets: [
             {
-              label: 'Accidents',
+              label: this.ts.chartAccidents,
               data: data.accidentsByMonth,
               borderColor: '#ef4444',
               backgroundColor: 'rgba(239,68,68,0.12)',
@@ -720,7 +723,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
               pointHoverRadius: 6,
             },
             {
-              label: 'Fines',
+              label: this.ts.chartFines,
               data: data.finesByMonth,
               borderColor: '#f59e0b',
               backgroundColor: 'rgba(245,158,11,0.10)',
@@ -740,8 +743,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
-function last6MonthLabels(): string[] {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function last6MonthLabels(months: string[]): string[] {
   const now = new Date();
   const labels: string[] = [];
   for (let i = 5; i >= 0; i--) {
