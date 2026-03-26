@@ -94,6 +94,26 @@ export class TranslateService {
   readonly profileCurrentPassword = $localize`:@@profile.currentPassword:Current Password`;
   readonly profileNewPassword     = $localize`:@@profile.newPassword:New Password`;
   readonly profileConfirmPassword = $localize`:@@profile.confirmPassword:Confirm Password`;
+  readonly profileSubtitle                   = $localize`:@@profile.subtitle:Manage your account and security settings`;
+  readonly profileRole                       = $localize`:@@profile.role:Role`;
+  readonly profileSessionExpires             = $localize`:@@profile.sessionExpires:Session Expires`;
+  readonly profilePermissions                = $localize`:@@profile.permissions:Permissions`;
+  readonly profilePermRead                   = $localize`:@@profile.permRead:Read`;
+  readonly profilePermWrite                  = $localize`:@@profile.permWrite:Write`;
+  readonly profilePermDelete                 = $localize`:@@profile.permDelete:Delete`;
+  readonly profilePwSuccess                  = $localize`:@@profile.pwSuccess:Password updated successfully.`;
+  readonly profileCurrentPasswordPlaceholder = $localize`:@@profile.currentPasswordPlaceholder:Enter current password`;
+  readonly profileNewPasswordPlaceholder     = $localize`:@@profile.newPasswordPlaceholder:Enter new password`;
+  readonly profileConfirmPasswordPlaceholder = $localize`:@@profile.confirmPasswordPlaceholder:Re-enter new password`;
+  readonly profilePasswordsMismatch          = $localize`:@@profile.passwordsMismatch:Passwords do not match`;
+  readonly profileUpdating                   = $localize`:@@profile.updating:Updating…`;
+  readonly profileRecentActivity             = $localize`:@@profile.recentActivity:Recent Activity`;
+  readonly profileLoggedIn                   = $localize`:@@profile.loggedIn:Logged in`;
+  readonly profileCurrentSession             = $localize`:@@profile.currentSession:Current session`;
+  readonly profileSessionExpiresActivity     = $localize`:@@profile.sessionExpiresActivity:Session expires`;
+  readonly profileTokenIssued                = $localize`:@@profile.tokenIssued:Token issued`;
+  readonly profileSessionStatus              = $localize`:@@profile.sessionStatus:Session Status`;
+  readonly profileTimeRemaining              = $localize`:@@profile.timeRemaining:Time Remaining`;
 
   // ── Settings Page ─────────────────────────────────────────
   readonly settingsTitle      = $localize`:@@settings.title:Settings`;
@@ -104,6 +124,8 @@ export class TranslateService {
   readonly settingsDark       = $localize`:@@settings.dark:Dark`;
   readonly settingsLight      = $localize`:@@settings.light:Light`;
   readonly settingsSystem     = $localize`:@@settings.system:System`;
+  readonly settingsSubtitle   = $localize`:@@settings.subtitle:Manage your preferences and account.`;
+  readonly settingsAccount    = $localize`:@@settings.account:Account`;
   readonly settingsDateFormat = $localize`:@@settings.dateFormat:Date Format`;
   readonly settingsTimeZone   = $localize`:@@settings.timeZone:Time Zone`;
 
@@ -126,4 +148,25 @@ export class TranslateService {
   readonly userMgmtNoUsersFound  = $localize`:@@userMgmt.noUsersFound:No users found`;
   readonly userMgmtConfirmDelete = $localize`:@@userMgmt.confirmDelete:Confirm Delete`;
   readonly userMgmtAreYouSure    = $localize`:@@userMgmt.areYouSure:Are you sure?`;
+  readonly userMgmtAdminOnly     = $localize`:@@userMgmt.adminOnly:Admin only`;
+  readonly userMgmtLoading       = $localize`:@@userMgmt.loading:Loading…`;
+  readonly userMgmtName          = $localize`:@@userMgmt.name:Name`;
+  readonly userMgmtDepartment    = $localize`:@@userMgmt.department:Department`;
+  readonly userMgmtDriverProfile = $localize`:@@userMgmt.driverProfile:Driver Profile`;
+  readonly userMgmtAppUser       = $localize`:@@userMgmt.appUser:App User`;
+  readonly userMgmtViewDetails   = $localize`:@@userMgmt.viewDetails:View details`;
+  readonly userMgmtAddAppUser    = $localize`:@@userMgmt.addAppUser:Add app user`;
+  readonly userMgmtYes           = $localize`:@@userMgmt.yes:Yes`;
+  readonly userMgmtNo            = $localize`:@@userMgmt.no:No`;
+  readonly userMgmtUsername      = $localize`:@@userMgmt.username:Username`;
+  readonly userMgmtTemporaryPassword = $localize`:@@userMgmt.temporaryPassword:Temporary Password`;
+  readonly userMgmtUserCreated   = $localize`:@@userMgmt.userCreated:User created. Share the credentials with the employee.`;
+  readonly userMgmtCreating      = $localize`:@@userMgmt.creating:Creating…`;
+  readonly userMgmtCreateAppUser = $localize`:@@userMgmt.createAppUser:Create App User`;
+  readonly userMgmtNotAssigned   = $localize`:@@userMgmt.notAssigned:Not assigned`;
+  readonly userMgmtPhone         = $localize`:@@userMgmt.phone:Phone`;
+  readonly userMgmtHasProfile    = $localize`:@@userMgmt.hasProfile:Has Profile`;
+  readonly userMgmtNoProfile     = $localize`:@@userMgmt.noProfile:No Profile`;
+  readonly userMgmtErrorAlreadyExists = $localize`:@@userMgmt.errorAlreadyExists:A user already exists for this employee.`;
+  readonly userMgmtErrorCreateFailed  = $localize`:@@userMgmt.errorCreateFailed:Failed to create user. Try again.`;
 }

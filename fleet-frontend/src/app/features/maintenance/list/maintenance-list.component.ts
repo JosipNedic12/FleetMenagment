@@ -38,11 +38,11 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"         (click)="filter.set('all')"         i18n="@@maintenance.filter.all">All</button>
-        <button [class.active]="filter() === 'open'"        (click)="filter.set('open')"        i18n="@@maintenance.filter.open">Open</button>
-        <button [class.active]="filter() === 'in_progress'" (click)="filter.set('in_progress')" i18n="@@maintenance.filter.inProgress">In Progress</button>
-        <button [class.active]="filter() === 'closed'"      (click)="filter.set('closed')"      i18n="@@maintenance.filter.closed">Closed</button>
-        <button [class.active]="filter() === 'cancelled'"   (click)="filter.set('cancelled')"   i18n="@@maintenance.filter.cancelled">Cancelled</button>
+        <button [class.active]="filter() === 'all'"         (click)="filter.set('all')"         i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'open'"        (click)="filter.set('open')"        i18n="@@COMMON.CHIPS.OPEN">Open</button>
+        <button [class.active]="filter() === 'in_progress'" (click)="filter.set('in_progress')" i18n="@@COMMON.CHIPS.IN_PROGRESS">In Progress</button>
+        <button [class.active]="filter() === 'closed'"      (click)="filter.set('closed')"      i18n="@@COMMON.CHIPS.CLOSED">Closed</button>
+        <button [class.active]="filter() === 'cancelled'"   (click)="filter.set('cancelled')"   i18n="@@COMMON.CHIPS.CANCELLED">Cancelled</button>
       </div>
 
       <div class="table-card">
@@ -402,9 +402,13 @@ export class MaintenanceListComponent implements OnInit {
     });
   }
 
-  statusLabel(s: string): string {
-    return s === 'in_progress' ? 'In Progress' : s.charAt(0).toUpperCase() + s.slice(1);
-  }
+  private readonly chipLabels: Record<string, string> = {
+    open:        $localize`:@@COMMON.CHIPS.OPEN:Open`,
+    in_progress: $localize`:@@COMMON.CHIPS.IN_PROGRESS:In Progress`,
+    closed:      $localize`:@@COMMON.CHIPS.CLOSED:Closed`,
+    cancelled:   $localize`:@@COMMON.CHIPS.CANCELLED:Cancelled`,
+  };
+  statusLabel(s: string): string { return this.chipLabels[s] ?? s; }
   statusVariant(s: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
     if (s === 'open') return 'warning';
     if (s === 'in_progress') return 'info';

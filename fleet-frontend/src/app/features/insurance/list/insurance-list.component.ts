@@ -37,9 +37,9 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 
       <!-- Filter tabs -->
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"    (click)="filter.set('all')" i18n="@@insurance.list.filterAll">All</button>
-        <button [class.active]="filter() === 'active'" (click)="filter.set('active')" i18n="@@insurance.list.filterActive">Active</button>
-        <button [class.active]="filter() === 'expired'"(click)="filter.set('expired')" i18n="@@insurance.list.filterExpired">Expired</button>
+        <button [class.active]="filter() === 'all'"    (click)="filter.set('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'active'" (click)="filter.set('active')" i18n="@@COMMON.CHIPS.ACTIVE">Active</button>
+        <button [class.active]="filter() === 'expired'"(click)="filter.set('expired')" i18n="@@COMMON.CHIPS.EXPIRED">Expired</button>
       </div>
 
       <!-- Table -->
@@ -73,7 +73,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                   <td>{{ row.premium | euNumber:'1.2-2' }} €</td>
                   <td>
                     <app-badge
-                      [label]="row.isActive ? 'Active' : 'Expired'"
+                      [label]="row.isActive ? activeLabel : expiredLabel"
                       [variant]="row.isActive ? 'success' : 'danger'"
                     />
                   </td>
@@ -187,6 +187,8 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 })
 export class InsuranceListComponent implements OnInit {
   readonly icons = { Eye, Pencil, Trash2, Paperclip };
+  activeLabel  = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
+  expiredLabel = $localize`:@@COMMON.CHIPS.EXPIRED:Expired`;
   readonly vehicleDisplayFn = (v: Vehicle) => `${v.make} ${v.model} – ${v.registrationNumber}`;
   @ViewChild('docList') docList!: DocumentListComponent;
   docsTarget: InsurancePolicy | null = null;

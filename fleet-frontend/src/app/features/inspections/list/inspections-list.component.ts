@@ -33,10 +33,10 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"         (click)="filter.set('all')" i18n="@@inspections.filter.all">All</button>
-        <button [class.active]="filter() === 'passed'"      (click)="filter.set('passed')" i18n="@@inspections.filter.passed">Passed</button>
-        <button [class.active]="filter() === 'failed'"      (click)="filter.set('failed')" i18n="@@inspections.filter.failed">Failed</button>
-        <button [class.active]="filter() === 'conditional'" (click)="filter.set('conditional')" i18n="@@inspections.filter.conditional">Conditional</button>
+        <button [class.active]="filter() === 'all'"         (click)="filter.set('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'passed'"      (click)="filter.set('passed')" i18n="@@COMMON.CHIPS.PASSED">Passed</button>
+        <button [class.active]="filter() === 'failed'"      (click)="filter.set('failed')" i18n="@@COMMON.CHIPS.FAILED">Failed</button>
+        <button [class.active]="filter() === 'conditional'" (click)="filter.set('conditional')" i18n="@@COMMON.CHIPS.CONDITIONAL">Conditional</button>
       </div>
 
       <div class="table-card">
@@ -63,7 +63,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                   <td>{{ row.validTo ? (row.validTo | date:'dd.MM.yyyy') : '—' }}</td>
                   <td>
                     <app-badge
-                      [label]="row.result"
+                      [label]="resultLabel(row.result)"
                       [variant]="row.result === 'passed' ? 'success' : row.result === 'failed' ? 'danger' : 'warning'"
                     />
                   </td>
@@ -105,9 +105,9 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
             <div class="form-group">
               <label i18n="@@inspections.form.resultLabel">Result *</label>
               <select [(ngModel)]="form.result">
-                <option value="passed" i18n="@@inspections.form.resultPassed">Passed</option>
-                <option value="failed" i18n="@@inspections.form.resultFailed">Failed</option>
-                <option value="conditional" i18n="@@inspections.form.resultConditional">Conditional</option>
+                <option value="passed" i18n="@@COMMON.CHIPS.PASSED">Passed</option>
+                <option value="failed" i18n="@@COMMON.CHIPS.FAILED">Failed</option>
+                <option value="conditional" i18n="@@COMMON.CHIPS.CONDITIONAL">Conditional</option>
               </select>
             </div>
             <div class="form-group">
@@ -173,6 +173,12 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 })
 export class InspectionsListComponent implements OnInit {
   readonly icons = { Eye, Pencil, Trash2, Paperclip };
+  private readonly chipLabels: Record<string, string> = {
+    passed:      $localize`:@@COMMON.CHIPS.PASSED:Passed`,
+    failed:      $localize`:@@COMMON.CHIPS.FAILED:Failed`,
+    conditional: $localize`:@@COMMON.CHIPS.CONDITIONAL:Conditional`,
+  };
+  resultLabel(s: string): string { return this.chipLabels[s] ?? s; }
   readonly vehicleDisplayFn = (v: Vehicle) => `${v.make} ${v.model} – ${v.registrationNumber}`;
   @ViewChild('docList') docList!: DocumentListComponent;
   docsTarget: Inspection | null = null;

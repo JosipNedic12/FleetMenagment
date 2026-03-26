@@ -33,9 +33,9 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"    (click)="filter.set('all')" i18n="@@registration.filter.all">All</button>
-        <button [class.active]="filter() === 'active'" (click)="filter.set('active')" i18n="@@registration.filter.active">Active</button>
-        <button [class.active]="filter() === 'expired'"(click)="filter.set('expired')" i18n="@@registration.filter.expired">Expired</button>
+        <button [class.active]="filter() === 'all'"    (click)="filter.set('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'active'" (click)="filter.set('active')" i18n="@@COMMON.CHIPS.ACTIVE">Active</button>
+        <button [class.active]="filter() === 'expired'"(click)="filter.set('expired')" i18n="@@COMMON.CHIPS.EXPIRED">Expired</button>
       </div>
 
       <div class="table-card">
@@ -63,7 +63,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                   <td>{{ row.validTo | date:'dd.MM.yyyy' }}</td>
                   <td>{{ row.fee != null ? (row.fee | euNumber:'1.2-2') + ' €' : '—' }}</td>
                   <td>
-                    <app-badge [label]="row.isActive ? 'Active' : 'Expired'" [variant]="row.isActive ? 'success' : 'danger'" />
+                    <app-badge [label]="row.isActive ? activeLabel : expiredLabel" [variant]="row.isActive ? 'success' : 'danger'" />
                   </td>
                   <td class="actions">
                     <button class="btn-icon" title="Documents" (click)="$event.stopPropagation(); openDocs(row)"><lucide-icon [img]="icons.Paperclip" [size]="15" [strokeWidth]="2"></lucide-icon></button>
@@ -165,6 +165,8 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 })
 export class RegistrationListComponent implements OnInit {
   readonly icons = { Eye, Pencil, Trash2, Paperclip };
+  activeLabel  = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
+  expiredLabel = $localize`:@@COMMON.CHIPS.EXPIRED:Expired`;
   readonly vehicleDisplayFn = (v: Vehicle) => `${v.make} ${v.model} – ${v.registrationNumber}`;
   @ViewChild('docList') docList!: DocumentListComponent;
   docsTarget: RegistrationRecord | null = null;

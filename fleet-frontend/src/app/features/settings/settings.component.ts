@@ -16,7 +16,7 @@ import { DatePipe } from '@angular/common';
       <div class="page-header">
         <div>
           <h1 class="page-title">{{ t.settingsTitle }}</h1>
-          <p class="page-subtitle">Manage your preferences and account.</p>
+          <p class="page-subtitle">{{ t.settingsSubtitle }}</p>
         </div>
       </div>
 
@@ -29,20 +29,20 @@ import { DatePipe } from '@angular/common';
         <div class="section-body">
           <p class="section-label">{{ t.settingsTheme }}</p>
           <div class="theme-grid">
-            @for (t of themeService.themes; track t.key) {
+            @for (theme of themeService.themes; track theme.key) {
               <button
                 class="theme-card"
-                [class.theme-card--active]="themeService.activeTheme() === t.key"
-                (click)="themeService.setTheme(t.key)"
-                [attr.aria-label]="'Apply ' + t.label + ' theme'"
-                [attr.aria-pressed]="themeService.activeTheme() === t.key">
+                [class.theme-card--active]="themeService.activeTheme() === theme.key"
+                (click)="themeService.setTheme(theme.key)"
+                [attr.aria-label]="'Apply ' + theme.label + ' theme'"
+                [attr.aria-pressed]="themeService.activeTheme() === theme.key">
                 <div class="theme-preview">
-                  @for (color of t.preview; track $index) {
+                  @for (color of theme.preview; track $index) {
                     <span class="preview-dot" [style.background]="color"></span>
                   }
                 </div>
-                <span class="theme-name">{{ t.label }}</span>
-                @if (themeService.activeTheme() === t.key) {
+                <span class="theme-name">{{ theme.label }}</span>
+                @if (themeService.activeTheme() === theme.key) {
                   <div class="theme-check">
                     <lucide-icon [img]="checkIcon" [size]="11" [strokeWidth]="3"></lucide-icon>
                   </div>
@@ -85,7 +85,7 @@ import { DatePipe } from '@angular/common';
       <section class="settings-section">
         <div class="section-header">
           <lucide-icon [img]="userIcon" [size]="16" [strokeWidth]="1.8"></lucide-icon>
-          <h2 class="section-title">Account</h2>
+          <h2 class="section-title">{{ t.settingsAccount }}</h2>
         </div>
         <div class="section-body">
           <div class="account-row">
@@ -94,7 +94,7 @@ import { DatePipe } from '@angular/common';
               <div class="account-meta">
                 <span class="role-badge role-{{ auth.role()?.toLowerCase() }}">{{ auth.role() }}</span>
                 @if (sessionExpiry()) {
-                  <span class="session-expiry">Session expires {{ sessionExpiry() | date:'dd.MM.yyyy' }}</span>
+                  <span class="session-expiry">{{ t.profileSessionExpiresActivity }} {{ sessionExpiry() | date:'dd.MM.yyyy' }}</span>
                 }
               </div>
             </div>

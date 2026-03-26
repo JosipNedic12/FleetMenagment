@@ -7790,6 +7790,166 @@
           <context context-type="linenumber">97</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="profile.subtitle" datatype="html">
+        <source>Manage your account and security settings</source>
+        <target>Upravljajte računom i sigurnosnim postavkama</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">98</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.role" datatype="html">
+        <source>Role</source>
+        <target>Uloga</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">99</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.sessionExpires" datatype="html">
+        <source>Session Expires</source>
+        <target>Sesija istječe</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">100</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.permissions" datatype="html">
+        <source>Permissions</source>
+        <target>Dozvole</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">101</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.permRead" datatype="html">
+        <source>Read</source>
+        <target>Čitanje</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">102</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.permWrite" datatype="html">
+        <source>Write</source>
+        <target>Pisanje</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">103</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.permDelete" datatype="html">
+        <source>Delete</source>
+        <target>Brisanje</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">104</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.pwSuccess" datatype="html">
+        <source>Password updated successfully.</source>
+        <target>Lozinka je uspješno ažurirana.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">105</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.currentPasswordPlaceholder" datatype="html">
+        <source>Enter current password</source>
+        <target>Unesite trenutnu lozinku</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">106</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.newPasswordPlaceholder" datatype="html">
+        <source>Enter new password</source>
+        <target>Unesite novu lozinku</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">107</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.confirmPasswordPlaceholder" datatype="html">
+        <source>Re-enter new password</source>
+        <target>Ponovno unesite novu lozinku</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">108</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.passwordsMismatch" datatype="html">
+        <source>Passwords do not match</source>
+        <target>Lozinke se ne podudaraju</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">109</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.updating" datatype="html">
+        <source>Updating…</source>
+        <target>Ažuriranje…</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">110</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.recentActivity" datatype="html">
+        <source>Recent Activity</source>
+        <target>Nedavna aktivnost</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">111</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.loggedIn" datatype="html">
+        <source>Logged in</source>
+        <target>Prijavljeni ste</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">112</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.currentSession" datatype="html">
+        <source>Current session</source>
+        <target>Trenutna sesija</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">113</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.sessionExpiresActivity" datatype="html">
+        <source>Session expires</source>
+        <target>Sesija istječe</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">114</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.tokenIssued" datatype="html">
+        <source>Token issued</source>
+        <target>Token izdan</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">115</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.sessionStatus" datatype="html">
+        <source>Session Status</source>
+        <target>Status sesije</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">116</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.timeRemaining" datatype="html">
+        <source>Time Remaining</source>
+        <target>Preostalo vrijeme</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">117</context>
+        </context-group>
+      </trans-unit>
       <!-- ── Settings Page ──────────────────────────────────────── -->
       <trans-unit id="settings.title" datatype="html">
         <source>Settings</source>
@@ -7869,6 +8029,22 @@
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
           <context context-type="linenumber">109</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.subtitle" datatype="html">
+        <source>Manage your preferences and account.</source>
+        <target>Upravljajte postavkama i računom.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">110</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account" datatype="html">
+        <source>Account</source>
+        <target>Račun</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">111</context>
         </context-group>
       </trans-unit>
       <!-- ── User Management Page ───────────────────────────────── -->
@@ -8015,6 +8191,178 @@
           <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
           <context context-type="linenumber">129</context>
         </context-group>
+      </trans-unit>
+      <trans-unit id="userMgmt.adminOnly" datatype="html">
+        <source>Admin only</source>
+        <target>Samo administrator</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.loading" datatype="html">
+        <source>Loading…</source>
+        <target>Učitavanje…</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.name" datatype="html">
+        <source>Name</source>
+        <target>Ime</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.department" datatype="html">
+        <source>Department</source>
+        <target>Odjel</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.driverProfile" datatype="html">
+        <source>Driver Profile</source>
+        <target>Profil vozača</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.appUser" datatype="html">
+        <source>App User</source>
+        <target>Korisnik aplikacije</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.viewDetails" datatype="html">
+        <source>View details</source>
+        <target>Prikaži detalje</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.addAppUser" datatype="html">
+        <source>Add app user</source>
+        <target>Dodaj korisnika aplikacije</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.yes" datatype="html">
+        <source>Yes</source>
+        <target>Da</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.no" datatype="html">
+        <source>No</source>
+        <target>Ne</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.username" datatype="html">
+        <source>Username</source>
+        <target>Korisničko ime</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.temporaryPassword" datatype="html">
+        <source>Temporary Password</source>
+        <target>Privremena lozinka</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.userCreated" datatype="html">
+        <source>User created. Share the credentials with the employee.</source>
+        <target>Korisnik kreiran. Podijelite pristupne podatke sa zaposlenikom.</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.creating" datatype="html">
+        <source>Creating…</source>
+        <target>Kreiranje…</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.createAppUser" datatype="html">
+        <source>Create App User</source>
+        <target>Kreiraj korisnika aplikacije</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.notAssigned" datatype="html">
+        <source>Not assigned</source>
+        <target>Nije dodijeljeno</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.phone" datatype="html">
+        <source>Phone</source>
+        <target>Telefon</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.hasProfile" datatype="html">
+        <source>Has Profile</source>
+        <target>Ima profil</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.noProfile" datatype="html">
+        <source>No Profile</source>
+        <target>Nema profila</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.errorAlreadyExists" datatype="html">
+        <source>A user already exists for this employee.</source>
+        <target>Korisnik za ovog zaposlenika već postoji.</target>
+      </trans-unit>
+      <trans-unit id="userMgmt.errorCreateFailed" datatype="html">
+        <source>Failed to create user. Try again.</source>
+        <target>Kreiranje korisnika nije uspjelo. Pokušajte ponovno.</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.ALL" datatype="html">
+        <source>All</source>
+        <target>Sve</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.ACTIVE" datatype="html">
+        <source>Active</source>
+        <target>Aktivno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.INACTIVE" datatype="html">
+        <source>Inactive</source>
+        <target>Neaktivno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.SERVICE" datatype="html">
+        <source>Service</source>
+        <target>Servis</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.RETIRED" datatype="html">
+        <source>Retired</source>
+        <target>Povučeno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.SOLD" datatype="html">
+        <source>Sold</source>
+        <target>Prodano</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.OPEN" datatype="html">
+        <source>Open</source>
+        <target>Otvoreno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.IN_PROGRESS" datatype="html">
+        <source>In Progress</source>
+        <target>U tijeku</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.CLOSED" datatype="html">
+        <source>Closed</source>
+        <target>Zatvoreno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.CANCELLED" datatype="html">
+        <source>Cancelled</source>
+        <target>Otkazano</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.PAID" datatype="html">
+        <source>Paid</source>
+        <target>Plaćeno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.UNPAID" datatype="html">
+        <source>Unpaid</source>
+        <target>Neplaćeno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.ENDED" datatype="html">
+        <source>Ended</source>
+        <target>Završeno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.EXPIRED" datatype="html">
+        <source>Expired</source>
+        <target>Isteklo</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.VALID_LICENSE" datatype="html">
+        <source>Valid License</source>
+        <target>Važeća dozvola</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.PASSED" datatype="html">
+        <source>Passed</source>
+        <target>Položeno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.FAILED" datatype="html">
+        <source>Failed</source>
+        <target>Nije položeno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.CONDITIONAL" datatype="html">
+        <source>Conditional</source>
+        <target>Uvjetno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.MINOR" datatype="html">
+        <source>Minor</source>
+        <target>Lakša</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.MAJOR" datatype="html">
+        <source>Major</source>
+        <target>Teža</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.TOTAL_LOSS" datatype="html">
+        <source>Total Loss</source>
+        <target>Totalna šteta</target>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.SUSPICIOUS" datatype="html">
+        <source>Suspicious</source>
+        <target>Sumnjivo</target>
       </trans-unit>
     </body>
   </file>

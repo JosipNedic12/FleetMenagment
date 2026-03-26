@@ -16,7 +16,7 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
       <div class="page-header">
         <div>
           <h1 class="page-title">{{ t.profileTitle }}</h1>
-          <p class="page-subtitle">Manage your account and security settings</p>
+          <p class="page-subtitle">{{ t.profileSubtitle }}</p>
         </div>
       </div>
 
@@ -33,21 +33,21 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
           <div class="card-body">
             <div class="info-grid">
               <div class="info-item">
-                <span class="info-label">Role</span>
+                <span class="info-label">{{ t.profileRole }}</span>
                 <span class="info-value">
                   <app-badge [label]="auth.role() ?? ''" [variant]="roleBadge()"></app-badge>
                 </span>
               </div>
               <div class="info-item">
-                <span class="info-label">Session Expires</span>
+                <span class="info-label">{{ t.profileSessionExpires }}</span>
                 <span class="info-value">{{ expiresFormatted() }}</span>
               </div>
               <div class="info-item">
-                <span class="info-label">Permissions</span>
+                <span class="info-label">{{ t.profilePermissions }}</span>
                 <span class="info-value permissions">
-                  <span class="perm" [class.active]="true">Read</span>
-                  <span class="perm" [class.active]="auth.canWrite()">Write</span>
-                  <span class="perm" [class.active]="auth.canDelete()">Delete</span>
+                  <span class="perm" [class.active]="true">{{ t.profilePermRead }}</span>
+                  <span class="perm" [class.active]="auth.canWrite()">{{ t.profilePermWrite }}</span>
+                  <span class="perm" [class.active]="auth.canDelete()">{{ t.profilePermDelete }}</span>
                 </span>
               </div>
             </div>
@@ -64,7 +64,7 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
             @if (pwSuccess()) {
               <div class="alert alert-success">
                 <span class="alert-icon"><lucide-icon [img]="icons.Check" [size]="11" [strokeWidth]="3"></lucide-icon></span>
-                Password updated successfully.
+                {{ t.profilePwSuccess }}
               </div>
             }
             @if (pwError()) {
@@ -80,7 +80,7 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
                   [type]="showCurrentPw ? 'text' : 'password'"
                   class="form-input"
                   [(ngModel)]="pwForm.currentPassword"
-                  placeholder="Enter current password"
+                  [placeholder]="t.profileCurrentPasswordPlaceholder"
                   autocomplete="current-password"
                 />
                 <button class="toggle-pw" (click)="showCurrentPw = !showCurrentPw" type="button">
@@ -95,7 +95,7 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
                   [type]="showNewPw ? 'text' : 'password'"
                   class="form-input"
                   [(ngModel)]="pwForm.newPassword"
-                  placeholder="Enter new password"
+                  [placeholder]="t.profileNewPasswordPlaceholder"
                   autocomplete="new-password"
                 />
                 <button class="toggle-pw" (click)="showNewPw = !showNewPw" type="button">
@@ -115,11 +115,11 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
                 type="password"
                 class="form-input"
                 [(ngModel)]="pwForm.confirmPassword"
-                placeholder="Re-enter new password"
+                [placeholder]="t.profileConfirmPasswordPlaceholder"
                 autocomplete="new-password"
               />
               @if (pwForm.confirmPassword.length > 0 && pwForm.newPassword !== pwForm.confirmPassword) {
-                <span class="field-error">Passwords do not match</span>
+                <span class="field-error">{{ t.profilePasswordsMismatch }}</span>
               }
             </div>
             <button
@@ -127,7 +127,7 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
               [disabled]="pwSaving() || !canSubmitPw()"
               (click)="changePassword()"
             >
-              {{ pwSaving() ? 'Updating…' : t.profileChangePassword }}
+              {{ pwSaving() ? t.profileUpdating : t.profileChangePassword }}
             </button>
           </div>
         </div>
@@ -136,28 +136,28 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
         <div class="profile-card activity-card">
           <div class="card-header">
             <div class="card-icon"><lucide-icon [img]="icons.ClipboardList" [size]="16" [strokeWidth]="2"></lucide-icon></div>
-            <h3 class="card-title">Recent Activity</h3>
+            <h3 class="card-title">{{ t.profileRecentActivity }}</h3>
           </div>
           <div class="card-body">
             <div class="timeline">
               <div class="timeline-item">
                 <div class="timeline-dot dot-success"></div>
                 <div class="timeline-content">
-                  <span class="timeline-action">Logged in</span>
-                  <span class="timeline-time">Current session</span>
+                  <span class="timeline-action">{{ t.profileLoggedIn }}</span>
+                  <span class="timeline-time">{{ t.profileCurrentSession }}</span>
                 </div>
               </div>
               <div class="timeline-item">
                 <div class="timeline-dot dot-info"></div>
                 <div class="timeline-content">
-                  <span class="timeline-action">Session expires</span>
+                  <span class="timeline-action">{{ t.profileSessionExpiresActivity }}</span>
                   <span class="timeline-time">{{ expiresFormatted() }}</span>
                 </div>
               </div>
               <div class="timeline-item">
                 <div class="timeline-dot dot-neutral"></div>
                 <div class="timeline-content">
-                  <span class="timeline-action">Token issued</span>
+                  <span class="timeline-action">{{ t.profileTokenIssued }}</span>
                   <span class="timeline-time">{{ tokenIssuedFormatted() }}</span>
                 </div>
               </div>
@@ -165,14 +165,14 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
 
             <div class="session-info">
               <div class="session-row">
-                <span class="session-key">Session Status</span>
+                <span class="session-key">{{ t.profileSessionStatus }}</span>
                 <app-badge
-                  [label]="auth.isTokenExpired() ? 'Expired' : 'Active'"
+                  [label]="auth.isTokenExpired() ? t.chipExpired : t.chipActive"
                   [variant]="auth.isTokenExpired() ? 'danger' : 'success'"
                 ></app-badge>
               </div>
               <div class="session-row">
-                <span class="session-key">Time Remaining</span>
+                <span class="session-key">{{ t.profileTimeRemaining }}</span>
                 <span class="session-val mono">{{ timeRemaining() }}</span>
               </div>
             </div>
@@ -518,7 +518,7 @@ export class ProfileComponent implements OnInit {
     const u = this.user();
     if (!u) return '—';
     const diff = new Date(u.expiresAt).getTime() - Date.now();
-    if (diff <= 0) return 'Expired';
+    if (diff <= 0) return this.t.chipExpired;
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     return `${h}h ${m}m`;

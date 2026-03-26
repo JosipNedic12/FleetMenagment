@@ -30,9 +30,9 @@ import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"    (click)="filter.set('all')" i18n="@@assignments.list.filterAll">All</button>
-        <button [class.active]="filter() === 'active'" (click)="filter.set('active')" i18n="@@assignments.list.filterActive">Active</button>
-        <button [class.active]="filter() === 'ended'"  (click)="filter.set('ended')" i18n="@@assignments.list.filterEnded">Ended</button>
+        <button [class.active]="filter() === 'all'"    (click)="filter.set('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'active'" (click)="filter.set('active')" i18n="@@COMMON.CHIPS.ACTIVE">Active</button>
+        <button [class.active]="filter() === 'ended'"  (click)="filter.set('ended')" i18n="@@COMMON.CHIPS.ENDED">Ended</button>
       </div>
 
       <div class="table-card">
@@ -62,7 +62,7 @@ import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/
                   <td>{{ row.assignedTo ? (row.assignedTo | date:'dd.MM.yyyy') : '—' }}</td>
                   <td>
                     <app-badge
-                      [label]="row.isActive ? 'Active' : 'Ended'"
+                      [label]="row.isActive ? activeLabel : endedLabel"
                       [variant]="row.isActive ? 'success' : 'neutral'"
                     />
                   </td>
@@ -176,6 +176,8 @@ import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/
 })
 export class AssignmentsListComponent implements OnInit {
   readonly icons = { Eye, Pencil, Trash2 };
+  activeLabel = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
+  endedLabel  = $localize`:@@COMMON.CHIPS.ENDED:Ended`;
   readonly vehicleDisplayFn = (v: Vehicle) => `${v.make} ${v.model} – ${v.registrationNumber}`;
   readonly driverDisplayFn  = (d: Driver)  => d.fullName;
   private api = inject(VehicleAssignmentApiService);

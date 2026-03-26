@@ -66,7 +66,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                     <td>{{ row.validFrom ? (row.validFrom | date:'dd.MM.yyyy') : '—' }}</td>
                     <td>{{ row.validTo ? (row.validTo | date:'dd.MM.yyyy') : '—' }}</td>
                     <td>
-                      <app-badge [label]="row.isActive ? 'Active' : 'Inactive'" [variant]="row.isActive ? 'success' : 'neutral'" />
+                      <app-badge [label]="row.isActive ? activeLabel : inactiveLabel" [variant]="row.isActive ? 'success' : 'neutral'" />
                     </td>
                     <td class="actions">
                       <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="$event.stopPropagation(); startEditCard(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
@@ -118,7 +118,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                       @if (!row.isSuspicious) {
                         <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Mark suspicious" i18n-title="@@fuel.markSuspiciousTitle" (click)="$event.stopPropagation(); markSuspicious(row)"><lucide-icon [img]="icons.TriangleAlert" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                       } @else {
-                        <app-badge label="Suspicious" i18n-label="@@fuel.suspicious" variant="danger" />
+                        <app-badge [label]="suspiciousLabel" variant="danger" />
                       }
                       <button *hasRole="'Admin'" class="btn-icon danger" (click)="$event.stopPropagation(); confirmDeleteTx(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     </td>
@@ -311,6 +311,9 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 })
 export class FuelListComponent implements OnInit {
   readonly icons = { Eye, Pencil, Trash2, TriangleAlert };
+  activeLabel     = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
+  inactiveLabel   = $localize`:@@COMMON.CHIPS.INACTIVE:Inactive`;
+  suspiciousLabel = $localize`:@@COMMON.CHIPS.SUSPICIOUS:Suspicious`;
   readonly vehicleDisplayFn  = (v: Vehicle)  => `${v.make} ${v.model} – ${v.registrationNumber}`;
   readonly fuelCardDisplayFn = (c: FuelCard) => c.cardNumber;
   private cardApi = inject(FuelCardApiService);

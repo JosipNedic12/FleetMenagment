@@ -31,6 +31,8 @@ export class LanguageService {
 
   applyStoredPreference(): void {
     const stored = this.getStored();
-    if (stored !== this.currentLocale()) this.switchTo(stored);
+    const seg = window.location.pathname.split('/').filter(Boolean)[0] as AppLocale;
+    const hasLocalePrefix = SUPPORTED.includes(seg);
+    if (hasLocalePrefix && stored !== this.currentLocale()) this.switchTo(stored);
   }
 }

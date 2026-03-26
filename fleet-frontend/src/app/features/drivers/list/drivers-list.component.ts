@@ -29,9 +29,9 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"     (click)="filter.set('all')" i18n="@@drivers.list.filterAll">All</button>
-        <button [class.active]="filter() === 'valid'"   (click)="filter.set('valid')" i18n="@@drivers.list.filterValid">Valid License</button>
-        <button [class.active]="filter() === 'expired'" (click)="filter.set('expired')" i18n="@@drivers.list.filterExpired">Expired</button>
+        <button [class.active]="filter() === 'all'"     (click)="filter.set('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'valid'"   (click)="filter.set('valid')" i18n="@@COMMON.CHIPS.VALID_LICENSE">Valid License</button>
+        <button [class.active]="filter() === 'expired'" (click)="filter.set('expired')" i18n="@@COMMON.CHIPS.EXPIRED">Expired</button>
       </div>
 
       <div class="table-card">
@@ -79,7 +79,7 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
                       {{ row.licenseExpiry | date:'dd.MM.yyyy' }}
                     </span>
                     @if (row.licenseExpired) {
-                      <app-badge label="Expired" variant="danger" />
+                      <app-badge [label]="expiredLabel" variant="danger" />
                     }
                   </td>
                   <td>
@@ -216,6 +216,7 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
 })
 export class DriversListComponent implements OnInit {
   readonly icons = { Eye, Pencil, Trash2, UserRoundIcon };
+  expiredLabel = $localize`:@@COMMON.CHIPS.EXPIRED:Expired`;
   readonly employeeDisplayFn = (e: Employee) =>
     `${e.firstName} ${e.lastName}${e.department ? ' (' + e.department + ')' : ''}`;
   private api = inject(DriverApiService);

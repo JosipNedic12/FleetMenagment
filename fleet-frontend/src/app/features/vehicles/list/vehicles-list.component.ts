@@ -32,11 +32,11 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"     (click)="filter.set('all')" i18n="@@vehicles.filter.all">All</button>
-        <button [class.active]="filter() === 'active'"  (click)="filter.set('active')" i18n="@@vehicles.filter.active">Active</button>
-        <button [class.active]="filter() === 'service'" (click)="filter.set('service')" i18n="@@vehicles.filter.service">Service</button>
-        <button [class.active]="filter() === 'retired'" (click)="filter.set('retired')" i18n="@@vehicles.filter.retired">Retired</button>
-        <button [class.active]="filter() === 'sold'"    (click)="filter.set('sold')" i18n="@@vehicles.filter.sold">Sold</button>
+        <button [class.active]="filter() === 'all'"     (click)="filter.set('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'active'"  (click)="filter.set('active')" i18n="@@COMMON.CHIPS.ACTIVE">Active</button>
+        <button [class.active]="filter() === 'service'" (click)="filter.set('service')" i18n="@@COMMON.CHIPS.SERVICE">Service</button>
+        <button [class.active]="filter() === 'retired'" (click)="filter.set('retired')" i18n="@@COMMON.CHIPS.RETIRED">Retired</button>
+        <button [class.active]="filter() === 'sold'"    (click)="filter.set('sold')" i18n="@@COMMON.CHIPS.SOLD">Sold</button>
       </div>
 
       <div class="table-card">
@@ -86,7 +86,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
                   <td>{{ row.currentOdometerKm | euNumber }} km</td>
                   <td>
                     <app-badge
-                      [label]="row.status"
+                      [label]="statusLabel(row.status)"
                       [variant]="row.status === 'active' ? 'success' : row.status === 'service' ? 'warning' : 'neutral'"
                     />
                   </td>
@@ -186,10 +186,10 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
             <div class="form-group">
               <label i18n="@@vehicles.edit.status">Status</label>
               <select [(ngModel)]="editForm.status">
-                <option value="active" i18n="@@vehicles.status.active">Active</option>
-                <option value="service" i18n="@@vehicles.status.service">In Service</option>
-                <option value="retired" i18n="@@vehicles.status.retired">Retired</option>
-                <option value="sold" i18n="@@vehicles.status.sold">Sold</option>
+                <option value="active" i18n="@@COMMON.CHIPS.ACTIVE">Active</option>
+                <option value="service" i18n="@@COMMON.CHIPS.SERVICE">Service</option>
+                <option value="retired" i18n="@@COMMON.CHIPS.RETIRED">Retired</option>
+                <option value="sold" i18n="@@COMMON.CHIPS.SOLD">Sold</option>
               </select>
             </div>
             <div class="form-group">
@@ -224,6 +224,15 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
 })
 export class VehiclesListComponent implements OnInit {
   readonly icons = { Eye, Pencil, Trash2, CarIcon };
+
+  private readonly chipLabels: Record<string, string> = {
+    active:  $localize`:@@COMMON.CHIPS.ACTIVE:Active`,
+    service: $localize`:@@COMMON.CHIPS.SERVICE:Service`,
+    retired: $localize`:@@COMMON.CHIPS.RETIRED:Retired`,
+    sold:    $localize`:@@COMMON.CHIPS.SOLD:Sold`,
+  };
+  statusLabel(s: string): string { return this.chipLabels[s] ?? s; }
+
   private api = inject(VehicleApiService);
   private lookupApi = inject(LookupApiService);
   auth = inject(AuthService);

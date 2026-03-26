@@ -31,10 +31,10 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"   (click)="filter.set('all')"   i18n="@@accidents.filterAll">All</button>
-        <button [class.active]="filter() === 'minor'" (click)="filter.set('minor')" i18n="@@accidents.filterMinor">Minor</button>
-        <button [class.active]="filter() === 'major'" (click)="filter.set('major')" i18n="@@accidents.filterMajor">Major</button>
-        <button [class.active]="filter() === 'total'" (click)="filter.set('total')" i18n="@@accidents.filterTotal">Total Loss</button>
+        <button [class.active]="filter() === 'all'"   (click)="filter.set('all')"   i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'minor'" (click)="filter.set('minor')" i18n="@@COMMON.CHIPS.MINOR">Minor</button>
+        <button [class.active]="filter() === 'major'" (click)="filter.set('major')" i18n="@@COMMON.CHIPS.MAJOR">Major</button>
+        <button [class.active]="filter() === 'total'" (click)="filter.set('total')" i18n="@@COMMON.CHIPS.TOTAL_LOSS">Total Loss</button>
       </div>
 
       <div class="table-card">
@@ -62,7 +62,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                   <td>{{ row.occurredAt | date:'dd.MM.yyyy' }}</td>
                   <td>
                     <app-badge
-                      [label]="row.severity"
+                      [label]="severityLabel(row.severity)"
                       [variant]="row.severity === 'minor' ? 'warning' : 'danger'"
                     />
                   </td>
@@ -120,9 +120,9 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
             <div class="form-group">
               <label i18n="@@accidents.formSeverity">Severity *</label>
               <select [(ngModel)]="form.severity">
-                <option value="minor" i18n="@@accidents.severityMinor">Minor</option>
-                <option value="major" i18n="@@accidents.severityMajor">Major</option>
-                <option value="total" i18n="@@accidents.severityTotal">Total Loss</option>
+                <option value="minor" i18n="@@COMMON.CHIPS.MINOR">Minor</option>
+                <option value="major" i18n="@@COMMON.CHIPS.MAJOR">Major</option>
+                <option value="total" i18n="@@COMMON.CHIPS.TOTAL_LOSS">Total Loss</option>
               </select>
             </div>
             @if (form.severity === 'total') {
@@ -182,6 +182,13 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 })
 export class AccidentsListComponent implements OnInit {
   readonly icons = { Eye, Pencil, Trash2, TriangleAlert };
+
+  private readonly chipLabels: Record<string, string> = {
+    minor: $localize`:@@COMMON.CHIPS.MINOR:Minor`,
+    major: $localize`:@@COMMON.CHIPS.MAJOR:Major`,
+    total: $localize`:@@COMMON.CHIPS.TOTAL_LOSS:Total Loss`,
+  };
+  severityLabel(s: string): string { return this.chipLabels[s] ?? s; }
 
   readonly vehicleDisplayFn = (v: Vehicle) => `${v.make} ${v.model} – ${v.registrationNumber}`;
   readonly driverDisplayFn  = (d: Driver)  => d.fullName;

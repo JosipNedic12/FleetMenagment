@@ -17,7 +17,7 @@ import { LucideAngularModule, Eye } from 'lucide-angular';
       <div class="page-header">
         <div>
           <h1 class="page-title">{{ t.userMgmtTitle }}</h1>
-          <p class="page-subtitle">{{ filtered().length }} employees · Admin only</p>
+          <p class="page-subtitle">{{ filtered().length }} employees · {{ t.userMgmtAdminOnly }}</p>
         </div>
         <div class="header-actions">
           <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" [placeholder]="t.userMgmtSearchPlaceholder" />
@@ -32,19 +32,19 @@ import { LucideAngularModule, Eye } from 'lucide-angular';
 
       <div class="table-card">
         @if (loading()) {
-          <div class="table-loading">Loading…</div>
+          <div class="table-loading">{{ t.userMgmtLoading }}</div>
         } @else if (filtered().length === 0) {
           <div class="table-empty">{{ t.userMgmtNoUsersFound }}</div>
         } @else {
           <table class="table">
             <thead>
               <tr>
-                <th>Name</th>
+                <th>{{ t.userMgmtName }}</th>
                 <th>{{ t.profileEmail }}</th>
-                <th>Department</th>
+                <th>{{ t.userMgmtDepartment }}</th>
                 <th>{{ t.userMgmtStatus }}</th>
-                <th>Driver Profile</th>
-                <th>App User</th>
+                <th>{{ t.userMgmtDriverProfile }}</th>
+                <th>{{ t.userMgmtAppUser }}</th>
                 <th>{{ t.userMgmtActions }}</th>
               </tr>
             </thead>
@@ -56,27 +56,27 @@ import { LucideAngularModule, Eye } from 'lucide-angular';
                   <td>{{ row.department ?? '—' }}</td>
                   <td>
                     <app-badge
-                      [label]="row.isActive ? 'Active' : 'Inactive'"
+                      [label]="row.isActive ? t.chipActive : t.chipInactive"
                       [variant]="row.isActive ? 'success' : 'danger'"
                     ></app-badge>
                   </td>
                   <td>
                     <app-badge
-                      [label]="row.hasDriverProfile ? 'Yes' : 'No'"
+                      [label]="row.hasDriverProfile ? t.userMgmtYes : t.userMgmtNo"
                       [variant]="row.hasDriverProfile ? 'info' : 'neutral'"
                     ></app-badge>
                   </td>
                   <td>
                     <app-badge
-                      [label]="row.hasAppUser ? 'Yes' : 'No'"
+                      [label]="row.hasAppUser ? t.userMgmtYes : t.userMgmtNo"
                       [variant]="row.hasAppUser ? 'success' : 'neutral'"
                     ></app-badge>
                   </td>
                   <td>
                     <div class="row-actions">
-                      <button class="action-btn" title="View details" (click)="openDetail(row)"><lucide-icon [img]="icons.Eye" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                      <button class="action-btn" [title]="t.userMgmtViewDetails" (click)="openDetail(row)"><lucide-icon [img]="icons.Eye" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                       @if (!row.hasAppUser) {
-                        <button class="action-btn" title="Add app user" (click)="openAddUser(row)">＋</button>
+                        <button class="action-btn" [title]="t.userMgmtAddAppUser" (click)="openAddUser(row)">＋</button>
                       }
                     </div>
                   </td>
@@ -102,37 +102,37 @@ import { LucideAngularModule, Eye } from 'lucide-angular';
             <div class="detail-body">
               <form (ngSubmit)="submitAddUser()">
                 <div class="form-group">
-                  <label>Username</label>
+                  <label>{{ t.userMgmtUsername }}</label>
                   <input class="form-input" type="text" [(ngModel)]="newUser.username" name="username" required placeholder="e.g. jdoe" />
                 </div>
                 <div class="form-group">
-                  <label>Email</label>
+                  <label>{{ t.profileEmail }}</label>
                   <input class="form-input" type="email" [(ngModel)]="newUser.email" name="email" required placeholder="employee@company.com" />
                 </div>
                 <div class="form-group">
-                  <label>Temporary Password</label>
+                  <label>{{ t.userMgmtTemporaryPassword }}</label>
                   <input class="form-input" type="text" [(ngModel)]="newUser.temporaryPassword" name="password" required placeholder="Temp password (will be hashed)" />
                 </div>
                 <div class="form-group">
                   <label>{{ t.userMgmtRole }}</label>
                   <select class="form-input" [(ngModel)]="newUser.role" name="role" required>
-                    <option value="ReadOnly">ReadOnly</option>
-                    <option value="FleetManager">FleetManager</option>
-                    <option value="Admin">Admin</option>
+                    <option value="ReadOnly">{{ t.userMgmtRoleViewer }}</option>
+                    <option value="FleetManager">{{ t.userMgmtRoleManager }}</option>
+                    <option value="Admin">{{ t.userMgmtRoleAdmin }}</option>
                   </select>
                 </div>
                 @if (addUserError()) {
                   <div class="error-msg">{{ addUserError() }}</div>
                 }
                 @if (addUserSuccess()) {
-                  <div class="success-msg">User created. Share the credentials with the employee.</div>
+                  <div class="success-msg">{{ t.userMgmtUserCreated }}</div>
                 }
                 <button
                   type="submit"
                   class="submit-btn"
                   [disabled]="addUserLoading() || !newUser.username || !newUser.email || !newUser.temporaryPassword"
                 >
-                  @if (addUserLoading()) { <span class="spinner"></span> Creating… } @else { Create App User }
+                  @if (addUserLoading()) { <span class="spinner"></span> {{ t.userMgmtCreating }} } @else { {{ t.userMgmtCreateAppUser }} }
                 </button>
               </form>
             </div>
@@ -157,24 +157,24 @@ import { LucideAngularModule, Eye } from 'lucide-angular';
             <div class="detail-body">
               <div class="detail-grid">
                 <div class="detail-item">
-                  <span class="detail-label">Department</span>
-                  <span class="detail-value">{{ detailEmployee.department ?? 'Not assigned' }}</span>
+                  <span class="detail-label">{{ t.userMgmtDepartment }}</span>
+                  <span class="detail-value">{{ detailEmployee.department ?? t.userMgmtNotAssigned }}</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">Phone</span>
+                  <span class="detail-label">{{ t.userMgmtPhone }}</span>
                   <span class="detail-value mono">{{ detailEmployee.phone ?? '—' }}</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">Status</span>
+                  <span class="detail-label">{{ t.userMgmtStatus }}</span>
                   <app-badge
-                    [label]="detailEmployee.isActive ? 'Active' : 'Inactive'"
+                    [label]="detailEmployee.isActive ? t.chipActive : t.chipInactive"
                     [variant]="detailEmployee.isActive ? 'success' : 'danger'"
                   ></app-badge>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">Driver Profile</span>
+                  <span class="detail-label">{{ t.userMgmtDriverProfile }}</span>
                   <app-badge
-                    [label]="detailEmployee.hasDriverProfile ? 'Has Profile' : 'No Profile'"
+                    [label]="detailEmployee.hasDriverProfile ? t.userMgmtHasProfile : t.userMgmtNoProfile"
                     [variant]="detailEmployee.hasDriverProfile ? 'info' : 'neutral'"
                   ></app-badge>
                 </div>
@@ -422,7 +422,7 @@ export class UsersListComponent implements OnInit {
       },
       error: (err) => {
         this.addUserLoading.set(false);
-        this.addUserError.set(err.status === 409 ? 'A user already exists for this employee.' : 'Failed to create user. Try again.');
+        this.addUserError.set(err.status === 409 ? this.t.userMgmtErrorAlreadyExists : this.t.userMgmtErrorCreateFailed);
       }
     });
   }

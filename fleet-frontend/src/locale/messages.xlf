@@ -7027,6 +7027,146 @@
           <context context-type="linenumber">97</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="profile.subtitle" datatype="html">
+        <source>Manage your account and security settings</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">98</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.role" datatype="html">
+        <source>Role</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">99</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.sessionExpires" datatype="html">
+        <source>Session Expires</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">100</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.permissions" datatype="html">
+        <source>Permissions</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">101</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.permRead" datatype="html">
+        <source>Read</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">102</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.permWrite" datatype="html">
+        <source>Write</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">103</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.permDelete" datatype="html">
+        <source>Delete</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">104</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.pwSuccess" datatype="html">
+        <source>Password updated successfully.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">105</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.currentPasswordPlaceholder" datatype="html">
+        <source>Enter current password</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">106</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.newPasswordPlaceholder" datatype="html">
+        <source>Enter new password</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">107</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.confirmPasswordPlaceholder" datatype="html">
+        <source>Re-enter new password</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">108</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.passwordsMismatch" datatype="html">
+        <source>Passwords do not match</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">109</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.updating" datatype="html">
+        <source>Updating…</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">110</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.recentActivity" datatype="html">
+        <source>Recent Activity</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">111</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.loggedIn" datatype="html">
+        <source>Logged in</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">112</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.currentSession" datatype="html">
+        <source>Current session</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">113</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.sessionExpiresActivity" datatype="html">
+        <source>Session expires</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">114</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.tokenIssued" datatype="html">
+        <source>Token issued</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">115</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.sessionStatus" datatype="html">
+        <source>Session Status</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">116</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="profile.timeRemaining" datatype="html">
+        <source>Time Remaining</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">117</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="settings.title" datatype="html">
         <source>Settings</source>
         <context-group purpose="location">
@@ -7095,6 +7235,20 @@
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
           <context context-type="linenumber">109</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.subtitle" datatype="html">
+        <source>Manage your preferences and account.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">110</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account" datatype="html">
+        <source>Account</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">111</context>
         </context-group>
       </trans-unit>
       <trans-unit id="userMgmt.title" datatype="html">
@@ -7222,6 +7376,135 @@
           <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
           <context context-type="linenumber">129</context>
         </context-group>
+      </trans-unit>
+      <trans-unit id="userMgmt.adminOnly" datatype="html">
+        <source>Admin only</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.loading" datatype="html">
+        <source>Loading…</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.name" datatype="html">
+        <source>Name</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.department" datatype="html">
+        <source>Department</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.driverProfile" datatype="html">
+        <source>Driver Profile</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.appUser" datatype="html">
+        <source>App User</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.viewDetails" datatype="html">
+        <source>View details</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.addAppUser" datatype="html">
+        <source>Add app user</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.yes" datatype="html">
+        <source>Yes</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.no" datatype="html">
+        <source>No</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.username" datatype="html">
+        <source>Username</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.temporaryPassword" datatype="html">
+        <source>Temporary Password</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.userCreated" datatype="html">
+        <source>User created. Share the credentials with the employee.</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.creating" datatype="html">
+        <source>Creating…</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.createAppUser" datatype="html">
+        <source>Create App User</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.notAssigned" datatype="html">
+        <source>Not assigned</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.phone" datatype="html">
+        <source>Phone</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.hasProfile" datatype="html">
+        <source>Has Profile</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.noProfile" datatype="html">
+        <source>No Profile</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.errorAlreadyExists" datatype="html">
+        <source>A user already exists for this employee.</source>
+      </trans-unit>
+      <trans-unit id="userMgmt.errorCreateFailed" datatype="html">
+        <source>Failed to create user. Try again.</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.ALL" datatype="html">
+        <source>All</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.ACTIVE" datatype="html">
+        <source>Active</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.INACTIVE" datatype="html">
+        <source>Inactive</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.SERVICE" datatype="html">
+        <source>Service</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.RETIRED" datatype="html">
+        <source>Retired</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.SOLD" datatype="html">
+        <source>Sold</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.OPEN" datatype="html">
+        <source>Open</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.IN_PROGRESS" datatype="html">
+        <source>In Progress</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.CLOSED" datatype="html">
+        <source>Closed</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.CANCELLED" datatype="html">
+        <source>Cancelled</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.PAID" datatype="html">
+        <source>Paid</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.UNPAID" datatype="html">
+        <source>Unpaid</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.ENDED" datatype="html">
+        <source>Ended</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.EXPIRED" datatype="html">
+        <source>Expired</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.VALID_LICENSE" datatype="html">
+        <source>Valid License</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.PASSED" datatype="html">
+        <source>Passed</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.FAILED" datatype="html">
+        <source>Failed</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.CONDITIONAL" datatype="html">
+        <source>Conditional</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.MINOR" datatype="html">
+        <source>Minor</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.MAJOR" datatype="html">
+        <source>Major</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.TOTAL_LOSS" datatype="html">
+        <source>Total Loss</source>
+      </trans-unit>
+      <trans-unit id="COMMON.CHIPS.SUSPICIOUS" datatype="html">
+        <source>Suspicious</source>
       </trans-unit>
     </body>
   </file>

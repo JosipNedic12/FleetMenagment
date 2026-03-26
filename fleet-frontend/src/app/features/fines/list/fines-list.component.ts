@@ -33,9 +33,9 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"    (click)="filter.set('all')" i18n="@@fines.list.filterAll">All</button>
-        <button [class.active]="filter() === 'unpaid'" (click)="filter.set('unpaid')" i18n="@@fines.list.filterUnpaid">Unpaid</button>
-        <button [class.active]="filter() === 'paid'"   (click)="filter.set('paid')" i18n="@@fines.list.filterPaid">Paid</button>
+        <button [class.active]="filter() === 'all'"    (click)="filter.set('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'unpaid'" (click)="filter.set('unpaid')" i18n="@@COMMON.CHIPS.UNPAID">Unpaid</button>
+        <button [class.active]="filter() === 'paid'"   (click)="filter.set('paid')" i18n="@@COMMON.CHIPS.PAID">Paid</button>
       </div>
 
       <div class="table-card">
@@ -66,7 +66,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                   <td><strong>{{ row.amount | euNumber:'1.2-2' }} €</strong></td>
                   <td>
                     <app-badge
-                      [label]="row.isPaid ? 'Paid' : 'Unpaid'"
+                      [label]="row.isPaid ? paidLabel : unpaidLabel"
                       [variant]="row.isPaid ? 'success' : 'danger'"
                     />
                   </td>
@@ -187,6 +187,8 @@ export class FinesListComponent implements OnInit {
   readonly icons = { Eye, Pencil, Trash2, CreditCard };
 
   // i18n labels used in interpolated expressions
+  paidLabel   = $localize`:@@COMMON.CHIPS.PAID:Paid`;
+  unpaidLabel = $localize`:@@COMMON.CHIPS.UNPAID:Unpaid`;
   editFineLabel = $localize`:@@fines.list.editFineTitle:Edit Fine`;
   recordFineLabel = $localize`:@@fines.list.recordFineTitle:Record Fine`;
   savingLabel = $localize`:@@fines.form.saving:Saving…`;
