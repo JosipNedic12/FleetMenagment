@@ -4,7 +4,7 @@ COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
 ARG CACHEBUST=1
-RUN npx ng build --configuration=production,en && npx ng build --configuration=production,hr
+RUN npx ng build --configuration=production --localize
 
 FROM nginx:alpine
 COPY --from=build /app/dist/fleet-frontend/browser/en /usr/share/nginx/html/en
