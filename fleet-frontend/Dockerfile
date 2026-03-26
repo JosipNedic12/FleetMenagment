@@ -4,6 +4,7 @@ COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
 RUN npm run build:all
+# build:all runs: ng build --configuration=production,en && ng build --configuration=production,hr
 
 FROM nginx:alpine
 COPY --from=build /app/dist/fleet-frontend/browser/en /usr/share/nginx/html/en
