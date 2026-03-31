@@ -482,15 +482,15 @@ export class VehicleDetailComponent implements OnInit {
   readonly icons = { ArrowLeft, Car, Wrench, Fuel, Users, Shield, ClipboardCheck, TriangleAlert, Siren, FileText, Download };
 
   readonly tabs: { id: Tab; label: string; icon: any }[] = [
-    { id: 'overview',     label: 'Overview',    icon: Car },
-    { id: 'maintenance',  label: 'Maintenance',  icon: Wrench },
-    { id: 'fuel',         label: 'Fuel',         icon: Fuel },
-    { id: 'assignments',  label: 'Assignments',  icon: Users },
-    { id: 'insurance',    label: 'Insurance',    icon: Shield },
-    { id: 'inspections',  label: 'Inspections',  icon: ClipboardCheck },
-    { id: 'fines',        label: 'Fines',        icon: TriangleAlert },
-    { id: 'accidents',    label: 'Accidents',    icon: Siren },
-    { id: 'documents',    label: 'Documents',    icon: FileText },
+    { id: 'overview',     label: $localize`:@@vehicles.detail.tab.overview:Overview`,       icon: Car },
+    { id: 'maintenance',  label: $localize`:@@vehicles.detail.tab.maintenance:Maintenance`, icon: Wrench },
+    { id: 'fuel',         label: $localize`:@@vehicles.detail.tab.fuel:Fuel`,               icon: Fuel },
+    { id: 'assignments',  label: $localize`:@@vehicles.detail.tab.assignments:Assignments`, icon: Users },
+    { id: 'insurance',    label: $localize`:@@vehicles.detail.tab.insurance:Insurance`,     icon: Shield },
+    { id: 'inspections',  label: $localize`:@@vehicles.detail.tab.inspections:Inspections`, icon: ClipboardCheck },
+    { id: 'fines',        label: $localize`:@@vehicles.detail.tab.fines:Fines`,             icon: TriangleAlert },
+    { id: 'accidents',    label: $localize`:@@vehicles.detail.tab.accidents:Accidents`,     icon: Siren },
+    { id: 'documents',    label: $localize`:@@vehicles.detail.tab.documents:Documents`,     icon: FileText },
   ];
 
   activeTab  = signal<Tab>('overview');

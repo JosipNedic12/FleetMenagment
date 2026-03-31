@@ -17,7 +17,7 @@ import { LucideAngularModule, Eye } from 'lucide-angular';
       <div class="page-header">
         <div>
           <h1 class="page-title">{{ t.userMgmtTitle }}</h1>
-          <p class="page-subtitle">{{ filtered().length }} employees · {{ t.userMgmtAdminOnly }}</p>
+          <p class="page-subtitle">{{ filtered().length }} {{ t.userMgmtEmployees }} · {{ t.userMgmtAdminOnly }}</p>
         </div>
         <div class="header-actions">
           <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" [placeholder]="t.userMgmtSearchPlaceholder" />

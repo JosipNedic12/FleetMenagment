@@ -167,6 +167,7 @@ export class TranslateService {
   readonly userMgmtPhone         = $localize`:@@userMgmt.phone:Phone`;
   readonly userMgmtHasProfile    = $localize`:@@userMgmt.hasProfile:Has Profile`;
   readonly userMgmtNoProfile     = $localize`:@@userMgmt.noProfile:No Profile`;
+  readonly userMgmtEmployees          = $localize`:@@userMgmt.employees:employees`;
   readonly userMgmtErrorAlreadyExists = $localize`:@@userMgmt.errorAlreadyExists:A user already exists for this employee.`;
   readonly userMgmtErrorCreateFailed  = $localize`:@@userMgmt.errorCreateFailed:Failed to create user. Try again.`;
 }

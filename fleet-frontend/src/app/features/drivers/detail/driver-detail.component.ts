@@ -418,11 +418,11 @@ export class DriverDetailComponent implements OnInit {
   readonly icons = { ArrowLeft, IdCard, Users, TriangleAlert, Siren, FileText, Download, Trash2 };
 
   readonly tabs: { id: Tab; label: string; icon: any }[] = [
-    { id: 'overview',    label: 'Overview',    icon: IdCard },
-    { id: 'assignments', label: 'Assignments', icon: Users },
-    { id: 'fines',       label: 'Fines',       icon: TriangleAlert },
-    { id: 'accidents',   label: 'Accidents',   icon: Siren },
-    { id: 'documents',   label: 'Documents',   icon: FileText },
+    { id: 'overview',    label: $localize`:@@drivers.detail.tab.overview:Overview`,       icon: IdCard },
+    { id: 'assignments', label: $localize`:@@drivers.detail.tab.assignments:Assignments`, icon: Users },
+    { id: 'fines',       label: $localize`:@@drivers.detail.tab.fines:Fines`,             icon: TriangleAlert },
+    { id: 'accidents',   label: $localize`:@@drivers.detail.tab.accidents:Accidents`,     icon: Siren },
+    { id: 'documents',   label: $localize`:@@drivers.detail.tab.documents:Documents`,     icon: FileText },
   ];
 
   activeTab   = signal<Tab>('overview');

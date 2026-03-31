@@ -8276,6 +8276,126 @@
         <source>Failed to create user. Try again.</source>
         <target>Kreiranje korisnika nije uspjelo. Pokušajte ponovno.</target>
       </trans-unit>
+      <trans-unit id="userMgmt.employees" datatype="html">
+        <source>employees</source>
+        <target>zaposlenika</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/services/translate.service.ts</context>
+          <context context-type="linenumber">171</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vehicles.detail.tab.overview" datatype="html">
+        <source>Overview</source>
+        <target>Pregled</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/vehicles/detail/vehicle-detail.component.ts</context>
+          <context context-type="linenumber">485</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vehicles.detail.tab.maintenance" datatype="html">
+        <source>Maintenance</source>
+        <target>Održavanje</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/vehicles/detail/vehicle-detail.component.ts</context>
+          <context context-type="linenumber">486</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vehicles.detail.tab.fuel" datatype="html">
+        <source>Fuel</source>
+        <target>Gorivo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/vehicles/detail/vehicle-detail.component.ts</context>
+          <context context-type="linenumber">487</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vehicles.detail.tab.assignments" datatype="html">
+        <source>Assignments</source>
+        <target>Zaduženja</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/vehicles/detail/vehicle-detail.component.ts</context>
+          <context context-type="linenumber">488</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vehicles.detail.tab.insurance" datatype="html">
+        <source>Insurance</source>
+        <target>Osiguranje</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/vehicles/detail/vehicle-detail.component.ts</context>
+          <context context-type="linenumber">489</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vehicles.detail.tab.inspections" datatype="html">
+        <source>Inspections</source>
+        <target>Tehnički pregledi</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/vehicles/detail/vehicle-detail.component.ts</context>
+          <context context-type="linenumber">490</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vehicles.detail.tab.fines" datatype="html">
+        <source>Fines</source>
+        <target>Kazne</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/vehicles/detail/vehicle-detail.component.ts</context>
+          <context context-type="linenumber">491</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vehicles.detail.tab.accidents" datatype="html">
+        <source>Accidents</source>
+        <target>Nezgode</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/vehicles/detail/vehicle-detail.component.ts</context>
+          <context context-type="linenumber">492</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="vehicles.detail.tab.documents" datatype="html">
+        <source>Documents</source>
+        <target>Dokumenti</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/vehicles/detail/vehicle-detail.component.ts</context>
+          <context context-type="linenumber">493</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="drivers.detail.tab.overview" datatype="html">
+        <source>Overview</source>
+        <target>Pregled</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/drivers/detail/driver-detail.component.ts</context>
+          <context context-type="linenumber">421</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="drivers.detail.tab.assignments" datatype="html">
+        <source>Assignments</source>
+        <target>Zaduženja</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/drivers/detail/driver-detail.component.ts</context>
+          <context context-type="linenumber">422</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="drivers.detail.tab.fines" datatype="html">
+        <source>Fines</source>
+        <target>Kazne</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/drivers/detail/driver-detail.component.ts</context>
+          <context context-type="linenumber">423</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="drivers.detail.tab.accidents" datatype="html">
+        <source>Accidents</source>
+        <target>Nezgode</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/drivers/detail/driver-detail.component.ts</context>
+          <context context-type="linenumber">424</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="drivers.detail.tab.documents" datatype="html">
+        <source>Documents</source>
+        <target>Dokumenti</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/drivers/detail/driver-detail.component.ts</context>
+          <context context-type="linenumber">425</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="COMMON.CHIPS.ALL" datatype="html">
         <source>All</source>
         <target>Sve</target>
