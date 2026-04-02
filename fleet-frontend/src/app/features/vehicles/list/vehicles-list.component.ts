@@ -15,6 +15,7 @@ import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { FilterPanelComponent, FilterField } from '../../../shared/components/filter-panel/filter-panel.component';
 import { downloadBlob } from '../../../shared/utils/download';
 
 type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
@@ -22,7 +23,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
 @Component({
   selector: 'app-vehicles-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -44,6 +45,13 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
         <button [class.active]="filter() === 'retired'" (click)="onFilterChange('retired')" i18n="@@COMMON.CHIPS.RETIRED">Retired</button>
         <button [class.active]="filter() === 'sold'"    (click)="onFilterChange('sold')" i18n="@@COMMON.CHIPS.SOLD">Sold</button>
       </div>
+
+      <app-filter-panel
+        [fields]="filterFields"
+        [appliedFilters]="appliedFilters()"
+        (filtersApplied)="onFiltersApplied($event)"
+        (filtersCleared)="onFiltersCleared()"
+      />
 
       <div class="table-card">
         @if (loading()) {
@@ -261,10 +269,28 @@ export class VehiclesListComponent implements OnInit, OnDestroy {
   pageSize = signal(10);
 
   // Filter/search/sort state
-  search  = signal('');
-  filter  = signal<string>('all');
-  sortCol = signal('');
-  sortDir = signal<'asc' | 'desc'>('asc');
+  search         = signal('');
+  filter         = signal<string>('all');
+  sortCol        = signal('');
+  sortDir        = signal<'asc' | 'desc'>('asc');
+  appliedFilters = signal<Record<string, any>>({});
+
+  filterFields: FilterField[] = [
+    {
+      key: 'status', label: 'Status', type: 'select',
+      options: [
+        { value: 'active', label: 'Active' },
+        { value: 'service', label: 'In Service' },
+        { value: 'retired', label: 'Retired' },
+        { value: 'sold', label: 'Sold' },
+      ]
+    },
+    { key: 'makeId', label: 'Make', type: 'select', options: [] },
+    { key: 'categoryId', label: 'Category', type: 'select', options: [] },
+    { key: 'fuelTypeId', label: 'Fuel Type', type: 'select', options: [] },
+    { key: 'yearFrom', label: 'Year From', type: 'number', placeholder: 'e.g. 2020' },
+    { key: 'yearTo', label: 'Year To', type: 'number', placeholder: 'e.g. 2024' },
+  ];
 
   loading  = signal(true);
   saving   = signal(false);
@@ -294,16 +320,25 @@ export class VehiclesListComponent implements OnInit, OnDestroy {
       this.loadPage();
     });
     this.loadPage();
-    this.lookupApi.getVehicleCategories().subscribe(c => this.categories.set(c));
-    this.lookupApi.getFuelTypes().subscribe(f => this.fuelTypes.set(f));
-    this.lookupApi.getMakes().subscribe(m => this.makes.set(m));
+    this.lookupApi.getVehicleCategories().subscribe(c => {
+      this.categories.set(c);
+      this.filterFields.find(f => f.key === 'categoryId')!.options = c.map(x => ({ value: x.categoryId.toString(), label: x.name }));
+    });
+    this.lookupApi.getFuelTypes().subscribe(f => {
+      this.fuelTypes.set(f);
+      this.filterFields.find(ff => ff.key === 'fuelTypeId')!.options = f.map(x => ({ value: x.fuelTypeId.toString(), label: x.label }));
+    });
+    this.lookupApi.getMakes().subscribe(m => {
+      this.makes.set(m);
+      this.filterFields.find(ff => ff.key === 'makeId')!.options = m.map(x => ({ value: x.makeId.toString(), label: x.name }));
+    });
   }
 
   ngOnDestroy(): void { this.searchSubject.complete(); }
 
   loadPage(): void {
     this.loading.set(true);
-    const filterObj: Record<string, any> = {};
+    const filterObj: Record<string, any> = { ...this.appliedFilters() };
     if (this.filter() !== 'all') filterObj['status'] = this.filter();
     this.api.getPaged(
       { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
@@ -312,6 +347,19 @@ export class VehiclesListComponent implements OnInit, OnDestroy {
       next: res => { this.items.set(res.items); this.totalCount.set(res.totalCount); this.totalPages.set(res.totalPages); this.loading.set(false); },
       error: () => this.loading.set(false)
     });
+  }
+
+  onFiltersApplied(filters: Record<string, any>): void {
+    this.appliedFilters.set(filters);
+    this.page.set(1);
+    this.loadPage();
+  }
+
+  onFiltersCleared(): void {
+    this.appliedFilters.set({});
+    this.filter.set('all');
+    this.page.set(1);
+    this.loadPage();
   }
 
   onSearchChange(term: string): void { this.searchSubject.next(term); }

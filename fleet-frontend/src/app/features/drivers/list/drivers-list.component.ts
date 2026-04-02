@@ -14,12 +14,13 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 import { SearchSelectComponent } from '../../../shared/components/search-select/search-select.component';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { FilterPanelComponent, FilterField } from '../../../shared/components/filter-panel/filter-panel.component';
 import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-drivers-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, PaginationComponent, ExportButtonComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -39,6 +40,13 @@ import { downloadBlob } from '../../../shared/utils/download';
         <button [class.active]="filter() === 'valid'"   (click)="onFilterChange('valid')" i18n="@@COMMON.CHIPS.VALID_LICENSE">Valid License</button>
         <button [class.active]="filter() === 'expired'" (click)="onFilterChange('expired')" i18n="@@COMMON.CHIPS.EXPIRED">Expired</button>
       </div>
+
+      <app-filter-panel
+        [fields]="filterFields"
+        [appliedFilters]="appliedFilters()"
+        (filtersApplied)="onFiltersApplied($event)"
+        (filtersCleared)="onFiltersCleared()"
+      />
 
       <div class="table-card">
         @if (loading()) {
@@ -248,10 +256,23 @@ export class DriversListComponent implements OnInit, OnDestroy {
   pageSize = signal(10);
 
   // Filter/search/sort state
-  search  = signal('');
-  filter  = signal<string>('all');
-  sortCol = signal('');
-  sortDir = signal<'asc' | 'desc'>('asc');
+  search         = signal('');
+  filter         = signal<string>('all');
+  sortCol        = signal('');
+  sortDir        = signal<'asc' | 'desc'>('asc');
+  appliedFilters = signal<Record<string, any>>({});
+
+  filterFields: FilterField[] = [
+    {
+      key: 'licenseStatus', label: 'License Status', type: 'select',
+      options: [
+        { value: 'valid', label: 'Valid' },
+        { value: 'expired', label: 'Expired' },
+        { value: 'expiring_soon', label: 'Expiring Soon' },
+      ]
+    },
+    { key: 'department', label: 'Department', type: 'text', placeholder: 'e.g. Sales' },
+  ];
 
   loading  = signal(true);
   saving   = signal(false);
@@ -288,7 +309,7 @@ export class DriversListComponent implements OnInit, OnDestroy {
 
   loadPage(): void {
     this.loading.set(true);
-    const filterObj: Record<string, any> = {};
+    const filterObj: Record<string, any> = { ...this.appliedFilters() };
     if (this.filter() !== 'all') filterObj['licenseStatus'] = this.filter();
     this.api.getPaged(
       { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
@@ -301,6 +322,19 @@ export class DriversListComponent implements OnInit, OnDestroy {
 
   onSearchChange(term: string): void { this.searchSubject.next(term); }
   onFilterChange(value: string): void { this.filter.set(value); this.page.set(1); this.loadPage(); }
+
+  onFiltersApplied(filters: Record<string, any>): void {
+    this.appliedFilters.set(filters);
+    this.page.set(1);
+    this.loadPage();
+  }
+
+  onFiltersCleared(): void {
+    this.appliedFilters.set({});
+    this.filter.set('all');
+    this.page.set(1);
+    this.loadPage();
+  }
 
   sort(col: string): void {
     if (this.sortCol() === col) { this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc'); }

@@ -18,12 +18,13 @@ import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { FilterPanelComponent, FilterField } from '../../../shared/components/filter-panel/filter-panel.component';
 import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-insurance-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, FileUploadComponent, DocumentListComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, FileUploadComponent, DocumentListComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
   template: `
     <div class="page">
       <!-- Header -->
@@ -47,6 +48,13 @@ import { downloadBlob } from '../../../shared/utils/download';
         <button [class.active]="filter() === 'active'" (click)="onFilterChange('active')" i18n="@@COMMON.CHIPS.ACTIVE">Active</button>
         <button [class.active]="filter() === 'expired'"(click)="onFilterChange('expired')" i18n="@@COMMON.CHIPS.EXPIRED">Expired</button>
       </div>
+
+      <app-filter-panel
+        [fields]="filterFields"
+        [appliedFilters]="appliedFilters()"
+        (filtersApplied)="onFiltersApplied($event)"
+        (filtersCleared)="onFiltersCleared()"
+      />
 
       <!-- Table -->
       <div class="table-card">
@@ -221,10 +229,23 @@ export class InsuranceListComponent implements OnInit, OnDestroy {
   pageSize = signal(10);
 
   // Filter/search/sort state
-  search  = signal('');
-  filter  = signal<string>('all');
-  sortCol = signal('');
-  sortDir = signal<'asc' | 'desc'>('asc');
+  search         = signal('');
+  filter         = signal<string>('all');
+  sortCol        = signal('');
+  sortDir        = signal<'asc' | 'desc'>('asc');
+  appliedFilters = signal<Record<string, any>>({});
+
+  filterFields: FilterField[] = [
+    {
+      key: 'status', label: 'Status', type: 'select',
+      options: [
+        { value: 'active', label: 'Active' },
+        { value: 'expired', label: 'Expired' },
+      ]
+    },
+    { key: 'vehicleId', label: 'Vehicle', type: 'select', options: [] },
+    { key: 'insurer', label: 'Insurer', type: 'text', placeholder: 'e.g. Croatia osiguranje' },
+  ];
 
   loading  = signal(true);
   saving   = signal(false);
@@ -244,14 +265,17 @@ export class InsuranceListComponent implements OnInit, OnDestroy {
       this.search.set(term); this.page.set(1); this.loadPage();
     });
     this.loadPage();
-    this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v));
+    this.vehicleApi.getAll().subscribe(v => {
+      this.vehicles.set(v);
+      this.filterFields.find(f => f.key === 'vehicleId')!.options = v.map(x => ({ value: x.vehicleId.toString(), label: `${x.make} ${x.model} – ${x.registrationNumber}` }));
+    });
   }
 
   ngOnDestroy(): void { this.searchSubject.complete(); }
 
   loadPage(): void {
     this.loading.set(true);
-    const filterObj: Record<string, any> = {};
+    const filterObj: Record<string, any> = { ...this.appliedFilters() };
     if (this.filter() !== 'all') filterObj['status'] = this.filter();
     this.api.getPaged(
       { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
@@ -266,6 +290,19 @@ export class InsuranceListComponent implements OnInit, OnDestroy {
   onFilterChange(value: string): void { this.filter.set(value); this.page.set(1); this.loadPage(); }
   onPageChange(p: number): void { this.page.set(p); this.loadPage(); }
   onPageSizeChange(size: number): void { this.pageSize.set(size); this.page.set(1); this.loadPage(); }
+
+  onFiltersApplied(filters: Record<string, any>): void {
+    this.appliedFilters.set(filters);
+    this.page.set(1);
+    this.loadPage();
+  }
+
+  onFiltersCleared(): void {
+    this.appliedFilters.set({});
+    this.filter.set('all');
+    this.page.set(1);
+    this.loadPage();
+  }
 
   onExport(format: 'xlsx' | 'pdf'): void {
     const filterObj: Record<string, any> = {};

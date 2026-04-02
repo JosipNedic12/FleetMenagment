@@ -18,12 +18,13 @@ import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { FilterPanelComponent, FilterField } from '../../../shared/components/filter-panel/filter-panel.component';
 import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-inspections-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, FileUploadComponent, DocumentListComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, FileUploadComponent, DocumentListComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -44,6 +45,13 @@ import { downloadBlob } from '../../../shared/utils/download';
         <button [class.active]="filter() === 'failed'"      (click)="onFilterChange('failed')" i18n="@@COMMON.CHIPS.FAILED">Failed</button>
         <button [class.active]="filter() === 'conditional'" (click)="onFilterChange('conditional')" i18n="@@COMMON.CHIPS.CONDITIONAL">Conditional</button>
       </div>
+
+      <app-filter-panel
+        [fields]="filterFields"
+        [appliedFilters]="appliedFilters()"
+        (filtersApplied)="onFiltersApplied($event)"
+        (filtersCleared)="onFiltersCleared()"
+      />
 
       <div class="table-card">
         @if (loading()) { <div class="table-loading" i18n="@@inspections.list.loading">Loading…</div> }
@@ -212,10 +220,25 @@ export class InspectionsListComponent implements OnInit, OnDestroy {
   pageSize = signal(10);
 
   // Filter/search/sort state
-  search  = signal('');
-  filter  = signal<string>('all');
-  sortCol = signal('');
-  sortDir = signal<'asc' | 'desc'>('asc');
+  search         = signal('');
+  filter         = signal<string>('all');
+  sortCol        = signal('');
+  sortDir        = signal<'asc' | 'desc'>('asc');
+  appliedFilters = signal<Record<string, any>>({});
+
+  filterFields: FilterField[] = [
+    {
+      key: 'result', label: 'Result', type: 'select',
+      options: [
+        { value: 'passed', label: 'Passed' },
+        { value: 'failed', label: 'Failed' },
+        { value: 'conditional', label: 'Conditional' },
+      ]
+    },
+    { key: 'vehicleId', label: 'Vehicle', type: 'select', options: [] },
+    { key: 'dateFrom', label: 'Date From', type: 'date' },
+    { key: 'dateTo', label: 'Date To', type: 'date' },
+  ];
 
   loading  = signal(true);
   saving   = signal(false);
@@ -234,14 +257,17 @@ export class InspectionsListComponent implements OnInit, OnDestroy {
       this.search.set(term); this.page.set(1); this.loadPage();
     });
     this.loadPage();
-    this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v));
+    this.vehicleApi.getAll().subscribe(v => {
+      this.vehicles.set(v);
+      this.filterFields.find(f => f.key === 'vehicleId')!.options = v.map(x => ({ value: x.vehicleId.toString(), label: `${x.make} ${x.model} – ${x.registrationNumber}` }));
+    });
   }
 
   ngOnDestroy(): void { this.searchSubject.complete(); }
 
   loadPage(): void {
     this.loading.set(true);
-    const filterObj: Record<string, any> = {};
+    const filterObj: Record<string, any> = { ...this.appliedFilters() };
     if (this.filter() !== 'all') filterObj['result'] = this.filter();
     this.api.getPaged(
       { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
@@ -254,6 +280,19 @@ export class InspectionsListComponent implements OnInit, OnDestroy {
 
   onSearchChange(term: string): void { this.searchSubject.next(term); }
   onFilterChange(value: string): void { this.filter.set(value); this.page.set(1); this.loadPage(); }
+
+  onFiltersApplied(filters: Record<string, any>): void {
+    this.appliedFilters.set(filters);
+    this.page.set(1);
+    this.loadPage();
+  }
+
+  onFiltersCleared(): void {
+    this.appliedFilters.set({});
+    this.filter.set('all');
+    this.page.set(1);
+    this.loadPage();
+  }
 
   sort(col: string): void {
     if (this.sortCol() === col) { this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc'); }

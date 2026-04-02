@@ -20,12 +20,13 @@ import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { FilterPanelComponent, FilterField } from '../../../shared/components/filter-panel/filter-panel.component';
 import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-fuel-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -101,6 +102,12 @@ import { downloadBlob } from '../../../shared/utils/download';
           <app-export-button (exportAs)="onExportTx($event)" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreateTx()" i18n="@@fuel.addTransaction">+ Add Transaction</button>
         </div>
+        <app-filter-panel
+          [fields]="txFilterFields"
+          [appliedFilters]="txAppliedFilters()"
+          (filtersApplied)="onTxFiltersApplied($event)"
+          (filtersCleared)="onTxFiltersCleared()"
+        />
         <div class="table-card">
           @if (loadingTx()) { <div class="table-loading" i18n="@@fuel.loading">Loading…</div> }
           @else if (txItems().length === 0) { <div class="table-empty" i18n="@@fuel.noTransactionsFound">No transactions found.</div> }
@@ -364,9 +371,17 @@ export class FuelListComponent implements OnInit, OnDestroy {
   txSearch       = signal('');
   loadingTx      = signal(true);
 
-  tab      = signal<'cards' | 'transactions'>('cards');
-  saving   = signal(false);
-  formError = signal('');
+  tab              = signal<'cards' | 'transactions'>('cards');
+  txAppliedFilters = signal<Record<string, any>>({});
+  saving           = signal(false);
+  formError        = signal('');
+
+  txFilterFields: FilterField[] = [
+    { key: 'vehicleId', label: 'Vehicle', type: 'select', options: [] },
+    { key: 'fuelTypeId', label: 'Fuel Type', type: 'select', options: [] },
+    { key: 'dateFrom', label: 'Date From', type: 'date' },
+    { key: 'dateTo', label: 'Date To', type: 'date' },
+  ];
 
   // Form data
   vehicles  = signal<Vehicle[]>([]);
@@ -393,9 +408,15 @@ export class FuelListComponent implements OnInit, OnDestroy {
     });
     this.loadCards();
     this.loadTx();
-    this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v));
+    this.vehicleApi.getAll().subscribe(v => {
+      this.vehicles.set(v);
+      this.txFilterFields.find(f => f.key === 'vehicleId')!.options = v.map(x => ({ value: x.vehicleId.toString(), label: `${x.make} ${x.model} – ${x.registrationNumber}` }));
+    });
     this.cardApi.getAll().subscribe(c => this.allCards.set(c));
-    this.lookupApi.getFuelTypes().subscribe(f => this.fuelTypes.set(f));
+    this.lookupApi.getFuelTypes().subscribe(f => {
+      this.fuelTypes.set(f);
+      this.txFilterFields.find(ff => ff.key === 'fuelTypeId')!.options = f.map(x => ({ value: x.fuelTypeId.toString(), label: x.label }));
+    });
   }
 
   ngOnDestroy(): void { this.cardSearchSubject.complete(); this.txSearchSubject.complete(); }
@@ -413,7 +434,8 @@ export class FuelListComponent implements OnInit, OnDestroy {
   loadTx(): void {
     this.loadingTx.set(true);
     this.txApi.getPaged(
-      { page: this.txPage(), pageSize: this.txPageSize(), search: this.txSearch() || undefined }
+      { page: this.txPage(), pageSize: this.txPageSize(), search: this.txSearch() || undefined },
+      this.txAppliedFilters()
     ).subscribe({
       next: res => { this.txItems.set(res.items); this.txTotalCount.set(res.totalCount); this.txTotalPages.set(res.totalPages); this.loadingTx.set(false); },
       error: () => this.loadingTx.set(false)
@@ -427,6 +449,18 @@ export class FuelListComponent implements OnInit, OnDestroy {
   onTxSearchChange(term: string): void { this.txSearchSubject.next(term); }
   onTxPageChange(p: number): void { this.txPage.set(p); this.loadTx(); }
   onTxPageSizeChange(size: number): void { this.txPageSize.set(size); this.txPage.set(1); this.loadTx(); }
+
+  onTxFiltersApplied(filters: Record<string, any>): void {
+    this.txAppliedFilters.set(filters);
+    this.txPage.set(1);
+    this.loadTx();
+  }
+
+  onTxFiltersCleared(): void {
+    this.txAppliedFilters.set({});
+    this.txPage.set(1);
+    this.loadTx();
+  }
 
   onExportCards(format: 'xlsx' | 'pdf'): void {
     this.cardApi.export(format, this.cardSearch() || undefined).subscribe(blob => {

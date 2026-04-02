@@ -16,13 +16,13 @@ public class PagedRequest<TFilter> where TFilter : class, new()
     }
 
     /// <summary>
-    /// Items per page. Allowed values: 10, 25, 50, 100.
+    /// Items per page. Any value between 1 and 500.
     /// Defaults to 10 if an invalid value is provided.
     /// </summary>
     public int PageSize
     {
         get => _pageSize;
-        set => _pageSize = value is 10 or 25 or 50 or 100 ? value : 10;
+        set => _pageSize = value is >= 1 and <= 500 ? value : 10;
     }
 
     /// <summary>

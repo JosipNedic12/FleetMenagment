@@ -11,12 +11,13 @@ import { SearchSelectComponent } from '../../../shared/components/search-select/
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { FilterPanelComponent, FilterField } from '../../../shared/components/filter-panel/filter-panel.component';
 import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-odometer-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
+  imports: [CommonModule, FormsModule, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -42,6 +43,13 @@ import { downloadBlob } from '../../../shared/utils/download';
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" [disabled]="!selectedVehicleId" (click)="openCreate()" i18n="@@odometer.addReadingBtn">+ Add Reading</button>
         </div>
       </div>
+
+      <app-filter-panel
+        [fields]="filterFields"
+        [appliedFilters]="appliedFilters()"
+        (filtersApplied)="onFiltersApplied($event)"
+        (filtersCleared)="onFiltersCleared()"
+      />
 
       @if (!selectedVehicleId) {
         <div class="empty-state" i18n="@@odometer.selectVehiclePrompt">Select a vehicle to view its odometer log.</div>
@@ -159,6 +167,12 @@ export class OdometerListComponent implements OnInit {
   saving            = signal(false);
   formError         = signal('');
   selectedVehicleId = 0;
+  appliedFilters    = signal<Record<string, any>>({});
+
+  filterFields: FilterField[] = [
+    { key: 'dateFrom', label: 'Date From', type: 'date' },
+    { key: 'dateTo', label: 'Date To', type: 'date' },
+  ];
   showCreate        = false;
   deleteTarget: OdometerLog | null = null;
   form: CreateOdometerLogDto = { vehicleId: 0, odometerKm: 0, logDate: '' };
@@ -178,9 +192,10 @@ export class OdometerListComponent implements OnInit {
   loadPage(): void {
     if (!this.selectedVehicleId) return;
     this.loading.set(true);
+    const filterObj: Record<string, any> = { vehicleId: this.selectedVehicleId, ...this.appliedFilters() };
     this.api.getPaged(
       { page: this.page(), pageSize: this.pageSize(), sortBy: 'odometerKm', sortDirection: 'desc' },
-      { vehicleId: this.selectedVehicleId }
+      filterObj
     ).subscribe({
       next: res => { this.items.set(res.items); this.totalCount.set(res.totalCount); this.totalPages.set(res.totalPages); this.loading.set(false); },
       error: () => this.loading.set(false)
@@ -189,6 +204,18 @@ export class OdometerListComponent implements OnInit {
 
   onPageChange(p: number): void { this.page.set(p); this.loadPage(); }
   onPageSizeChange(size: number): void { this.pageSize.set(size); this.page.set(1); this.loadPage(); }
+
+  onFiltersApplied(filters: Record<string, any>): void {
+    this.appliedFilters.set(filters);
+    this.page.set(1);
+    this.loadPage();
+  }
+
+  onFiltersCleared(): void {
+    this.appliedFilters.set({});
+    this.page.set(1);
+    this.loadPage();
+  }
 
   onExport(format: 'xlsx' | 'pdf'): void {
     this.api.export(format, undefined, { vehicleId: this.selectedVehicleId }).subscribe(blob => {
