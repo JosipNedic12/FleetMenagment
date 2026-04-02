@@ -1,6 +1,7 @@
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
-using FleetManagement.Domain.Entities;
+using FleetManagement.Application.Common;
+using FleetManagement.Application.Common.Filters;
+using FleetManagement.Application.DTOs;
+using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,81 +12,71 @@ namespace FleetManagement.API.Controllers;
 [Authorize]
 public class InsurancePolicyController : ControllerBase
 {
-    private readonly IInsurancePolicyRepository _repo;
-    public InsurancePolicyController(IInsurancePolicyRepository repo) => _repo = repo;
+    private readonly InsurancePolicyService _svc;
+    private readonly ExportService _exportService;
+
+    public InsurancePolicyController(InsurancePolicyService svc, ExportService exportService)
+    {
+        _svc = svc;
+        _exportService = exportService;
+    }
 
     [HttpGet]
+    public async Task<IActionResult> GetPaged([FromQuery] PagedRequest<InsuranceFilter> request) =>
+        Ok(await _svc.GetPagedAsync(request));
+
+    [HttpGet("all")]
     public async Task<IActionResult> GetAll() =>
-        Ok((await _repo.GetAllAsync()).Select(ToDto));
+        Ok(await _svc.GetAllAsync());
 
     [HttpGet("active")]
     public async Task<IActionResult> GetActive() =>
-        Ok((await _repo.GetActiveAsync()).Select(ToDto));
+        Ok(await _svc.GetActiveAsync());
 
     [HttpGet("vehicle/{vehicleId}")]
     public async Task<IActionResult> GetByVehicle(int vehicleId) =>
-        Ok((await _repo.GetByVehicleIdAsync(vehicleId)).Select(ToDto));
+        Ok(await _svc.GetByVehicleIdAsync(vehicleId));
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var p = await _repo.GetByIdAsync(id);
-        return p == null ? NotFound() : Ok(ToDto(p));
-    }
+    public async Task<IActionResult> GetById(int id) =>
+        Ok(await _svc.GetByIdAsync(id));
 
     [HttpPost]
     [Authorize(Roles = "Admin,FleetManager")]
     public async Task<IActionResult> Create([FromBody] CreateInsurancePolicyDto dto)
     {
-        var entity = new InsurancePolicy
-        {
-            VehicleId = dto.VehicleId,
-            PolicyNumber = dto.PolicyNumber,
-            Insurer = dto.Insurer,
-            ValidFrom = dto.ValidFrom,
-            ValidTo = dto.ValidTo,
-            Premium = dto.Premium,
-            CoverageNotes = dto.CoverageNotes
-        };
-        var created = await _repo.CreateAsync(entity);
-        return CreatedAtAction(nameof(GetById), new { id = created.PolicyId }, ToDto(created));
+        var created = await _svc.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = created.PolicyId }, created);
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateInsurancePolicyDto dto)
-    {
-        var updated = new InsurancePolicy
-        {
-            Insurer = dto.Insurer ?? string.Empty,
-            ValidFrom = dto.ValidFrom ?? default,
-            ValidTo = dto.ValidTo ?? default,
-            Premium = dto.Premium ?? 0,
-            CoverageNotes = dto.CoverageNotes
-        };
-        var result = await _repo.UpdateAsync(id, updated);
-        return result == null ? NotFound() : Ok(ToDto(result));
-    }
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateInsurancePolicyDto dto) =>
+        Ok(await _svc.UpdateAsync(id, dto));
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Delete(int id) =>
-        await _repo.DeleteAsync(id) ? NoContent() : NotFound();
-
-    // Map to DTO inline (or use AutoMapper if you have profiles set up)
-    private static InsurancePolicyDto ToDto(InsurancePolicy p) => new()
+    public async Task<IActionResult> Delete(int id)
     {
-        PolicyId = p.PolicyId,
-        VehicleId = p.VehicleId,
-        RegistrationNumber = p.Vehicle?.RegistrationNumber ?? string.Empty,
-        VehicleMake = p.Vehicle?.Make?.Name ?? string.Empty,
-        VehicleModel = p.Vehicle?.Model?.Name ?? string.Empty,
-        PolicyNumber = p.PolicyNumber,
-        Insurer = p.Insurer,
-        ValidFrom = p.ValidFrom,
-        ValidTo = p.ValidTo,
-        Premium = p.Premium,
-        CoverageNotes = p.CoverageNotes,
-        IsActive = p.ValidTo >= DateOnly.FromDateTime(DateTime.UtcNow)
-    };
+        await _svc.DeleteAsync(id);
+        return NoContent();
+    }
+
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,FleetManager")]
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] InsuranceFilter? filter)
+    {
+        var dtos = await _svc.GetFilteredDtosAsync(filter ?? new InsuranceFilter(), search);
+        var columns = InsurancePolicyService.GetExportColumns();
+        if (format?.ToLower() == "pdf")
+        {
+            var bytes = _exportService.ExportToPdf(dtos, columns, "Insurance Policies Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"insurance_{DateTime.Now:yyyyMMdd}.pdf");
+        }
+        else
+        {
+            var bytes = _exportService.ExportToExcel(dtos, columns, "Insurance Policies");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"insurance_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+    }
 }

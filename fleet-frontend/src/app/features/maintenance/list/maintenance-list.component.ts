@@ -1,7 +1,9 @@
-import { Component, OnInit, signal, computed, inject, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { MaintenanceOrderApiService, VehicleApiService, VendorApiService, LookupApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, Check, X, Play, Plus, Wrench as WrenchIcon } from 'lucide-angular';
 import {
@@ -17,32 +19,36 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 import { SearchSelectComponent } from '../../../shared/components/search-select/search-select.component';
 import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/vehicle-label.component';
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { downloadBlob } from '../../../shared/utils/download';
 
 type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
 
 @Component({
   selector: 'app-maintenance-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
   template: `
     <div class="page">
       <div class="page-header">
         <div>
           <h1 class="page-title" i18n="@@maintenance.list.title">Maintenance Orders</h1>
-          <p class="page-subtitle" i18n="@@maintenance.list.subtitle">{{ filtered().length }} orders · {{ openCount() }} open</p>
+          <p class="page-subtitle" i18n="@@maintenance.list.subtitle">{{ totalCount() }} orders</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search vehicle, vendor…" i18n-placeholder="@@maintenance.list.searchPlaceholder" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="onSearchChange($event)" placeholder="Search vehicle, vendor…" i18n-placeholder="@@maintenance.list.searchPlaceholder" />
+          <app-export-button (exportAs)="onExport($event)" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreate()" i18n="@@maintenance.list.btnNewOrder">+ New Order</button>
         </div>
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"         (click)="filter.set('all')"         i18n="@@COMMON.CHIPS.ALL">All</button>
-        <button [class.active]="filter() === 'open'"        (click)="filter.set('open')"        i18n="@@COMMON.CHIPS.OPEN">Open</button>
-        <button [class.active]="filter() === 'in_progress'" (click)="filter.set('in_progress')" i18n="@@COMMON.CHIPS.IN_PROGRESS">In Progress</button>
-        <button [class.active]="filter() === 'closed'"      (click)="filter.set('closed')"      i18n="@@COMMON.CHIPS.CLOSED">Closed</button>
-        <button [class.active]="filter() === 'cancelled'"   (click)="filter.set('cancelled')"   i18n="@@COMMON.CHIPS.CANCELLED">Cancelled</button>
+        <button [class.active]="filter() === 'all'"         (click)="onFilterChange('all')"         i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'open'"        (click)="onFilterChange('open')"        i18n="@@COMMON.CHIPS.OPEN">Open</button>
+        <button [class.active]="filter() === 'in_progress'" (click)="onFilterChange('in_progress')" i18n="@@COMMON.CHIPS.IN_PROGRESS">In Progress</button>
+        <button [class.active]="filter() === 'closed'"      (click)="onFilterChange('closed')"      i18n="@@COMMON.CHIPS.CLOSED">Closed</button>
+        <button [class.active]="filter() === 'cancelled'"   (click)="onFilterChange('cancelled')"   i18n="@@COMMON.CHIPS.CANCELLED">Cancelled</button>
       </div>
 
       <div class="table-card">
@@ -60,7 +66,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
               <div class="skeleton-cell w-16"></div>
             </div>
           }
-        } @else if (sorted().length === 0) {
+        } @else if (items().length === 0) {
           <div class="table-empty-state">
             <div class="empty-icon">
               <lucide-icon [img]="icons.WrenchIcon" [size]="44" [strokeWidth]="1.3"></lucide-icon>
@@ -84,7 +90,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
               </tr>
             </thead>
             <tbody>
-              @for (row of sorted(); track row.orderId) {
+              @for (row of items(); track row.orderId) {
                 <tr (click)="goToDetail(row)">
                   <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></td>
                   <td>{{ row.vendorName ?? '—' }}</td>
@@ -127,6 +133,14 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
               }
             </tbody>
           </table>
+          <app-pagination
+            [page]="page()"
+            [pageSize]="pageSize()"
+            [totalCount]="totalCount()"
+            [totalPages]="totalPages()"
+            (pageChange)="onPageChange($event)"
+            (pageSizeChange)="onPageSizeChange($event)"
+          />
         }
       </div>
     </div>
@@ -317,7 +331,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
     tbody tr:hover { background:var(--hover-bg); }
   `]
 })
-export class MaintenanceListComponent implements OnInit {
+export class MaintenanceListComponent implements OnInit, OnDestroy {
   readonly icons = { Eye, Pencil, Trash2, Check, X, Play, Plus, WrenchIcon };
   readonly vehicleDisplayFn = (v: Vehicle) => `${v.make} ${v.model} – ${v.registrationNumber}`;
   readonly vendorDisplayFn  = (v: Vendor)  => v.name;
@@ -328,21 +342,36 @@ export class MaintenanceListComponent implements OnInit {
   private router = inject(Router);
   auth = inject(AuthService);
 
-  orders = signal<MaintenanceOrder[]>([]);
-  vehicles = signal<Vehicle[]>([]);
-  vendors = signal<Vendor[]>([]);
+  // Server response
+  items      = signal<MaintenanceOrder[]>([]);
+  totalCount = signal(0);
+  totalPages = signal(0);
+
+  // Pagination state
+  page     = signal(1);
+  pageSize = signal(10);
+
+  // Filter/search/sort state
+  search  = signal('');
+  filter  = signal<string>('all');
+  sortCol = signal('');
+  sortDir = signal<'asc' | 'desc'>('asc');
+
+  loading  = signal(true);
+  saving   = signal(false);
+  formError = signal('');
+
+  // Form data
+  vehicles         = signal<Vehicle[]>([]);
+  vendors          = signal<Vendor[]>([]);
   maintenanceTypes = signal<MaintenanceTypeDto[]>([]);
-  loading = signal(true); saving = signal(false); formError = signal('');
-  search = signal(''); showCreate = false; showEdit = false;
+
+  showCreate = false; showEdit = false;
   showClose = false; showCancel = false; showAddItem = false;
   editId: number | null = null;
   actionId: number | null = null;
   deleteTarget: MaintenanceOrder | null = null;
-  filter = signal<'all' | OrderStatus>('all');
   readonly skeletonRows = [1, 2, 3, 4, 5, 6];
-
-  sortCol = signal('');
-  sortDir = signal<'asc' | 'desc'>('asc');
 
   createForm: CreateMaintenanceOrderDto = { vehicleId: 0, vendorId: 0, scheduledAt: '', odometerKm: 0, description: '' };
   editForm: UpdateMaintenanceOrderDto = {};
@@ -350,55 +379,52 @@ export class MaintenanceListComponent implements OnInit {
   cancelForm: CancelMaintenanceOrderDto = { cancelReason: '' };
   itemForm: CreateMaintenanceItemDto = { maintenanceTypeId: 0, partsCost: 0, laborCost: 0 };
 
-  openCount = computed(() => this.orders().filter(o => o.status === 'open').length);
-  filtered = computed(() => {
-    let list = this.orders();
-    if (this.filter() !== 'all') list = list.filter(o => o.status === this.filter());
-    const q = this.search().toLowerCase();
-    if (q) list = list.filter(o =>
-      o.registrationNumber.toLowerCase().includes(q) ||
-      (o.vendorName ?? '').toLowerCase().includes(q)
-    );
-    return list;
-  });
-
-  sorted = computed(() => {
-    const col = this.sortCol();
-    const dir = this.sortDir();
-    if (!col) return this.filtered();
-    return [...this.filtered()].sort((a, b) => {
-      let va: string | number = '';
-      let vb: string | number = '';
-      if (col === 'reg')      { va = a.registrationNumber;  vb = b.registrationNumber; }
-      if (col === 'vendor')   { va = a.vendorName ?? '';    vb = b.vendorName ?? ''; }
-      if (col === 'reported') { va = a.reportedAt;          vb = b.reportedAt; }
-      if (col === 'cost')     { va = a.totalCost ?? 0;      vb = b.totalCost ?? 0; }
-      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
-      return dir === 'asc' ? cmp : -cmp;
-    });
-  });
-
-  sort(col: string): void {
-    if (this.sortCol() === col) {
-      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
-    } else {
-      this.sortCol.set(col);
-      this.sortDir.set('asc');
-    }
-  }
+  private searchSubject = new Subject<string>();
 
   ngOnInit(): void {
-    this.load();
+    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(term => {
+      this.search.set(term);
+      this.page.set(1);
+      this.loadPage();
+    });
+    this.loadPage();
     this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v));
     this.vendorApi.getAll().subscribe(v => this.vendors.set(v));
     this.lookupApi.getMaintenanceTypes().subscribe(t => this.maintenanceTypes.set(t));
   }
 
-  load(): void {
+  ngOnDestroy(): void { this.searchSubject.complete(); }
+
+  loadPage(): void {
     this.loading.set(true);
-    this.api.getAll().subscribe({
-      next: d => { this.orders.set(d); this.loading.set(false); },
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['status'] = this.filter();
+    this.api.getPaged(
+      { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
+      filterObj
+    ).subscribe({
+      next: res => { this.items.set(res.items); this.totalCount.set(res.totalCount); this.totalPages.set(res.totalPages); this.loading.set(false); },
       error: () => this.loading.set(false)
+    });
+  }
+
+  onSearchChange(term: string): void { this.searchSubject.next(term); }
+  onFilterChange(value: string): void { this.filter.set(value); this.page.set(1); this.loadPage(); }
+
+  sort(col: string): void {
+    if (this.sortCol() === col) { this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc'); }
+    else { this.sortCol.set(col); this.sortDir.set('asc'); }
+    this.loadPage();
+  }
+
+  onPageChange(p: number): void { this.page.set(p); this.loadPage(); }
+  onPageSizeChange(size: number): void { this.pageSize.set(size); this.page.set(1); this.loadPage(); }
+
+  onExport(format: 'xlsx' | 'pdf'): void {
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['status'] = this.filter();
+    this.api.export(format, this.search() || undefined, filterObj).subscribe(blob => {
+      downloadBlob(blob, `maintenance_${new Date().toISOString().slice(0,10)}.${format}`);
     });
   }
 
@@ -418,30 +444,24 @@ export class MaintenanceListComponent implements OnInit {
 
   openCreate(): void {
     this.createForm = { vehicleId: 0, vendorId: 0, scheduledAt: '', odometerKm: 0, description: '' };
-    this.formError.set('');
-    this.showCreate = true;
+    this.formError.set(''); this.showCreate = true;
   }
   onCreateVehicleChange(vehicleId: number): void {
     const vehicle = this.vehicles().find(v => v.vehicleId === vehicleId);
-    if (vehicle) {
-      this.createForm.odometerKm = vehicle.currentOdometerKm;
-    }
+    if (vehicle) { this.createForm.odometerKm = vehicle.currentOdometerKm; }
   }
   saveCreate(): void {
-  if (!this.createForm.vehicleId) { this.formError.set('Select a vehicle.'); return; }
-  if (!this.createForm.vendorId) { this.formError.set('Select a vendor.'); return; }
-  if (!this.createForm.scheduledAt) { this.formError.set('Set a scheduled date.'); return; }
-  if (!this.createForm.description?.trim()) { this.formError.set('Enter a description.'); return; }
-  this.saving.set(true);
-  const payload = {
-    ...this.createForm,
-    scheduledAt: new Date(this.createForm.scheduledAt).toISOString()
-  };
-  this.api.create(payload).subscribe({
-    next: () => { this.load(); this.closeCreate(); this.saving.set(false); },
-    error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
-  });
-}
+    if (!this.createForm.vehicleId) { this.formError.set('Select a vehicle.'); return; }
+    if (!this.createForm.vendorId) { this.formError.set('Select a vendor.'); return; }
+    if (!this.createForm.scheduledAt) { this.formError.set('Set a scheduled date.'); return; }
+    if (!this.createForm.description?.trim()) { this.formError.set('Enter a description.'); return; }
+    this.saving.set(true);
+    const payload = { ...this.createForm, scheduledAt: new Date(this.createForm.scheduledAt).toISOString() };
+    this.api.create(payload).subscribe({
+      next: () => { this.loadPage(); this.closeCreate(); this.saving.set(false); },
+      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+    });
+  }
   closeCreate(): void { this.showCreate = false; this.formError.set(''); }
 
   startEdit(row: MaintenanceOrder): void {
@@ -453,7 +473,7 @@ export class MaintenanceListComponent implements OnInit {
     if (!this.editId) return;
     this.saving.set(true);
     this.api.update(this.editId, this.editForm).subscribe({
-      next: () => { this.load(); this.closeEdit(); this.saving.set(false); },
+      next: () => { this.loadPage(); this.closeEdit(); this.saving.set(false); },
       error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
     });
   }
@@ -461,37 +481,33 @@ export class MaintenanceListComponent implements OnInit {
 
   @HostListener('keydown.escape')
   onEscape(): void {
-    if (this.showCreate)  { this.closeCreate();        return; }
-    if (this.showEdit)    { this.closeEdit();           return; }
-    if (this.showClose)   { this.showClose = false;    return; }
-    if (this.showCancel)  { this.showCancel = false;   return; }
-    if (this.showAddItem) { this.showAddItem = false;  return; }
+    if (this.showCreate)  { this.closeCreate();       return; }
+    if (this.showEdit)    { this.closeEdit();          return; }
+    if (this.showClose)   { this.showClose = false;   return; }
+    if (this.showCancel)  { this.showCancel = false;  return; }
+    if (this.showAddItem) { this.showAddItem = false; return; }
   }
 
   startOrder(row: MaintenanceOrder): void {
-    this.api.start(row.orderId).subscribe({ next: () => this.load(), error: () => {} });
+    this.api.start(row.orderId).subscribe({ next: () => this.loadPage(), error: () => {} });
   }
 
-  openClose(row: MaintenanceOrder): void {
-    this.actionId = row.orderId; this.closeForm = {}; this.showClose = true;
-  }
+  openClose(row: MaintenanceOrder): void { this.actionId = row.orderId; this.closeForm = {}; this.showClose = true; }
   saveClose(): void {
     if (!this.actionId) return;
     this.saving.set(true);
     this.api.close(this.actionId, this.closeForm).subscribe({
-      next: () => { this.load(); this.showClose = false; this.saving.set(false); },
+      next: () => { this.loadPage(); this.showClose = false; this.saving.set(false); },
       error: () => this.saving.set(false)
     });
   }
 
-  openCancel(row: MaintenanceOrder): void {
-    this.actionId = row.orderId; this.cancelForm = { cancelReason: '' }; this.showCancel = true;
-  }
+  openCancel(row: MaintenanceOrder): void { this.actionId = row.orderId; this.cancelForm = { cancelReason: '' }; this.showCancel = true; }
   saveCancel(): void {
     if (!this.actionId || !this.cancelForm.cancelReason) return;
     this.saving.set(true);
     this.api.cancel(this.actionId, this.cancelForm).subscribe({
-      next: () => { this.load(); this.showCancel = false; this.saving.set(false); },
+      next: () => { this.loadPage(); this.showCancel = false; this.saving.set(false); },
       error: () => this.saving.set(false)
     });
   }
@@ -505,13 +521,13 @@ export class MaintenanceListComponent implements OnInit {
     if (!this.actionId || !this.itemForm.maintenanceTypeId) return;
     this.saving.set(true);
     this.api.addItem(this.actionId, this.itemForm).subscribe({
-      next: () => { this.load(); this.showAddItem = false; this.saving.set(false); },
+      next: () => { this.loadPage(); this.showAddItem = false; this.saving.set(false); },
       error: () => this.saving.set(false)
     });
   }
 
   deleteItem(item: MaintenanceItem): void {
-    this.api.deleteItem(item.itemId).subscribe({ next: () => this.load(), error: () => {} });
+    this.api.deleteItem(item.itemId).subscribe({ next: () => this.loadPage(), error: () => {} });
   }
 
   goToDetail(row: MaintenanceOrder): void { this.router.navigate(['/maintenance', row.orderId]); }
@@ -520,7 +536,7 @@ export class MaintenanceListComponent implements OnInit {
   doDelete(): void {
     if (!this.deleteTarget) return;
     this.api.deleteById(this.deleteTarget.orderId).subscribe({
-      next: () => { this.load(); this.deleteTarget = null; },
+      next: () => { this.loadPage(); this.deleteTarget = null; },
       error: () => { this.deleteTarget = null; }
     });
   }

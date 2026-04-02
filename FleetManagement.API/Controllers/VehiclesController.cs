@@ -1,5 +1,7 @@
+using FleetManagement.Application.Common;
+using FleetManagement.Application.Common.Filters;
 using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
+using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,11 +11,24 @@ namespace FleetManagement.API.Controllers;
 [Route("api/[controller]")]
 public class VehiclesController : ControllerBase
 {
-    private readonly IVehicleService _service;
+    private readonly VehicleService _service;
+    private readonly ExportService _exportService;
 
-    public VehiclesController(IVehicleService service) => _service = service;
+    public VehiclesController(VehicleService service, ExportService exportService)
+    {
+        _service = service;
+        _exportService = exportService;
+    }
 
+    // NEW: Paginated + filtered list
     [HttpGet]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
+    public async Task<ActionResult<PagedResponse<VehicleDto>>> GetPaged(
+        [FromQuery] PagedRequest<VehicleFilter> request)
+        => Ok(await _service.GetPagedAsync(request));
+
+    // Keep for dropdowns, detail-page lookups, etc.
+    [HttpGet("all")]
     [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<VehicleDto>>> GetAll()
         => Ok(await _service.GetAllAsync());
@@ -42,5 +57,23 @@ public class VehiclesController : ControllerBase
     {
         await _service.DeleteAsync(id);
         return NoContent();
+    }
+
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,FleetManager")]
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] VehicleFilter? filter)
+    {
+        var dtos = await _service.GetFilteredDtosAsync(filter ?? new VehicleFilter(), search);
+        var columns = VehicleService.GetExportColumns();
+        if (format?.ToLower() == "pdf")
+        {
+            var bytes = _exportService.ExportToPdf(dtos, columns, "Vehicles Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"vehicles_{DateTime.Now:yyyyMMdd}.pdf");
+        }
+        else
+        {
+            var bytes = _exportService.ExportToExcel(dtos, columns, "Vehicles");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"vehicles_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
     }
 }

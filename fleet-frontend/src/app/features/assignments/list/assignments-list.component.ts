@@ -1,7 +1,9 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { VehicleAssignmentApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2 } from 'lucide-angular';
 import { VehicleAssignment, CreateVehicleAssignmentDto, UpdateVehicleAssignmentDto, Vehicle, Driver } from '../../../core/models/models';
@@ -11,33 +13,37 @@ import { ConfirmModalComponent } from '../../../shared/components/modal/confirm-
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 import { SearchSelectComponent } from '../../../shared/components/search-select/search-select.component';
 import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/vehicle-label.component';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-assignments-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, PaginationComponent, ExportButtonComponent],
   template: `
     <div class="page">
       <div class="page-header">
         <div>
           <h1 class="page-title" i18n="@@assignments.list.title">Vehicle Assignments</h1>
-          <p class="page-subtitle" i18n="@@assignments.list.subtitle">{{ filtered().length }} assignments · {{ activeCount() }} active</p>
+          <p class="page-subtitle" i18n="@@assignments.list.subtitle">{{ totalCount() }} assignments</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" i18n-placeholder="@@assignments.list.searchPlaceholder" placeholder="Search vehicle, driver…" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="onSearchChange($event)" i18n-placeholder="@@assignments.list.searchPlaceholder" placeholder="Search vehicle, driver…" />
+          <app-export-button (exportAs)="onExport($event)" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreate()" i18n="@@assignments.list.assignBtn">+ Assign Vehicle</button>
         </div>
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"    (click)="filter.set('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
-        <button [class.active]="filter() === 'active'" (click)="filter.set('active')" i18n="@@COMMON.CHIPS.ACTIVE">Active</button>
-        <button [class.active]="filter() === 'ended'"  (click)="filter.set('ended')" i18n="@@COMMON.CHIPS.ENDED">Ended</button>
+        <button [class.active]="filter() === 'all'"    (click)="onFilterChange('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'active'" (click)="onFilterChange('active')" i18n="@@COMMON.CHIPS.ACTIVE">Active</button>
+        <button [class.active]="filter() === 'ended'"  (click)="onFilterChange('ended')" i18n="@@COMMON.CHIPS.ENDED">Ended</button>
       </div>
 
       <div class="table-card">
         @if (loading()) { <div class="table-loading" i18n="@@assignments.list.loading">Loading…</div> }
-        @else if (filtered().length === 0) { <div class="table-empty" i18n="@@assignments.list.empty">No assignments found.</div> }
+        @else if (items().length === 0) { <div class="table-empty" i18n="@@assignments.list.empty">No assignments found.</div> }
         @else {
           <table class="table">
             <thead>
@@ -53,7 +59,7 @@ import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/
               </tr>
             </thead>
             <tbody>
-              @for (row of filtered(); track row.assignmentId) {
+              @for (row of items(); track row.assignmentId) {
                 <tr (click)="goToDetail(row)">
                   <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></td>
                   <td>{{ row.driverFullName }}</td>
@@ -78,6 +84,14 @@ import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/
               }
             </tbody>
           </table>
+          <app-pagination
+            [page]="page()"
+            [pageSize]="pageSize()"
+            [totalCount]="totalCount()"
+            [totalPages]="totalPages()"
+            (pageChange)="onPageChange($event)"
+            (pageSizeChange)="onPageSizeChange($event)"
+          />
         }
       </div>
     </div>
@@ -174,7 +188,7 @@ import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/
     tbody tr { cursor:pointer; transition:background 0.12s; }
     tbody tr:hover { background:var(--hover-bg); }`]
 })
-export class AssignmentsListComponent implements OnInit {
+export class AssignmentsListComponent implements OnInit, OnDestroy {
   readonly icons = { Eye, Pencil, Trash2 };
   activeLabel = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
   endedLabel  = $localize`:@@COMMON.CHIPS.ENDED:Ended`;
@@ -186,53 +200,89 @@ export class AssignmentsListComponent implements OnInit {
   private router = inject(Router);
   auth = inject(AuthService);
 
-  assignments = signal<VehicleAssignment[]>([]);
-  vehicles    = signal<Vehicle[]>([]);
-  assignableVehicles = computed(() =>
-    this.vehicles().filter(v => v.status !== 'retired' && v.status !== 'sold')
-  );
-  drivers     = signal<Driver[]>([]);
-  loading = signal(true); saving = signal(false); formError = signal('');
-  search = signal(''); showCreate = false; showEdit = false;
+  // Server response
+  items      = signal<VehicleAssignment[]>([]);
+  totalCount = signal(0);
+  totalPages = signal(0);
+
+  // Pagination state
+  page     = signal(1);
+  pageSize = signal(10);
+
+  // Filter/search/sort state
+  search  = signal('');
+  filter  = signal<string>('all');
+  sortCol = signal('');
+  sortDir = signal<'asc' | 'desc'>('asc');
+
+  loading  = signal(true);
+  saving   = signal(false);
+  formError = signal('');
+
+  // Form data
+  vehicles = signal<Vehicle[]>([]);
+  drivers  = signal<Driver[]>([]);
+
+  showCreate = false; showEdit = false;
   editId: number | null = null;
   deleteTarget: VehicleAssignment | null = null;
-  filter = signal<'all' | 'active' | 'ended'>('all');
 
   createForm: CreateVehicleAssignmentDto = this.emptyCreateForm();
   editForm: UpdateVehicleAssignmentDto = {};
 
-  activeCount = computed(() => this.assignments().filter(a => a.isActive).length);
-  filtered = computed(() => {
-    let list = this.assignments();
-    if (this.filter() === 'active') list = list.filter(a => a.isActive);
-    if (this.filter() === 'ended')  list = list.filter(a => !a.isActive);
-    const q = this.search().toLowerCase();
-    if (q) list = list.filter(a =>
-      a.registrationNumber.toLowerCase().includes(q) ||
-      a.driverFullName.toLowerCase().includes(q)
-    );
-    return list;
-  });
+  assignableVehicles = computed(() =>
+    this.vehicles().filter(v => v.status !== 'retired' && v.status !== 'sold')
+  );
+
+  private searchSubject = new Subject<string>();
 
   ngOnInit(): void {
-    this.load();
+    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(term => {
+      this.search.set(term);
+      this.page.set(1);
+      this.loadPage();
+    });
+    this.loadPage();
     this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v));
     this.driverApi.getAll().subscribe(d => this.drivers.set(d));
   }
 
-  load(): void {
+  ngOnDestroy(): void { this.searchSubject.complete(); }
+
+  loadPage(): void {
     this.loading.set(true);
-    this.api.getAll().subscribe({
-      next: d => { this.assignments.set(d); this.loading.set(false); },
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['status'] = this.filter();
+    this.api.getPaged(
+      { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
+      filterObj
+    ).subscribe({
+      next: res => { this.items.set(res.items); this.totalCount.set(res.totalCount); this.totalPages.set(res.totalPages); this.loading.set(false); },
       error: () => this.loading.set(false)
     });
   }
 
-  openCreate(): void {
-    this.createForm = this.emptyCreateForm();
-    this.formError.set('');
-    this.showCreate = true;
+  onSearchChange(term: string): void { this.searchSubject.next(term); }
+  onFilterChange(value: string): void { this.filter.set(value); this.page.set(1); this.loadPage(); }
+
+  sort(col: string): void {
+    if (this.sortCol() === col) { this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc'); }
+    else { this.sortCol.set(col); this.sortDir.set('asc'); }
+    this.loadPage();
   }
+
+  onPageChange(p: number): void { this.page.set(p); this.loadPage(); }
+  onPageSizeChange(size: number): void { this.pageSize.set(size); this.page.set(1); this.loadPage(); }
+
+  onExport(format: 'xlsx' | 'pdf'): void {
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['status'] = this.filter();
+    this.api.export(format, this.search() || undefined, filterObj).subscribe(blob => {
+      downloadBlob(blob, `assignments_${new Date().toISOString().slice(0,10)}.${format}`);
+    });
+  }
+
+  openCreate(): void { this.createForm = this.emptyCreateForm(); this.formError.set(''); this.showCreate = true; }
 
   saveCreate(): void {
     if (!this.createForm.vehicleId || !this.createForm.driverId || !this.createForm.assignedFrom) {
@@ -240,7 +290,7 @@ export class AssignmentsListComponent implements OnInit {
     }
     this.saving.set(true);
     this.api.create({ ...this.createForm, assignedTo: this.createForm.assignedTo || undefined }).subscribe({
-      next: () => { this.load(); this.closeCreate(); this.saving.set(false); },
+      next: () => { this.loadPage(); this.closeCreate(); this.saving.set(false); },
       error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
     });
   }
@@ -250,15 +300,14 @@ export class AssignmentsListComponent implements OnInit {
   startEdit(row: VehicleAssignment): void {
     this.editId = row.assignmentId;
     this.editForm = { assignedTo: row.assignedTo?.slice(0, 10), notes: row.notes };
-    this.formError.set('');
-    this.showEdit = true;
+    this.formError.set(''); this.showEdit = true;
   }
 
   saveEdit(): void {
     if (!this.editId) return;
     this.saving.set(true);
     this.api.update(this.editId, this.editForm).subscribe({
-      next: () => { this.load(); this.closeEdit(); this.saving.set(false); },
+      next: () => { this.loadPage(); this.closeEdit(); this.saving.set(false); },
       error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
     });
   }
@@ -266,7 +315,7 @@ export class AssignmentsListComponent implements OnInit {
   closeEdit(): void { this.showEdit = false; this.editId = null; this.formError.set(''); }
 
   endAssignment(row: VehicleAssignment): void {
-    this.api.end(row.assignmentId).subscribe({ next: () => this.load(), error: () => {} });
+    this.api.end(row.assignmentId).subscribe({ next: () => this.loadPage(), error: () => {} });
   }
 
   goToDetail(row: VehicleAssignment): void { this.router.navigate(['/assignments', row.assignmentId]); }
@@ -275,7 +324,7 @@ export class AssignmentsListComponent implements OnInit {
   doDelete(): void {
     if (!this.deleteTarget) return;
     this.api.deleteById(this.deleteTarget.assignmentId).subscribe({
-      next: () => { this.load(); this.deleteTarget = null; },
+      next: () => { this.loadPage(); this.deleteTarget = null; },
       error: () => { this.deleteTarget = null; }
     });
   }

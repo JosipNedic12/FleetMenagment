@@ -1,7 +1,9 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { FuelCardApiService, FuelTransactionApiService, VehicleApiService, LookupApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, TriangleAlert } from 'lucide-angular';
 import {
@@ -16,11 +18,14 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 import { SearchSelectComponent } from '../../../shared/components/search-select/search-select.component';
 import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/vehicle-label.component';
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-fuel-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -31,19 +36,20 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
       </div>
 
       <div class="tab-row">
-        <button [class.tab-active]="tab() === 'cards'"        (click)="tab.set('cards')" i18n="@@fuel.tabCards">Fuel Cards ({{ cards().length }})</button>
-        <button [class.tab-active]="tab() === 'transactions'" (click)="tab.set('transactions')" i18n="@@fuel.tabTransactions">Transactions ({{ transactions().length }})</button>
+        <button [class.tab-active]="tab() === 'cards'"        (click)="tab.set('cards')" i18n="@@fuel.tabCards">Fuel Cards ({{ cardsTotalCount() }})</button>
+        <button [class.tab-active]="tab() === 'transactions'" (click)="tab.set('transactions')" i18n="@@fuel.tabTransactions">Transactions ({{ txTotalCount() }})</button>
       </div>
 
       <!-- ── Cards Tab ──────────────────────────────────────────────────── -->
       @if (tab() === 'cards') {
         <div class="section-actions">
-          <input class="search-input" [ngModel]="cardSearch()" (ngModelChange)="cardSearch.set($event)" placeholder="Search card#, provider…" i18n-placeholder="@@fuel.cardSearchPlaceholder" />
+          <input class="search-input" [ngModel]="cardSearch()" (ngModelChange)="onCardSearchChange($event)" placeholder="Search card#, provider…" i18n-placeholder="@@fuel.cardSearchPlaceholder" />
+          <app-export-button (exportAs)="onExportCards($event)" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreateCard()" i18n="@@fuel.addCard">+ Add Card</button>
         </div>
         <div class="table-card">
           @if (loadingCards()) { <div class="table-loading" i18n="@@fuel.loading">Loading…</div> }
-          @else if (filteredCards().length === 0) { <div class="table-empty" i18n="@@fuel.noCardsFound">No cards found.</div> }
+          @else if (cardItems().length === 0) { <div class="table-empty" i18n="@@fuel.noCardsFound">No cards found.</div> }
           @else {
             <table class="table">
               <thead>
@@ -58,7 +64,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                 </tr>
               </thead>
               <tbody>
-                @for (row of filteredCards(); track row.fuelCardId) {
+                @for (row of cardItems(); track row.fuelCardId) {
                   <tr>
                     <td class="mono">{{ row.cardNumber }}</td>
                     <td>{{ row.provider ?? '—' }}</td>
@@ -76,6 +82,14 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                 }
               </tbody>
             </table>
+            <app-pagination
+              [page]="cardPage()"
+              [pageSize]="cardPageSize()"
+              [totalCount]="cardsTotalCount()"
+              [totalPages]="cardsTotalPages()"
+              (pageChange)="onCardPageChange($event)"
+              (pageSizeChange)="onCardPageSizeChange($event)"
+            />
           }
         </div>
       }
@@ -83,12 +97,13 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
       <!-- ── Transactions Tab ───────────────────────────────────────────── -->
       @if (tab() === 'transactions') {
         <div class="section-actions">
-          <input class="search-input" [ngModel]="txSearch()" (ngModelChange)="txSearch.set($event)" placeholder="Search vehicle, station…" i18n-placeholder="@@fuel.txSearchPlaceholder" />
+          <input class="search-input" [ngModel]="txSearch()" (ngModelChange)="onTxSearchChange($event)" placeholder="Search vehicle, station…" i18n-placeholder="@@fuel.txSearchPlaceholder" />
+          <app-export-button (exportAs)="onExportTx($event)" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreateTx()" i18n="@@fuel.addTransaction">+ Add Transaction</button>
         </div>
         <div class="table-card">
           @if (loadingTx()) { <div class="table-loading" i18n="@@fuel.loading">Loading…</div> }
-          @else if (filteredTx().length === 0) { <div class="table-empty" i18n="@@fuel.noTransactionsFound">No transactions found.</div> }
+          @else if (txItems().length === 0) { <div class="table-empty" i18n="@@fuel.noTransactionsFound">No transactions found.</div> }
           @else {
             <table class="table">
               <thead>
@@ -103,7 +118,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                 </tr>
               </thead>
               <tbody>
-                @for (row of filteredTx(); track row.transactionId) {
+                @for (row of txItems(); track row.transactionId) {
                   <tr [class.suspicious-row]="row.isSuspicious" (click)="goToDetail(row)">
                     <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></td>
                     <td>{{ row.postedAt | date:'dd.MM.yyyy' }}</td>
@@ -126,6 +141,14 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                 }
               </tbody>
             </table>
+            <app-pagination
+              [page]="txPage()"
+              [pageSize]="txPageSize()"
+              [totalCount]="txTotalCount()"
+              [totalPages]="txTotalPages()"
+              (pageChange)="onTxPageChange($event)"
+              (pageSizeChange)="onTxPageSizeChange($event)"
+            />
           }
         </div>
       }
@@ -201,7 +224,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
             <div class="form-group">
               <label i18n="@@fuel.labelFuelCard">Fuel Card</label>
               <app-search-select
-                [items]="cards()"
+                [items]="allCards()"
                 [displayFn]="fuelCardDisplayFn"
                 valueField="fuelCardId"
                 placeholder="No card (cash)"
@@ -309,7 +332,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
     tbody tr:hover { background:var(--hover-bg); }
   `]
 })
-export class FuelListComponent implements OnInit {
+export class FuelListComponent implements OnInit, OnDestroy {
   readonly icons = { Eye, Pencil, Trash2, TriangleAlert };
   activeLabel     = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
   inactiveLabel   = $localize`:@@COMMON.CHIPS.INACTIVE:Inactive`;
@@ -323,15 +346,33 @@ export class FuelListComponent implements OnInit {
   private router = inject(Router);
   auth = inject(AuthService);
 
-  cards = signal<FuelCard[]>([]);
-  transactions = signal<FuelTransaction[]>([]);
-  vehicles = signal<Vehicle[]>([]);
+  // Cards tab server state
+  cardItems        = signal<FuelCard[]>([]);
+  cardsTotalCount  = signal(0);
+  cardsTotalPages  = signal(0);
+  cardPage         = signal(1);
+  cardPageSize     = signal(10);
+  cardSearch       = signal('');
+  loadingCards     = signal(true);
+
+  // Transactions tab server state
+  txItems        = signal<FuelTransaction[]>([]);
+  txTotalCount   = signal(0);
+  txTotalPages   = signal(0);
+  txPage         = signal(1);
+  txPageSize     = signal(10);
+  txSearch       = signal('');
+  loadingTx      = signal(true);
+
+  tab      = signal<'cards' | 'transactions'>('cards');
+  saving   = signal(false);
+  formError = signal('');
+
+  // Form data
+  vehicles  = signal<Vehicle[]>([]);
+  allCards  = signal<FuelCard[]>([]);   // full list for tx create dropdown
   fuelTypes = signal<FuelTypeDto[]>([]);
-  loadingCards = signal(true);
-  loadingTx = signal(true);
-  saving = signal(false); formError = signal('');
-  tab = signal<'cards' | 'transactions'>('cards');
-  cardSearch = signal(''); txSearch = signal('');
+
   showCreateCard = false; showCreateTx = false;
   editCardId: number | null = null;
   deleteCardTarget: FuelCard | null = null;
@@ -340,35 +381,62 @@ export class FuelListComponent implements OnInit {
   cardForm: CreateFuelCardDto = { cardNumber: '' };
   txForm: CreateFuelTransactionDto = { vehicleId: 0, fuelTypeId: 0, postedAt: '', totalCost: 0 };
 
-  filteredCards = computed(() => {
-    const q = this.cardSearch().toLowerCase();
-    return q ? this.cards().filter(c => c.cardNumber.toLowerCase().includes(q) || (c.provider ?? '').toLowerCase().includes(q)) : this.cards();
-  });
-  filteredTx = computed(() => {
-    const q = this.txSearch().toLowerCase();
-    return q ? this.transactions().filter(t => t.registrationNumber.toLowerCase().includes(q) || (t.stationName ?? '').toLowerCase().includes(q)) : this.transactions();
-  });
+  private cardSearchSubject = new Subject<string>();
+  private txSearchSubject   = new Subject<string>();
 
   ngOnInit(): void {
+    this.cardSearchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(term => {
+      this.cardSearch.set(term); this.cardPage.set(1); this.loadCards();
+    });
+    this.txSearchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(term => {
+      this.txSearch.set(term); this.txPage.set(1); this.loadTx();
+    });
     this.loadCards();
     this.loadTx();
     this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v));
+    this.cardApi.getAll().subscribe(c => this.allCards.set(c));
     this.lookupApi.getFuelTypes().subscribe(f => this.fuelTypes.set(f));
   }
 
+  ngOnDestroy(): void { this.cardSearchSubject.complete(); this.txSearchSubject.complete(); }
+
   loadCards(): void {
     this.loadingCards.set(true);
-    this.cardApi.getAll().subscribe({
-      next: d => { this.cards.set(d); this.loadingCards.set(false); },
+    this.cardApi.getPaged(
+      { page: this.cardPage(), pageSize: this.cardPageSize(), search: this.cardSearch() || undefined }
+    ).subscribe({
+      next: res => { this.cardItems.set(res.items); this.cardsTotalCount.set(res.totalCount); this.cardsTotalPages.set(res.totalPages); this.loadingCards.set(false); },
       error: () => this.loadingCards.set(false)
     });
   }
 
   loadTx(): void {
     this.loadingTx.set(true);
-    this.txApi.getAll().subscribe({
-      next: d => { this.transactions.set(d); this.loadingTx.set(false); },
+    this.txApi.getPaged(
+      { page: this.txPage(), pageSize: this.txPageSize(), search: this.txSearch() || undefined }
+    ).subscribe({
+      next: res => { this.txItems.set(res.items); this.txTotalCount.set(res.totalCount); this.txTotalPages.set(res.totalPages); this.loadingTx.set(false); },
       error: () => this.loadingTx.set(false)
+    });
+  }
+
+  onCardSearchChange(term: string): void { this.cardSearchSubject.next(term); }
+  onCardPageChange(p: number): void { this.cardPage.set(p); this.loadCards(); }
+  onCardPageSizeChange(size: number): void { this.cardPageSize.set(size); this.cardPage.set(1); this.loadCards(); }
+
+  onTxSearchChange(term: string): void { this.txSearchSubject.next(term); }
+  onTxPageChange(p: number): void { this.txPage.set(p); this.loadTx(); }
+  onTxPageSizeChange(size: number): void { this.txPageSize.set(size); this.txPage.set(1); this.loadTx(); }
+
+  onExportCards(format: 'xlsx' | 'pdf'): void {
+    this.cardApi.export(format, this.cardSearch() || undefined).subscribe(blob => {
+      downloadBlob(blob, `fuel_cards_${new Date().toISOString().slice(0,10)}.${format}`);
+    });
+  }
+
+  onExportTx(format: 'xlsx' | 'pdf'): void {
+    this.txApi.export(format, this.txSearch() || undefined).subscribe(blob => {
+      downloadBlob(blob, `fuel_transactions_${new Date().toISOString().slice(0,10)}.${format}`);
     });
   }
 
@@ -385,7 +453,7 @@ export class FuelListComponent implements OnInit {
       ? this.cardApi.update(this.editCardId, this.cardForm as UpdateFuelCardDto)
       : this.cardApi.create(this.cardForm);
     obs.subscribe({
-      next: () => { this.loadCards(); this.closeCreateCard(); this.saving.set(false); },
+      next: () => { this.loadCards(); this.cardApi.getAll().subscribe(c => this.allCards.set(c)); this.closeCreateCard(); this.saving.set(false); },
       error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
     });
   }
@@ -395,15 +463,11 @@ export class FuelListComponent implements OnInit {
     this.txForm = { vehicleId: 0, fuelTypeId: 0, postedAt: new Date().toISOString(), totalCost: 0 };
     this.formError.set(''); this.showCreateTx = true;
   }
-
   saveTx(): void {
     if (!this.txForm.vehicleId || !this.txForm.fuelTypeId || !this.txForm.postedAt) {
       this.formError.set('Fill all required fields.'); return;
     }
-    const payload = {
-      ...this.txForm,
-      postedAt: new Date(this.txForm.postedAt).toISOString()
-    };
+    const payload = { ...this.txForm, postedAt: new Date(this.txForm.postedAt).toISOString() };
     this.saving.set(true);
     this.txApi.create(payload).subscribe({
       next: () => { this.loadTx(); this.closeCreateTx(); this.saving.set(false); },
@@ -421,29 +485,32 @@ export class FuelListComponent implements OnInit {
   confirmDeleteCard(row: FuelCard): void { this.deleteCardTarget = row; }
   doDeleteCard(): void {
     if (!this.deleteCardTarget) return;
-    this.cardApi.deleteById(this.deleteCardTarget.fuelCardId).subscribe({ next: () => { this.loadCards(); this.deleteCardTarget = null; }, error: () => { this.deleteCardTarget = null; } });
+    this.cardApi.deleteById(this.deleteCardTarget.fuelCardId).subscribe({
+      next: () => { this.loadCards(); this.deleteCardTarget = null; },
+      error: () => { this.deleteCardTarget = null; }
+    });
   }
   confirmDeleteTx(row: FuelTransaction): void { this.deleteTxTarget = row; }
   doDeleteTx(): void {
     if (!this.deleteTxTarget) return;
-    this.txApi.deleteById(this.deleteTxTarget.transactionId).subscribe({ next: () => { this.loadTx(); this.deleteTxTarget = null; }, error: () => { this.deleteTxTarget = null; } });
+    this.txApi.deleteById(this.deleteTxTarget.transactionId).subscribe({
+      next: () => { this.loadTx(); this.deleteTxTarget = null; },
+      error: () => { this.deleteTxTarget = null; }
+    });
   }
-  //________Helper______________________________
+
   onTxVehicleChange(vehicleId: number): void {
-  const vehicle = this.vehicles().find(v => v.vehicleId === vehicleId);
-  if (vehicle) {
-    const matchedType = this.fuelTypes().find(f => f.label.toLowerCase() === vehicle.fuelType?.toLowerCase());
-    if (matchedType) {
-      this.txForm.fuelTypeId = matchedType.fuelTypeId;
+    const vehicle = this.vehicles().find(v => v.vehicleId === vehicleId);
+    if (vehicle) {
+      const matchedType = this.fuelTypes().find(f => f.label.toLowerCase() === vehicle.fuelType?.toLowerCase());
+      if (matchedType) { this.txForm.fuelTypeId = matchedType.fuelTypeId; }
+      this.txForm.liters = undefined;
+      this.txForm.pricePerLiter = undefined;
+      this.txForm.energyKwh = undefined;
+      this.txForm.pricePerKwh = undefined;
+      this.txForm.totalCost = 0;
     }
-    // Clear quantity fields when vehicle changes
-    this.txForm.liters = undefined;
-    this.txForm.pricePerLiter = undefined;
-    this.txForm.energyKwh = undefined;
-    this.txForm.pricePerKwh = undefined;
-    this.txForm.totalCost = 0;
   }
-}
 
   isElectric(): boolean {
     const ft = this.fuelTypes().find(f => f.fuelTypeId === this.txForm.fuelTypeId);

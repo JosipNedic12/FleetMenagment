@@ -1,6 +1,7 @@
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
-using FleetManagement.Domain.Entities;
+using FleetManagement.Application.Common;
+using FleetManagement.Application.Common.Filters;
+using FleetManagement.Application.DTOs;
+using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,96 +12,81 @@ namespace FleetManagement.API.Controllers;
 [Authorize]
 public class FineController : ControllerBase
 {
-    private readonly IFineRepository _repo;
-    public FineController(IFineRepository repo) => _repo = repo;
+    private readonly FineService _svc;
+    private readonly ExportService _exportService;
+
+    public FineController(FineService svc, ExportService exportService)
+    {
+        _svc = svc;
+        _exportService = exportService;
+    }
 
     [HttpGet]
+    public async Task<IActionResult> GetPaged([FromQuery] PagedRequest<FineFilter> request) =>
+        Ok(await _svc.GetPagedAsync(request));
+
+    [HttpGet("all")]
     public async Task<IActionResult> GetAll() =>
-        Ok((await _repo.GetAllAsync()).Select(ToDto));
+        Ok(await _svc.GetAllAsync());
 
     [HttpGet("unpaid")]
     public async Task<IActionResult> GetUnpaid() =>
-        Ok((await _repo.GetUnpaidAsync()).Select(ToDto));
+        Ok(await _svc.GetUnpaidAsync());
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var f = await _repo.GetByIdAsync(id);
-        return f == null ? NotFound() : Ok(ToDto(f));
-    }
+    public async Task<IActionResult> GetById(int id) =>
+        Ok(await _svc.GetByIdAsync(id));
 
     [HttpGet("vehicle/{vehicleId}")]
     public async Task<IActionResult> GetByVehicle(int vehicleId) =>
-        Ok((await _repo.GetByVehicleIdAsync(vehicleId)).Select(ToDto));
+        Ok(await _svc.GetByVehicleIdAsync(vehicleId));
 
     [HttpGet("driver/{driverId}")]
     public async Task<IActionResult> GetByDriver(int driverId) =>
-        Ok((await _repo.GetByDriverIdAsync(driverId)).Select(ToDto));
+        Ok(await _svc.GetByDriverIdAsync(driverId));
 
     [HttpPost]
     [Authorize(Roles = "Admin,FleetManager")]
     public async Task<IActionResult> Create([FromBody] CreateFineDto dto)
     {
-        var entity = new Fine
-        {
-            VehicleId = dto.VehicleId,
-            DriverId = dto.DriverId,
-            OccurredAt = dto.OccurredAt,
-            Amount = dto.Amount,
-            Reason = dto.Reason,
-            Notes = dto.Notes
-        };
-        var created = await _repo.CreateAsync(entity);
-        return CreatedAtAction(nameof(GetById), new { id = created.FineId }, ToDto(created));
+        var created = await _svc.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = created.FineId }, created);
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateFineDto dto)
-    {
-        var updated = new Fine
-        {
-            DriverId = dto.DriverId,
-            OccurredAt = dto.OccurredAt ?? default,
-            Amount = dto.Amount ?? 0,
-            Reason = dto.Reason ?? string.Empty,
-            Notes = dto.Notes
-        };
-        var result = await _repo.UpdateAsync(id, updated);
-        return result == null ? NotFound() : Ok(ToDto(result));
-    }
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateFineDto dto) =>
+        Ok(await _svc.UpdateAsync(id, dto));
 
     // POST instead of PATCH — simpler, no JsonPatch dependency needed
     [HttpPost("{id}/pay")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> MarkPaid(int id, [FromBody] MarkFinePaidDto dto)
-    {
-        var result = await _repo.MarkPaidAsync(id, dto.PaidAt, dto.PaymentMethod);
-        return result == null ? NotFound() : Ok(ToDto(result));
-    }
+    public async Task<IActionResult> MarkPaid(int id, [FromBody] MarkFinePaidDto dto) =>
+        Ok(await _svc.MarkPaidAsync(id, dto));
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Delete(int id) =>
-        await _repo.DeleteAsync(id) ? NoContent() : NotFound();
-
-    private static FineDto ToDto(Fine f) => new()
+    public async Task<IActionResult> Delete(int id)
     {
-        FineId = f.FineId,
-        VehicleId = f.VehicleId,
-        RegistrationNumber = f.Vehicle?.RegistrationNumber ?? string.Empty,
-        VehicleMake = f.Vehicle?.Make?.Name ?? string.Empty,
-        VehicleModel = f.Vehicle?.Model?.Name ?? string.Empty,
-        DriverId = f.DriverId,
-        DriverName = f.Driver?.Employee != null
-            ? $"{f.Driver.Employee.FirstName} {f.Driver.Employee.LastName}"
-            : null,
-        OccurredAt = f.OccurredAt,
-        Amount = f.Amount,
-        Reason = f.Reason,
-        PaidAt = f.PaidAt,
-        PaymentMethod = f.PaymentMethod,
-        IsPaid = f.PaidAt.HasValue,
-        Notes = f.Notes
-    };
+        await _svc.DeleteAsync(id);
+        return NoContent();
+    }
+
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,FleetManager")]
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] FineFilter? filter)
+    {
+        var dtos = await _svc.GetFilteredDtosAsync(filter ?? new FineFilter(), search);
+        var columns = FineService.GetExportColumns();
+        if (format?.ToLower() == "pdf")
+        {
+            var bytes = _exportService.ExportToPdf(dtos, columns, "Fines Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"fines_{DateTime.Now:yyyyMMdd}.pdf");
+        }
+        else
+        {
+            var bytes = _exportService.ExportToExcel(dtos, columns, "Fines");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"fines_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+    }
 }

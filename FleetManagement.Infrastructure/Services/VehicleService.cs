@@ -1,40 +1,129 @@
+using System.Linq.Expressions;
+using FleetManagement.Application.Common;
+using FleetManagement.Application.Common.Filters;
 using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Exceptions;
-using FleetManagement.Application.Interfaces;
 using FleetManagement.Domain.Entities;
+using FleetManagement.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FleetManagement.Infrastructure.Services;
 
-public class VehicleService : IVehicleService
+public class VehicleService
 {
-    private readonly IVehicleRepository _repo;
+    private readonly FleetDbContext _db;
     private readonly ILogger<VehicleService> _logger;
 
-    public VehicleService(IVehicleRepository repo, ILogger<VehicleService> logger)
+    public VehicleService(FleetDbContext db, ILogger<VehicleService> logger)
     {
-        _repo = repo;
+        _db = db;
         _logger = logger;
     }
 
+    // ── Base query with all includes (replaces VehicleRepository.BaseQuery) ──
+    private IQueryable<Vehicle> BaseQuery() =>
+        _db.Vehicles
+            .Include(v => v.Make)
+            .Include(v => v.Model)
+            .Include(v => v.Category)
+            .Include(v => v.FuelType)
+            .Where(v => !v.IsDeleted);
+
+    // ── Allowed sort columns (prevents arbitrary SQL injection via sortBy) ──
+    private static readonly Dictionary<string, Expression<Func<Vehicle, object>>> AllowedSorts = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["registrationNumber"] = v => v.RegistrationNumber,
+        ["make"]               = v => v.Make.Name,
+        ["model"]              = v => v.Model.Name,
+        ["year"]               = v => v.Year,
+        ["status"]             = v => v.Status,
+        ["currentOdometerKm"]  = v => v.CurrentOdometerKm,
+        ["category"]           = v => v.Category.Name,
+        ["fuelType"]           = v => v.FuelType.Label
+    };
+
+    // ── NEW: Server-side filtered + paginated list ──
+    public async Task<PagedResponse<VehicleDto>> GetPagedAsync(PagedRequest<VehicleFilter> request)
+    {
+        var query = BaseQuery();
+
+        // -- Global text search --
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var term = request.Search.Trim().ToLower();
+            query = query.Where(v =>
+                v.RegistrationNumber.ToLower().Contains(term) ||
+                v.Vin.ToLower().Contains(term) ||
+                v.Make.Name.ToLower().Contains(term) ||
+                v.Model.Name.ToLower().Contains(term));
+        }
+
+        // -- Entity-specific filters --
+        var f = request.Filter;
+
+        if (!string.IsNullOrWhiteSpace(f.Status))
+            query = query.Where(v => v.Status == f.Status);
+
+        if (f.MakeId.HasValue)
+            query = query.Where(v => v.MakeId == f.MakeId.Value);
+
+        if (f.CategoryId.HasValue)
+            query = query.Where(v => v.CategoryId == f.CategoryId.Value);
+
+        if (f.FuelTypeId.HasValue)
+            query = query.Where(v => v.FuelTypeId == f.FuelTypeId.Value);
+
+        if (f.YearFrom.HasValue)
+            query = query.Where(v => v.Year >= f.YearFrom.Value);
+
+        if (f.YearTo.HasValue)
+            query = query.Where(v => v.Year <= f.YearTo.Value);
+
+        // -- Count before paging --
+        var totalCount = await query.CountAsync();
+
+        // -- Sort + Page (materialize first, then map) --
+        var entities = await query
+            .ApplySort(request.SortBy, request.IsDescending, AllowedSorts, v => v.RegistrationNumber)
+            .ApplyPaging(request.Skip, request.PageSize)
+            .ToListAsync();
+
+        var items = entities.Select(MapToDto).ToList();
+
+        return PagedResponse<VehicleDto>.Create(items, totalCount, request.Page, request.PageSize);
+    }
+
+    // ── Keep GetAllAsync for backward compat (dropdowns, detail pages) ──
     public async Task<IEnumerable<VehicleDto>> GetAllAsync()
     {
-        var vehicles = await _repo.GetAllAsync();
-        return vehicles.Select(MapToDto);
+        return await BaseQuery()
+            .OrderBy(v => v.RegistrationNumber)
+            .Select(v => MapToDto(v))
+            .ToListAsync();
     }
 
     public async Task<VehicleDto?> GetByIdAsync(int id)
     {
-        var vehicle = await _repo.GetByIdAsync(id);
-        if (vehicle == null) throw new NotFoundException($"Vehicle with id {id} was not found.");
+        var vehicle = await BaseQuery()
+            .FirstOrDefaultAsync(v => v.VehicleId == id);
+
+        if (vehicle == null)
+            throw new NotFoundException($"Vehicle with id {id} was not found.");
+
         return MapToDto(vehicle);
     }
 
     public async Task<VehicleDto> CreateAsync(CreateVehicleDto dto)
     {
-        if (await _repo.ExistsAsync(dto.RegistrationNumber, dto.Vin))
+        // Duplicate check (was in repository)
+        var exists = await _db.Vehicles.AnyAsync(v =>
+            !v.IsDeleted &&
+            (v.RegistrationNumber == dto.RegistrationNumber || v.Vin == dto.Vin));
+
+        if (exists)
         {
-            _logger.LogWarning("Duplicate vehicle check hit for RegistrationNumber {RegistrationNumber} or VIN {Vin}", dto.RegistrationNumber, dto.Vin);
+            _logger.LogWarning("Duplicate vehicle: Reg={Reg} VIN={Vin}", dto.RegistrationNumber, dto.Vin);
             throw new ConflictException("A vehicle with this registration number or VIN already exists.");
         }
 
@@ -49,39 +138,103 @@ public class VehicleService : IVehicleService
             Year = dto.Year,
             Color = dto.Color,
             Notes = dto.Notes,
-            Status = "active"
+            Status = "active",
+            CreatedAt = DateTime.UtcNow
         };
 
-        var created = await _repo.CreateAsync(vehicle);
+        _db.Vehicles.Add(vehicle);
+        await _db.SaveChangesAsync();
 
-        _logger.LogInformation("Vehicle {RegNumber} created (VehicleId: {Id})", created.RegistrationNumber, created.VehicleId);
+        _logger.LogInformation("Vehicle {Reg} created (Id: {Id})", vehicle.RegistrationNumber, vehicle.VehicleId);
 
-        return MapToDto(created);
+        // Reload with includes
+        return MapToDto(await BaseQuery().FirstAsync(v => v.VehicleId == vehicle.VehicleId));
     }
 
     public async Task<VehicleDto?> UpdateAsync(int id, UpdateVehicleDto dto)
     {
-        var updated = await _repo.UpdateAsync(id, new Vehicle
-        {
-            Color = dto.Color,
-            Status = dto.Status ?? "active",
-            Notes = dto.Notes
-        });
+        var vehicle = await _db.Vehicles.FindAsync(id);
+        if (vehicle == null || vehicle.IsDeleted)
+            throw new NotFoundException($"Vehicle with id {id} was not found.");
 
-        if (updated == null) throw new NotFoundException($"Vehicle with id {id} was not found.");
+        vehicle.Color = dto.Color;
+        vehicle.Status = dto.Status ?? "active";
+        vehicle.Notes = dto.Notes;
+        vehicle.ModifiedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
 
         _logger.LogInformation("Vehicle {Id} updated", id);
 
-        return MapToDto(updated);
+        // Reload with includes for DTO mapping
+        return MapToDto(await BaseQuery().FirstAsync(v => v.VehicleId == id));
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var result = await _repo.DeleteAsync(id);
-        if (!result) throw new NotFoundException($"Vehicle with id {id} was not found.");
+        var vehicle = await _db.Vehicles.FindAsync(id);
+        if (vehicle == null || vehicle.IsDeleted)
+            throw new NotFoundException($"Vehicle with id {id} was not found.");
+
+        vehicle.IsDeleted = true;
+        vehicle.ModifiedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
         return true;
     }
 
+    // ── Expose filtered IQueryable for export (Phase 5 will use this) ──
+    public IQueryable<Vehicle> GetFilteredQueryable(VehicleFilter filter, string? search)
+    {
+        var query = BaseQuery();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(v =>
+                v.RegistrationNumber.ToLower().Contains(term) ||
+                v.Vin.ToLower().Contains(term) ||
+                v.Make.Name.ToLower().Contains(term) ||
+                v.Model.Name.ToLower().Contains(term));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+            query = query.Where(v => v.Status == filter.Status);
+        if (filter.MakeId.HasValue)
+            query = query.Where(v => v.MakeId == filter.MakeId.Value);
+        if (filter.CategoryId.HasValue)
+            query = query.Where(v => v.CategoryId == filter.CategoryId.Value);
+        if (filter.FuelTypeId.HasValue)
+            query = query.Where(v => v.FuelTypeId == filter.FuelTypeId.Value);
+        if (filter.YearFrom.HasValue)
+            query = query.Where(v => v.Year >= filter.YearFrom.Value);
+        if (filter.YearTo.HasValue)
+            query = query.Where(v => v.Year <= filter.YearTo.Value);
+
+        return query;
+    }
+
+    public async Task<List<VehicleDto>> GetFilteredDtosAsync(VehicleFilter filter, string? search)
+    {
+        var entities = await GetFilteredQueryable(filter, search).ToListAsync();
+        return entities.Select(MapToDto).ToList();
+    }
+
+    // ── Export column definitions (Phase 5 will use this) ──
+    public static List<ExportColumn<VehicleDto>> GetExportColumns() => new()
+    {
+        new() { Header = "Reg. Number",  Width = 18, ValueSelector = v => v.RegistrationNumber },
+        new() { Header = "VIN",          Width = 22, ValueSelector = v => v.Vin },
+        new() { Header = "Make",         Width = 15, ValueSelector = v => v.Make },
+        new() { Header = "Model",        Width = 15, ValueSelector = v => v.Model },
+        new() { Header = "Category",     Width = 14, ValueSelector = v => v.Category },
+        new() { Header = "Fuel Type",    Width = 12, ValueSelector = v => v.FuelType },
+        new() { Header = "Year",         Width = 8,  ValueSelector = v => v.Year },
+        new() { Header = "Color",        Width = 10, ValueSelector = v => v.Color ?? "" },
+        new() { Header = "Status",       Width = 10, ValueSelector = v => v.Status },
+        new() { Header = "Odometer (km)",Width = 14, ValueSelector = v => v.CurrentOdometerKm },
+    };
+
+    // ── DTO mapping ──
     private static VehicleDto MapToDto(Vehicle v) => new()
     {
         VehicleId = v.VehicleId,

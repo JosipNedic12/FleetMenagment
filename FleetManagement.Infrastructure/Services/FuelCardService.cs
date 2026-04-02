@@ -1,37 +1,102 @@
+using System.Linq.Expressions;
+using FleetManagement.Application.Common;
+using FleetManagement.Application.Common.Filters;
 using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Exceptions;
-using FleetManagement.Application.Interfaces;
 using FleetManagement.Domain.Entities;
+using FleetManagement.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace FleetManagement.Infrastructure.Services;
 
-public class FuelCardService : IFuelCardService
+public class FuelCardService
 {
-    private readonly IFuelCardRepository _repo;
+    private readonly FleetDbContext _db;
 
-    public FuelCardService(IFuelCardRepository repo)
+    public FuelCardService(FleetDbContext db)
     {
-        _repo = repo;
+        _db = db;
     }
 
-    public async Task<IEnumerable<FuelCardDto>> GetAllAsync()
+    private IQueryable<FuelCard> BaseQuery() =>
+        _db.FuelCards
+            .Include(c => c.AssignedVehicle).ThenInclude(v => v!.Make)
+            .Include(c => c.AssignedVehicle).ThenInclude(v => v!.Model);
+
+    private static readonly Dictionary<string, Expression<Func<FuelCard, object>>> AllowedSorts = new(StringComparer.OrdinalIgnoreCase)
     {
-        var cards = await _repo.GetAllAsync();
-        return cards.Select(MapToDto);
+        ["cardNumber"] = c => c.CardNumber,
+        ["provider"]   = c => c.Provider!,
+        ["vehicle"]    = c => c.AssignedVehicle!.RegistrationNumber,
+        ["validTo"]    = c => c.ValidTo!
+    };
+
+    public async Task<PagedResponse<FuelCardDto>> GetPagedAsync(PagedRequest<FuelCardFilter> request)
+    {
+        var query = GetFilteredQueryable(request.Filter, request.Search);
+
+        var totalCount = await query.CountAsync();
+
+        var entities = await query
+            .ApplySort(request.SortBy, request.IsDescending, AllowedSorts, c => c.CardNumber)
+            .ApplyPaging(request.Skip, request.PageSize)
+            .ToListAsync();
+
+        return PagedResponse<FuelCardDto>.Create(
+            entities.Select(MapToDto).ToList(), totalCount, request.Page, request.PageSize);
     }
+
+    public IQueryable<FuelCard> GetFilteredQueryable(FuelCardFilter filter, string? search)
+    {
+        var query = BaseQuery();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(c =>
+                c.CardNumber.ToLower().Contains(term) ||
+                (c.Provider != null && c.Provider.ToLower().Contains(term)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            query = filter.Status switch
+            {
+                "active"   => query.Where(c => c.IsActive && (c.ValidTo == null || c.ValidTo >= today)),
+                "inactive" => query.Where(c => !c.IsActive),
+                "expired"  => query.Where(c => c.ValidTo != null && c.ValidTo < today),
+                _          => query
+            };
+        }
+
+        if (filter.VehicleId.HasValue)
+            query = query.Where(c => c.AssignedVehicleId == filter.VehicleId.Value);
+
+        if (!string.IsNullOrWhiteSpace(filter.Provider))
+            query = query.Where(c => c.Provider == filter.Provider);
+
+        return query;
+    }
+
+    public async Task<IEnumerable<FuelCardDto>> GetAllAsync() =>
+        await BaseQuery()
+            .OrderBy(c => c.CardNumber)
+            .Select(c => MapToDto(c))
+            .ToListAsync();
 
     public async Task<FuelCardDto?> GetByIdAsync(int id)
     {
-        var card = await _repo.GetByIdAsync(id);
+        var card = await BaseQuery().FirstOrDefaultAsync(c => c.FuelCardId == id);
         if (card == null) throw new NotFoundException($"Fuel card with id {id} was not found.");
         return MapToDto(card);
     }
 
-    public async Task<IEnumerable<FuelCardDto>> GetByVehicleIdAsync(int vehicleId)
-    {
-        var cards = await _repo.GetByVehicleIdAsync(vehicleId);
-        return cards.Select(MapToDto);
-    }
+    public async Task<IEnumerable<FuelCardDto>> GetByVehicleIdAsync(int vehicleId) =>
+        await BaseQuery()
+            .Where(c => c.AssignedVehicleId == vehicleId)
+            .Select(c => MapToDto(c))
+            .ToListAsync();
 
     public async Task<FuelCardDto> CreateAsync(CreateFuelCardDto dto)
     {
@@ -42,35 +107,61 @@ public class FuelCardService : IFuelCardService
             AssignedVehicleId = dto.AssignedVehicleId,
             ValidFrom = dto.ValidFrom,
             ValidTo = dto.ValidTo,
-            Notes = dto.Notes
+            Notes = dto.Notes,
+            CreatedAt = DateTime.UtcNow
         };
 
-        var created = await _repo.CreateAsync(card);
-        return MapToDto(created);
+        _db.FuelCards.Add(card);
+        await _db.SaveChangesAsync();
+        return MapToDto(await BaseQuery().FirstAsync(c => c.FuelCardId == card.FuelCardId));
     }
 
     public async Task<FuelCardDto?> UpdateAsync(int id, UpdateFuelCardDto dto)
     {
-        var updated = await _repo.UpdateAsync(id, new FuelCard
-        {
-            Provider = dto.Provider,
-            AssignedVehicleId = dto.AssignedVehicleId,
-            ValidFrom = dto.ValidFrom,
-            ValidTo = dto.ValidTo,
-            IsActive = dto.IsActive ?? true,
-            Notes = dto.Notes
-        });
+        var card = await _db.FuelCards.FindAsync(id);
+        if (card == null) throw new NotFoundException($"Fuel card with id {id} was not found.");
 
-        if (updated == null) throw new NotFoundException($"Fuel card with id {id} was not found.");
-        return MapToDto(updated);
+        card.Provider = dto.Provider;
+        card.AssignedVehicleId = dto.AssignedVehicleId;
+        card.ValidFrom = dto.ValidFrom;
+        card.ValidTo = dto.ValidTo;
+        card.IsActive = dto.IsActive ?? true;
+        card.Notes = dto.Notes;
+        card.ModifiedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        return MapToDto(await BaseQuery().FirstAsync(c => c.FuelCardId == id));
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var result = await _repo.DeleteAsync(id);
-        if (!result) throw new NotFoundException($"Fuel card with id {id} was not found.");
+        var card = await _db.FuelCards.FindAsync(id);
+        if (card == null) throw new NotFoundException($"Fuel card with id {id} was not found.");
+
+        card.IsActive = false;
+        card.ModifiedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
         return true;
     }
+
+    public async Task<List<FuelCardDto>> GetFilteredDtosAsync(FuelCardFilter filter, string? search)
+    {
+        var entities = await GetFilteredQueryable(filter, search).ToListAsync();
+        return entities.Select(MapToDto).ToList();
+    }
+
+    public static List<ExportColumn<FuelCardDto>> GetExportColumns() => new()
+    {
+        new() { Header = "Card Number",    Width = 20, ValueSelector = c => c.CardNumber },
+        new() { Header = "Provider",       Width = 15, ValueSelector = c => c.Provider ?? "" },
+        new() { Header = "Vehicle Reg.",   Width = 18, ValueSelector = c => c.RegistrationNumber ?? "" },
+        new() { Header = "Make",           Width = 12, ValueSelector = c => c.VehicleMake ?? "" },
+        new() { Header = "Model",          Width = 12, ValueSelector = c => c.VehicleModel ?? "" },
+        new() { Header = "Valid From",     Width = 14, ValueSelector = c => c.ValidFrom.HasValue ? (object)c.ValidFrom.Value : "" },
+        new() { Header = "Valid To",       Width = 14, ValueSelector = c => c.ValidTo.HasValue ? (object)c.ValidTo.Value : "" },
+        new() { Header = "Active",         Width = 10, ValueSelector = c => c.IsActive ? "Yes" : "No" },
+        new() { Header = "Notes",          Width = 25, ValueSelector = c => c.Notes ?? "" },
+    };
 
     private static FuelCardDto MapToDto(FuelCard c) => new()
     {

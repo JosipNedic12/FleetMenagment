@@ -1,5 +1,7 @@
+using FleetManagement.Application.Common;
+using FleetManagement.Application.Common.Filters;
 using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
+using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,11 +11,17 @@ namespace FleetManagement.API.Controllers;
 [Route("api/[controller]")]
 public class EmployeesController : ControllerBase
 {
-    private readonly IEmployeeService _service;
+    private readonly EmployeeService _service;
 
-    public EmployeesController(IEmployeeService service) => _service = service;
+    public EmployeesController(EmployeeService service) => _service = service;
 
     [HttpGet]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
+    public async Task<ActionResult<PagedResponse<EmployeeDto>>> GetPaged(
+        [FromQuery] PagedRequest<EmployeeFilter> request)
+        => Ok(await _service.GetPagedAsync(request));
+
+    [HttpGet("all")]
     [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<EmployeeDto>>> GetAll()
         => Ok(await _service.GetAllAsync());

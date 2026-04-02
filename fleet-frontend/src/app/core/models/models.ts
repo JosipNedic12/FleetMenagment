@@ -11,6 +11,7 @@ export * from './inspection.models';
 export * from './fine.models';
 export * from './accident.models';
 export * from './document.models';
+export { PagedResponse, PagedRequest } from './paged.models';
 
 
 

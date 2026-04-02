@@ -1039,8 +1039,8 @@
         </context-group>
       </trans-unit>
       <trans-unit id="assignments.list.subtitle" datatype="html">
-        <source><x id="INTERPOLATION" equiv-text="{{ filtered().length }}"/> assignments · <x id="INTERPOLATION_1" equiv-text="{{ activeCount() }}"/> active</source>
-        <target><x id="INTERPOLATION" equiv-text="{{ filtered().length }}"/> dodjela · <x id="INTERPOLATION_1" equiv-text="{{ activeCount() }}"/> aktivnih</target>
+        <source><x id="INTERPOLATION" equiv-text="{{ totalCount() }}"/> assignments</source>
+        <target><x id="INTERPOLATION" equiv-text="{{ totalCount() }}"/> dodjela</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/assignments/list/assignments-list.component.ts</context>
           <context context-type="linenumber">24,25</context>
@@ -2071,8 +2071,8 @@
         </context-group>
       </trans-unit>
       <trans-unit id="drivers.list.subtitle" datatype="html">
-        <source><x id="INTERPOLATION" equiv-text="{{ filtered().length }}"/> drivers · <x id="INTERPOLATION_1" equiv-text="{{ expiredCount() }}"/> expired licenses</source>
-        <target><x id="INTERPOLATION" equiv-text="{{ filtered().length }}"/> vozača · <x id="INTERPOLATION_1" equiv-text="{{ expiredCount() }}"/> isteklih dozvola</target>
+        <source><x id="INTERPOLATION" equiv-text="{{ totalCount() }}"/> drivers</source>
+        <target><x id="INTERPOLATION" equiv-text="{{ totalCount() }}"/> vozača</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/drivers/list/drivers-list.component.ts</context>
           <context context-type="linenumber">23,24</context>
@@ -2591,8 +2591,8 @@
         </context-group>
       </trans-unit>
       <trans-unit id="fines.list.subtitle" datatype="html">
-        <source><x id="INTERPOLATION" equiv-text="{{ filtered().length }}"/> records · <x id="INTERPOLATION_1" equiv-text="{{ unpaidCount() }}"/> unpaid</source>
-        <target><x id="INTERPOLATION" equiv-text="{{ filtered().length }}"/> zapisa · <x id="INTERPOLATION_1" equiv-text="{{ unpaidCount() }}"/> neplaćenih</target>
+        <source><x id="INTERPOLATION" equiv-text="{{ totalCount() }}"/> records</source>
+        <target><x id="INTERPOLATION" equiv-text="{{ totalCount() }}"/> zapisa</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/fines/list/fines-list.component.ts</context>
           <context context-type="linenumber">25,26</context>
@@ -4767,8 +4767,8 @@
         </context-group>
       </trans-unit>
       <trans-unit id="maintenance.list.subtitle" datatype="html">
-        <source><x id="INTERPOLATION" equiv-text="{{ filtered().length }}"/> orders · <x id="INTERPOLATION_1" equiv-text="{{ openCount() }}"/> open</source>
-        <target><x id="INTERPOLATION" equiv-text="{{ filtered().length }}"/> naloga · <x id="INTERPOLATION_1" equiv-text="{{ openCount() }}"/> otvorenih</target>
+        <source><x id="INTERPOLATION" equiv-text="{{ totalCount() }}"/> orders</source>
+        <target><x id="INTERPOLATION" equiv-text="{{ totalCount() }}"/> naloga</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/maintenance/list/maintenance-list.component.ts</context>
           <context context-type="linenumber">32,33</context>

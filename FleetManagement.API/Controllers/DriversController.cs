@@ -1,5 +1,7 @@
+using FleetManagement.Application.Common;
+using FleetManagement.Application.Common.Filters;
 using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
+using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,11 +11,22 @@ namespace FleetManagement.API.Controllers;
 [Route("api/[controller]")]
 public class DriversController : ControllerBase
 {
-    private readonly IDriverService _service;
+    private readonly DriverService _service;
+    private readonly ExportService _exportService;
 
-    public DriversController(IDriverService service) => _service = service;
+    public DriversController(DriverService service, ExportService exportService)
+    {
+        _service = service;
+        _exportService = exportService;
+    }
 
     [HttpGet]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
+    public async Task<ActionResult<PagedResponse<DriverDto>>> GetPaged(
+        [FromQuery] PagedRequest<DriverFilter> request)
+        => Ok(await _service.GetPagedAsync(request));
+
+    [HttpGet("all")]
     [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<DriverDto>>> GetAll()
         => Ok(await _service.GetAllAsync());
@@ -42,5 +55,23 @@ public class DriversController : ControllerBase
     {
         await _service.DeleteAsync(id);
         return NoContent();
+    }
+
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,FleetManager")]
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] DriverFilter? filter)
+    {
+        var dtos = await _service.GetFilteredDtosAsync(filter ?? new DriverFilter(), search);
+        var columns = DriverService.GetExportColumns();
+        if (format?.ToLower() == "pdf")
+        {
+            var bytes = _exportService.ExportToPdf(dtos, columns, "Drivers Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"drivers_{DateTime.Now:yyyyMMdd}.pdf");
+        }
+        else
+        {
+            var bytes = _exportService.ExportToExcel(dtos, columns, "Drivers");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"drivers_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
     }
 }

@@ -1,7 +1,9 @@
-import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { InsurancePolicyApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, Paperclip } from 'lucide-angular';
 import { InsurancePolicy, CreateInsurancePolicyDto, Vehicle } from '../../../core/models/models';
@@ -14,21 +16,25 @@ import { FileUploadComponent } from '../../../shared/components/file-upload/file
 import { DocumentListComponent } from '../../../shared/components/document-list/document-list.component';
 import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/vehicle-label.component';
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-insurance-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, FileUploadComponent, DocumentListComponent, VehicleLabelComponent, EuNumberPipe],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, FileUploadComponent, DocumentListComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
   template: `
     <div class="page">
       <!-- Header -->
       <div class="page-header">
         <div>
           <h1 class="page-title" i18n="@@insurance.list.title">Insurance Policies</h1>
-          <p class="page-subtitle" i18n="@@insurance.list.subtitle">{{ filtered().length }} records</p>
+          <p class="page-subtitle" i18n="@@insurance.list.subtitle">{{ totalCount() }} records</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search vehicle, insurer, policy#…" i18n-placeholder="@@insurance.list.searchPlaceholder" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="onSearchChange($event)" placeholder="Search vehicle, insurer, policy#…" i18n-placeholder="@@insurance.list.searchPlaceholder" />
+          <app-export-button (exportAs)="onExport($event)" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="showForm = true" i18n="@@insurance.list.newButton">
             + New Policy
           </button>
@@ -37,16 +43,16 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 
       <!-- Filter tabs -->
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"    (click)="filter.set('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
-        <button [class.active]="filter() === 'active'" (click)="filter.set('active')" i18n="@@COMMON.CHIPS.ACTIVE">Active</button>
-        <button [class.active]="filter() === 'expired'"(click)="filter.set('expired')" i18n="@@COMMON.CHIPS.EXPIRED">Expired</button>
+        <button [class.active]="filter() === 'all'"    (click)="onFilterChange('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'active'" (click)="onFilterChange('active')" i18n="@@COMMON.CHIPS.ACTIVE">Active</button>
+        <button [class.active]="filter() === 'expired'"(click)="onFilterChange('expired')" i18n="@@COMMON.CHIPS.EXPIRED">Expired</button>
       </div>
 
       <!-- Table -->
       <div class="table-card">
         @if (loading()) {
           <div class="table-loading" i18n="@@insurance.list.loading">Loading…</div>
-        } @else if (filtered().length === 0) {
+        } @else if (items().length === 0) {
           <div class="table-empty" i18n="@@insurance.list.empty">No records found.</div>
         } @else {
           <table class="table">
@@ -63,7 +69,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
               </tr>
             </thead>
             <tbody>
-              @for (row of filtered(); track row.policyId) {
+              @for (row of items(); track row.policyId) {
                 <tr (click)="goToDetail(row)">
                   <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></td>
                   <td class="mono">{{ row.policyNumber }}</td>
@@ -86,6 +92,14 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
               }
             </tbody>
           </table>
+          <app-pagination
+            [page]="page()"
+            [pageSize]="pageSize()"
+            [totalCount]="totalCount()"
+            [totalPages]="totalPages()"
+            (pageChange)="onPageChange($event)"
+            (pageSizeChange)="onPageSizeChange($event)"
+          />
         }
       </div>
     </div>
@@ -185,7 +199,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
     tbody tr:hover { background:var(--hover-bg); }
   `]
 })
-export class InsuranceListComponent implements OnInit {
+export class InsuranceListComponent implements OnInit, OnDestroy {
   readonly icons = { Eye, Pencil, Trash2, Paperclip };
   activeLabel  = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
   expiredLabel = $localize`:@@COMMON.CHIPS.EXPIRED:Expired`;
@@ -197,44 +211,67 @@ export class InsuranceListComponent implements OnInit {
   private router = inject(Router);
   auth = inject(AuthService);
 
-  policies = signal<InsurancePolicy[]>([]);
-  vehicles = signal<Vehicle[]>([]);
+  // Server response
+  items      = signal<InsurancePolicy[]>([]);
+  totalCount = signal(0);
+  totalPages = signal(0);
+
+  // Pagination state
+  page     = signal(1);
+  pageSize = signal(10);
+
+  // Filter/search/sort state
+  search  = signal('');
+  filter  = signal<string>('all');
+  sortCol = signal('');
+  sortDir = signal<'asc' | 'desc'>('asc');
+
   loading  = signal(true);
   saving   = signal(false);
   formError = signal('');
 
-  search   = signal('');
+  vehicles = signal<Vehicle[]>([]);
   showForm = false;
   editId: number | null = null;
   deleteTarget: InsurancePolicy | null = null;
 
-  filter = signal<'all' | 'active' | 'expired'>('all');
-
   form: CreateInsurancePolicyDto = this.emptyForm();
 
-  filtered = computed(() => {
-    let list = this.policies();
-    if (this.filter() === 'active')  list = list.filter(p => p.isActive);
-    if (this.filter() === 'expired') list = list.filter(p => !p.isActive);
-    const q = this.search().toLowerCase();
-    if (q) list = list.filter(p =>
-      p.registrationNumber.toLowerCase().includes(q) ||
-      p.insurer.toLowerCase().includes(q) ||
-      p.policyNumber.toLowerCase().includes(q)
-    );
-    return list;
-  });
+  private searchSubject = new Subject<string>();
 
   ngOnInit(): void {
-    this.load();
+    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(term => {
+      this.search.set(term); this.page.set(1); this.loadPage();
+    });
+    this.loadPage();
     this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v));
   }
 
-  load(): void {
+  ngOnDestroy(): void { this.searchSubject.complete(); }
+
+  loadPage(): void {
     this.loading.set(true);
-    this.api.getAll().subscribe({
-      next: data => { this.policies.set(data); this.loading.set(false); },
-      error: ()   => this.loading.set(false)
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['status'] = this.filter();
+    this.api.getPaged(
+      { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
+      filterObj
+    ).subscribe({
+      next: res => { this.items.set(res.items); this.totalCount.set(res.totalCount); this.totalPages.set(res.totalPages); this.loading.set(false); },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  onSearchChange(term: string): void { this.searchSubject.next(term); }
+  onFilterChange(value: string): void { this.filter.set(value); this.page.set(1); this.loadPage(); }
+  onPageChange(p: number): void { this.page.set(p); this.loadPage(); }
+  onPageSizeChange(size: number): void { this.pageSize.set(size); this.page.set(1); this.loadPage(); }
+
+  onExport(format: 'xlsx' | 'pdf'): void {
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['status'] = this.filter();
+    this.api.export(format, this.search() || undefined, filterObj).subscribe(blob => {
+      downloadBlob(blob, `insurance_${new Date().toISOString().slice(0,10)}.${format}`);
     });
   }
 
@@ -264,31 +301,24 @@ export class InsuranceListComponent implements OnInit {
       : this.api.create(this.form);
 
     obs.subscribe({
-      next: () => { this.load(); this.closeForm(); this.saving.set(false); },
+      next: () => { this.loadPage(); this.closeForm(); this.saving.set(false); },
       error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
     });
   }
 
   goToDetail(row: InsurancePolicy): void { this.router.navigate(['/insurance', row.policyId]); }
-
   openDocs(row: InsurancePolicy): void { this.docsTarget = row; }
-
   confirmDelete(row: InsurancePolicy): void { this.deleteTarget = row; }
 
   doDelete(): void {
     if (!this.deleteTarget) return;
     this.api.deleteById(this.deleteTarget.policyId).subscribe({
-      next: () => { this.load(); this.deleteTarget = null; },
+      next: () => { this.loadPage(); this.deleteTarget = null; },
       error: ()  => { this.deleteTarget = null; }
     });
   }
 
-  closeForm(): void {
-    this.showForm = false;
-    this.editId = null;
-    this.form = this.emptyForm();
-    this.formError.set('');
-  }
+  closeForm(): void { this.showForm = false; this.editId = null; this.form = this.emptyForm(); this.formError.set(''); }
 
   private emptyForm(): CreateInsurancePolicyDto {
     return { vehicleId: 0, policyNumber: '', insurer: '', validFrom: '', validTo: '', premium: 0 };

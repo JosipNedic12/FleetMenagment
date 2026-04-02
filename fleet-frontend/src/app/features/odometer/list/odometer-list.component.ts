@@ -9,17 +9,20 @@ import { ConfirmModalComponent } from '../../../shared/components/modal/confirm-
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 import { SearchSelectComponent } from '../../../shared/components/search-select/search-select.component';
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-odometer-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, EuNumberPipe],
+  imports: [CommonModule, FormsModule, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
   template: `
     <div class="page">
       <div class="page-header">
         <div>
           <h1 class="page-title" i18n="@@odometer.title">Odometer Logs</h1>
-          <p class="page-subtitle" i18n="@@odometer.subtitle">{{ logs().length }} entries for selected vehicle</p>
+          <p class="page-subtitle" i18n="@@odometer.subtitle">{{ totalCount() }} entries for selected vehicle</p>
         </div>
         <div class="header-actions">
           <div style="width:320px">
@@ -33,6 +36,9 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
               (ngModelChange)="onVehicleChange($event)">
             </app-search-select>
           </div>
+          @if (selectedVehicleId) {
+            <app-export-button (exportAs)="onExport($event)" />
+          }
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" [disabled]="!selectedVehicleId" (click)="openCreate()" i18n="@@odometer.addReadingBtn">+ Add Reading</button>
         </div>
       </div>
@@ -42,7 +48,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
       } @else {
         <div class="table-card">
           @if (loading()) { <div class="table-loading" i18n="@@odometer.loading">Loading…</div> }
-          @else if (logs().length === 0) { <div class="table-empty" i18n="@@odometer.noEntries">No odometer entries for this vehicle.</div> }
+          @else if (items().length === 0) { <div class="table-empty" i18n="@@odometer.noEntries">No odometer entries for this vehicle.</div> }
           @else {
             <table class="table">
               <thead>
@@ -55,7 +61,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                 </tr>
               </thead>
               <tbody>
-                @for (row of sortedLogs(); track row.logId) {
+                @for (row of items(); track row.logId) {
                   <tr>
                     <td>{{ row.logDate | date:'dd.MM.yyyy' }}</td>
                     <td><strong>{{ row.odometerKm | euNumber }} km</strong></td>
@@ -68,6 +74,14 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                 }
               </tbody>
             </table>
+            <app-pagination
+              [page]="page()"
+              [pageSize]="pageSize()"
+              [totalCount]="totalCount()"
+              [totalPages]="totalPages()"
+              (pageChange)="onPageChange($event)"
+              (pageSizeChange)="onPageSizeChange($event)"
+            />
           }
         </div>
       }
@@ -131,27 +145,54 @@ export class OdometerListComponent implements OnInit {
   private vehicleApi = inject(VehicleApiService);
   auth = inject(AuthService);
 
-  logs     = signal<OdometerLog[]>([]);
-  vehicles = signal<Vehicle[]>([]);
-  loading = signal(false); saving = signal(false); formError = signal('');
+  // Server response
+  items      = signal<OdometerLog[]>([]);
+  totalCount = signal(0);
+  totalPages = signal(0);
+
+  // Pagination state
+  page     = signal(1);
+  pageSize = signal(10);
+
+  vehicles          = signal<Vehicle[]>([]);
+  loading           = signal(false);
+  saving            = signal(false);
+  formError         = signal('');
   selectedVehicleId = 0;
-  showCreate = false;
+  showCreate        = false;
   deleteTarget: OdometerLog | null = null;
   form: CreateOdometerLogDto = { vehicleId: 0, odometerKm: 0, logDate: '' };
 
   selectedVehicle = computed(() => this.vehicles().find(v => v.vehicleId === this.selectedVehicleId));
-  sortedLogs = computed(() => [...this.logs()].sort((a, b) => b.odometerKm - a.odometerKm));
 
   ngOnInit(): void {
     this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v));
   }
 
   onVehicleChange(vehicleId: number): void {
-    if (!vehicleId) { this.logs.set([]); return; }
+    if (!vehicleId) { this.items.set([]); this.totalCount.set(0); this.totalPages.set(0); return; }
+    this.page.set(1);
+    this.loadPage();
+  }
+
+  loadPage(): void {
+    if (!this.selectedVehicleId) return;
     this.loading.set(true);
-    this.api.getByVehicle(vehicleId).subscribe({
-      next: d => { this.logs.set(d); this.loading.set(false); },
+    this.api.getPaged(
+      { page: this.page(), pageSize: this.pageSize(), sortBy: 'odometerKm', sortDirection: 'desc' },
+      { vehicleId: this.selectedVehicleId }
+    ).subscribe({
+      next: res => { this.items.set(res.items); this.totalCount.set(res.totalCount); this.totalPages.set(res.totalPages); this.loading.set(false); },
       error: () => this.loading.set(false)
+    });
+  }
+
+  onPageChange(p: number): void { this.page.set(p); this.loadPage(); }
+  onPageSizeChange(size: number): void { this.pageSize.set(size); this.page.set(1); this.loadPage(); }
+
+  onExport(format: 'xlsx' | 'pdf'): void {
+    this.api.export(format, undefined, { vehicleId: this.selectedVehicleId }).subscribe(blob => {
+      downloadBlob(blob, `odometer_${new Date().toISOString().slice(0,10)}.${format}`);
     });
   }
 
@@ -173,7 +214,12 @@ export class OdometerListComponent implements OnInit {
     }
     this.saving.set(true);
     this.api.create(this.form).subscribe({
-      next: () => { this.onVehicleChange(this.selectedVehicleId); this.vehicleApi.getAll().subscribe(v2 => this.vehicles.set(v2)); this.closeCreate(); this.saving.set(false); },
+      next: () => {
+        this.vehicleApi.getAll().subscribe(v2 => this.vehicles.set(v2));
+        this.loadPage();
+        this.closeCreate();
+        this.saving.set(false);
+      },
       error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
     });
   }
@@ -184,7 +230,7 @@ export class OdometerListComponent implements OnInit {
   doDelete(): void {
     if (!this.deleteTarget) return;
     this.api.deleteById(this.deleteTarget.logId).subscribe({
-      next: () => { this.onVehicleChange(this.selectedVehicleId); this.deleteTarget = null; },
+      next: () => { this.loadPage(); this.deleteTarget = null; },
       error: () => { this.deleteTarget = null; }
     });
   }

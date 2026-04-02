@@ -1,7 +1,9 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { AccidentApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, TriangleAlert } from 'lucide-angular';
 import { Accident, CreateAccidentDto, Vehicle, Driver } from '../../../core/models/models';
@@ -12,34 +14,38 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 import { SearchSelectComponent } from '../../../shared/components/search-select/search-select.component';
 import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/vehicle-label.component';
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-accidents-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
   template: `
     <div class="page">
       <div class="page-header">
         <div>
           <h1 class="page-title" i18n="@@accidents.title">Accidents</h1>
-          <p class="page-subtitle" i18n="@@accidents.subtitle">{{ filtered().length }} incidents reported</p>
+          <p class="page-subtitle" i18n="@@accidents.subtitle">{{ totalCount() }} incidents reported</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search vehicle, description…" i18n-placeholder="@@accidents.searchPlaceholder" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="onSearchChange($event)" placeholder="Search vehicle, description…" i18n-placeholder="@@accidents.searchPlaceholder" />
+          <app-export-button (exportAs)="onExport($event)" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="showForm = true" i18n="@@accidents.reportBtn">+ Report Accident</button>
         </div>
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"   (click)="filter.set('all')"   i18n="@@COMMON.CHIPS.ALL">All</button>
-        <button [class.active]="filter() === 'minor'" (click)="filter.set('minor')" i18n="@@COMMON.CHIPS.MINOR">Minor</button>
-        <button [class.active]="filter() === 'major'" (click)="filter.set('major')" i18n="@@COMMON.CHIPS.MAJOR">Major</button>
-        <button [class.active]="filter() === 'total'" (click)="filter.set('total')" i18n="@@COMMON.CHIPS.TOTAL_LOSS">Total Loss</button>
+        <button [class.active]="filter() === 'all'"   (click)="onFilterChange('all')"   i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'minor'" (click)="onFilterChange('minor')" i18n="@@COMMON.CHIPS.MINOR">Minor</button>
+        <button [class.active]="filter() === 'major'" (click)="onFilterChange('major')" i18n="@@COMMON.CHIPS.MAJOR">Major</button>
+        <button [class.active]="filter() === 'total'" (click)="onFilterChange('total')" i18n="@@COMMON.CHIPS.TOTAL_LOSS">Total Loss</button>
       </div>
 
       <div class="table-card">
         @if (loading()) { <div class="table-loading" i18n="@@accidents.loading">Loading…</div> }
-        @else if (filtered().length === 0) { <div class="table-empty" i18n="@@accidents.empty">No accidents found.</div> }
+        @else if (items().length === 0) { <div class="table-empty" i18n="@@accidents.empty">No accidents found.</div> }
         @else {
           <table class="table">
             <thead>
@@ -55,7 +61,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
               </tr>
             </thead>
             <tbody>
-              @for (row of filtered(); track row.accidentId) {
+              @for (row of items(); track row.accidentId) {
                 <tr (click)="goToDetail(row)">
                   <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></td>
                   <td>{{ row.driverName ?? '—' }}</td>
@@ -77,6 +83,14 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
               }
             </tbody>
           </table>
+          <app-pagination
+            [page]="page()"
+            [pageSize]="pageSize()"
+            [totalCount]="totalCount()"
+            [totalPages]="totalPages()"
+            (pageChange)="onPageChange($event)"
+            (pageSizeChange)="onPageSizeChange($event)"
+          />
         }
       </div>
     </div>
@@ -180,7 +194,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
     tbody tr:hover { background:var(--hover-bg); }
   `]
 })
-export class AccidentsListComponent implements OnInit {
+export class AccidentsListComponent implements OnInit, OnDestroy {
   readonly icons = { Eye, Pencil, Trash2, TriangleAlert };
 
   private readonly chipLabels: Record<string, string> = {
@@ -192,46 +206,82 @@ export class AccidentsListComponent implements OnInit {
 
   readonly vehicleDisplayFn = (v: Vehicle) => `${v.make} ${v.model} – ${v.registrationNumber}`;
   readonly driverDisplayFn  = (d: Driver)  => d.fullName;
-  accidents = signal<Accident[]>([]);
-  vehicles  = signal<Vehicle[]>([]);
-  drivers   = signal<Driver[]>([]);
-  loading = signal(true); saving = signal(false); formError = signal('');
-  search = signal(''); showForm = false; editId: number | null = null;
+
+  private api = inject(AccidentApiService);
+  private vehicleApi = inject(VehicleApiService);
+  private driverApi = inject(DriverApiService);
+  private router = inject(Router);
+  auth = inject(AuthService);
+
+  // Server response
+  items      = signal<Accident[]>([]);
+  totalCount = signal(0);
+  totalPages = signal(0);
+
+  // Pagination state
+  page     = signal(1);
+  pageSize = signal(10);
+
+  // Filter/search/sort state
+  search  = signal('');
+  filter  = signal<string>('all');
+  sortCol = signal('');
+  sortDir = signal<'asc' | 'desc'>('asc');
+
+  loading  = signal(true);
+  saving   = signal(false);
+  formError = signal('');
+
+  vehicles = signal<Vehicle[]>([]);
+  drivers  = signal<Driver[]>([]);
+  showForm = false;
+  editId: number | null = null;
   deleteTarget: Accident | null = null;
-  filter = signal<'all' | 'minor' | 'major' | 'total'>('all');
   form: CreateAccidentDto = this.emptyForm();
 
-  filtered = computed(() => {
-    let list = this.accidents();
-    if (this.filter() !== 'all') list = list.filter(a => a.severity === this.filter());
-    const q = this.search().toLowerCase();
-    if (q) list = list.filter(a =>
-      a.registrationNumber.toLowerCase().includes(q) ||
-      a.description.toLowerCase().includes(q)
-    );
-    return list;
-  });
-
-  private router = inject(Router);
-
-  constructor(
-    private api: AccidentApiService,
-    private vehicleApi: VehicleApiService,
-    private driverApi: DriverApiService,
-    public auth: AuthService
-  ) {}
+  private searchSubject = new Subject<string>();
 
   ngOnInit(): void {
-    this.load();
+    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(term => {
+      this.search.set(term); this.page.set(1); this.loadPage();
+    });
+    this.loadPage();
     this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v));
     this.driverApi.getAll().subscribe(d => this.drivers.set(d));
   }
 
-  load(): void {
+  ngOnDestroy(): void { this.searchSubject.complete(); }
+
+  loadPage(): void {
     this.loading.set(true);
-    this.api.getAll().subscribe({
-      next: d => { this.accidents.set(d); this.loading.set(false); },
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['severity'] = this.filter();
+    this.api.getPaged(
+      { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
+      filterObj
+    ).subscribe({
+      next: res => { this.items.set(res.items); this.totalCount.set(res.totalCount); this.totalPages.set(res.totalPages); this.loading.set(false); },
       error: () => this.loading.set(false)
+    });
+  }
+
+  onSearchChange(term: string): void { this.searchSubject.next(term); }
+  onFilterChange(value: string): void { this.filter.set(value); this.page.set(1); this.loadPage(); }
+
+  sort(col: string): void {
+    if (this.sortCol() === col) { this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc'); }
+    else { this.sortCol.set(col); this.sortDir.set('asc'); }
+    this.loadPage();
+  }
+
+  onPageChange(p: number): void { this.page.set(p); this.loadPage(); }
+  onPageSizeChange(size: number): void { this.pageSize.set(size); this.page.set(1); this.loadPage(); }
+
+  onExport(format: 'xlsx' | 'pdf'): void {
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['severity'] = this.filter();
+    this.api.export(format, this.search() || undefined, filterObj).subscribe(blob => {
+      downloadBlob(blob, `accidents_${new Date().toISOString().slice(0,10)}.${format}`);
     });
   }
 
@@ -251,11 +301,9 @@ export class AccidentsListComponent implements OnInit {
       this.formError.set('Fill all required fields.'); return;
     }
     this.saving.set(true);
-    const obs = this.editId
-      ? this.api.update(this.editId, this.form)
-      : this.api.create(this.form);
+    const obs = this.editId ? this.api.update(this.editId, this.form) : this.api.create(this.form);
     obs.subscribe({
-      next: () => { this.load(); this.closeForm(); this.saving.set(false); },
+      next: () => { this.loadPage(); this.closeForm(); this.saving.set(false); },
       error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
     });
   }
@@ -266,10 +314,11 @@ export class AccidentsListComponent implements OnInit {
   doDelete(): void {
     if (!this.deleteTarget) return;
     this.api.deleteById(this.deleteTarget.accidentId).subscribe({
-      next: () => { this.load(); this.deleteTarget = null; },
+      next: () => { this.loadPage(); this.deleteTarget = null; },
       error: () => { this.deleteTarget = null; }
     });
   }
+
   closeForm(): void { this.showForm = false; this.editId = null; this.form = this.emptyForm(); this.formError.set(''); }
   private emptyForm(): CreateAccidentDto {
     return { vehicleId: 0, occurredAt: '', severity: 'minor', description: '' };

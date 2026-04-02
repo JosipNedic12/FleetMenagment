@@ -1,7 +1,9 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { FineApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, CreditCard } from 'lucide-angular';
 import { Fine, CreateFineDto, MarkFinePaidDto, Vehicle, Driver } from '../../../core/models/models';
@@ -12,20 +14,24 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 import { SearchSelectComponent } from '../../../shared/components/search-select/search-select.component';
 import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/vehicle-label.component';
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-fines-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
   template: `
     <div class="page">
       <div class="page-header">
         <div>
           <h1 class="page-title" i18n="@@fines.list.title">Fines</h1>
-          <p class="page-subtitle" i18n="@@fines.list.subtitle">{{ filtered().length }} records · {{ unpaidCount() }} unpaid</p>
+          <p class="page-subtitle" i18n="@@fines.list.subtitle">{{ totalCount() }} records</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search vehicle, reason…" i18n-placeholder="@@fines.list.searchPlaceholder" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="onSearchChange($event)" placeholder="Search vehicle, reason…" i18n-placeholder="@@fines.list.searchPlaceholder" />
+          <app-export-button (exportAs)="onExport($event)" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="showForm = true">
             <ng-container i18n="@@fines.list.recordFineBtn">+ Record Fine</ng-container>
           </button>
@@ -33,15 +39,15 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"    (click)="filter.set('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
-        <button [class.active]="filter() === 'unpaid'" (click)="filter.set('unpaid')" i18n="@@COMMON.CHIPS.UNPAID">Unpaid</button>
-        <button [class.active]="filter() === 'paid'"   (click)="filter.set('paid')" i18n="@@COMMON.CHIPS.PAID">Paid</button>
+        <button [class.active]="filter() === 'all'"    (click)="onFilterChange('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'unpaid'" (click)="onFilterChange('unpaid')" i18n="@@COMMON.CHIPS.UNPAID">Unpaid</button>
+        <button [class.active]="filter() === 'paid'"   (click)="onFilterChange('paid')" i18n="@@COMMON.CHIPS.PAID">Paid</button>
       </div>
 
       <div class="table-card">
         @if (loading()) {
           <div class="table-loading" i18n="@@fines.list.loading">Loading…</div>
-        } @else if (filtered().length === 0) {
+        } @else if (items().length === 0) {
           <div class="table-empty" i18n="@@fines.list.empty">No fines found.</div>
         } @else {
           <table class="table">
@@ -57,7 +63,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
               </tr>
             </thead>
             <tbody>
-              @for (row of filtered(); track row.fineId) {
+              @for (row of items(); track row.fineId) {
                 <tr (click)="goToDetail(row)">
                   <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></td>
                   <td>{{ row.driverName ?? '—' }}</td>
@@ -86,6 +92,14 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
               }
             </tbody>
           </table>
+          <app-pagination
+            [page]="page()"
+            [pageSize]="pageSize()"
+            [totalCount]="totalCount()"
+            [totalPages]="totalPages()"
+            (pageChange)="onPageChange($event)"
+            (pageSizeChange)="onPageSizeChange($event)"
+          />
         }
       </div>
     </div>
@@ -183,10 +197,9 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
     tbody tr:hover { background:var(--hover-bg); }
   `]
 })
-export class FinesListComponent implements OnInit {
+export class FinesListComponent implements OnInit, OnDestroy {
   readonly icons = { Eye, Pencil, Trash2, CreditCard };
 
-  // i18n labels used in interpolated expressions
   paidLabel   = $localize`:@@COMMON.CHIPS.PAID:Paid`;
   unpaidLabel = $localize`:@@COMMON.CHIPS.UNPAID:Unpaid`;
   editFineLabel = $localize`:@@fines.list.editFineTitle:Edit Fine`;
@@ -197,46 +210,86 @@ export class FinesListComponent implements OnInit {
   confirmPaymentLabel = $localize`:@@fines.pay.confirmBtn:Confirm Payment`;
   readonly vehicleDisplayFn = (v: Vehicle) => `${v.make} ${v.model} – ${v.registrationNumber}`;
   readonly driverDisplayFn  = (d: Driver)  => d.fullName;
-  fines    = signal<Fine[]>([]);
-  vehicles = signal<Vehicle[]>([]);
-  drivers  = signal<Driver[]>([]);
+
+  private api = inject(FineApiService);
+  private vehicleApi = inject(VehicleApiService);
+  private driverApi = inject(DriverApiService);
+  private router = inject(Router);
+  auth = inject(AuthService);
+
+  // Server response
+  items      = signal<Fine[]>([]);
+  totalCount = signal(0);
+  totalPages = signal(0);
+
+  // Pagination state
+  page     = signal(1);
+  pageSize = signal(10);
+
+  // Filter/search/sort state
+  search  = signal('');
+  filter  = signal<string>('all');
+  sortCol = signal('');
+  sortDir = signal<'asc' | 'desc'>('asc');
+
   loading  = signal(true);
   saving   = signal(false);
   formError = signal('');
 
-  search   = signal('');
+  vehicles = signal<Vehicle[]>([]);
+  drivers  = signal<Driver[]>([]);
   showForm = false;
   editId: number | null = null;
   deleteTarget: Fine | null = null;
   payTarget: Fine | null = null;
-  filter = signal<'all' | 'unpaid' | 'paid'>('all');
 
   form: CreateFineDto = this.emptyForm();
   payForm: MarkFinePaidDto = { paidAt: new Date().toISOString().slice(0,16), paymentMethod: '' };
 
-  unpaidCount = computed(() => this.fines().filter(f => !f.isPaid).length);
-  filtered = computed(() => {
-    let list = this.fines();
-    if (this.filter() === 'unpaid') list = list.filter(f => !f.isPaid);
-    if (this.filter() === 'paid')   list = list.filter(f => f.isPaid);
-    const q = this.search().toLowerCase();
-    if (q) list = list.filter(f => f.registrationNumber.toLowerCase().includes(q) || f.reason.toLowerCase().includes(q));
-    return list;
-  });
-
-  private router = inject(Router);
-
-  constructor(private api: FineApiService, private vehicleApi: VehicleApiService, private driverApi: DriverApiService, public auth: AuthService) {}
+  private searchSubject = new Subject<string>();
 
   ngOnInit(): void {
-    this.load();
+    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(term => {
+      this.search.set(term); this.page.set(1); this.loadPage();
+    });
+    this.loadPage();
     this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v));
     this.driverApi.getAll().subscribe(d => this.drivers.set(d));
   }
 
-  load(): void {
+  ngOnDestroy(): void { this.searchSubject.complete(); }
+
+  loadPage(): void {
     this.loading.set(true);
-    this.api.getAll().subscribe({ next: d => { this.fines.set(d); this.loading.set(false); }, error: () => this.loading.set(false) });
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['paidStatus'] = this.filter();
+    this.api.getPaged(
+      { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
+      filterObj
+    ).subscribe({
+      next: res => { this.items.set(res.items); this.totalCount.set(res.totalCount); this.totalPages.set(res.totalPages); this.loading.set(false); },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  onSearchChange(term: string): void { this.searchSubject.next(term); }
+  onFilterChange(value: string): void { this.filter.set(value); this.page.set(1); this.loadPage(); }
+
+  sort(col: string): void {
+    if (this.sortCol() === col) { this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc'); }
+    else { this.sortCol.set(col); this.sortDir.set('asc'); }
+    this.loadPage();
+  }
+
+  onPageChange(p: number): void { this.page.set(p); this.loadPage(); }
+  onPageSizeChange(size: number): void { this.pageSize.set(size); this.page.set(1); this.loadPage(); }
+
+  onExport(format: 'xlsx' | 'pdf'): void {
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['paidStatus'] = this.filter();
+    this.api.export(format, this.search() || undefined, filterObj).subscribe(blob => {
+      downloadBlob(blob, `fines_${new Date().toISOString().slice(0,10)}.${format}`);
+    });
   }
 
   startEdit(row: Fine): void {
@@ -254,7 +307,7 @@ export class FinesListComponent implements OnInit {
     if (!this.payTarget) return;
     this.saving.set(true);
     this.api.markPaid(this.payTarget.fineId, this.payForm).subscribe({
-      next: () => { this.load(); this.payTarget = null; this.saving.set(false); },
+      next: () => { this.loadPage(); this.payTarget = null; this.saving.set(false); },
       error: () => this.saving.set(false)
     });
   }
@@ -265,7 +318,10 @@ export class FinesListComponent implements OnInit {
     }
     this.saving.set(true);
     const obs = this.editId ? this.api.update(this.editId, this.form) : this.api.create(this.form);
-    obs.subscribe({ next: () => { this.load(); this.closeForm(); this.saving.set(false); }, error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); } });
+    obs.subscribe({
+      next: () => { this.loadPage(); this.closeForm(); this.saving.set(false); },
+      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+    });
   }
 
   goToDetail(row: Fine): void { this.router.navigate(['/fines', row.fineId]); }
@@ -273,7 +329,10 @@ export class FinesListComponent implements OnInit {
   confirmDelete(row: Fine): void { this.deleteTarget = row; }
   doDelete(): void {
     if (!this.deleteTarget) return;
-    this.api.deleteById(this.deleteTarget.fineId).subscribe({ next: () => { this.load(); this.deleteTarget = null; }, error: () => { this.deleteTarget = null; } });
+    this.api.deleteById(this.deleteTarget.fineId).subscribe({
+      next: () => { this.loadPage(); this.deleteTarget = null; },
+      error: () => { this.deleteTarget = null; }
+    });
   }
 
   closeForm(): void { this.showForm = false; this.editId = null; this.form = this.emptyForm(); this.formError.set(''); }

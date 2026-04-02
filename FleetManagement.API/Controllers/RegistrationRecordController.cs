@@ -1,6 +1,7 @@
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
-using FleetManagement.Domain.Entities;
+using FleetManagement.Application.Common;
+using FleetManagement.Application.Common.Filters;
+using FleetManagement.Application.DTOs;
+using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,85 +12,71 @@ namespace FleetManagement.API.Controllers;
 [Authorize]
 public class RegistrationRecordController : ControllerBase
 {
-    private readonly IRegistrationRecordRepository _repo;
-    public RegistrationRecordController(IRegistrationRecordRepository repo) => _repo = repo;
+    private readonly RegistrationRecordService _svc;
+    private readonly ExportService _exportService;
+
+    public RegistrationRecordController(RegistrationRecordService svc, ExportService exportService)
+    {
+        _svc = svc;
+        _exportService = exportService;
+    }
 
     [HttpGet]
+    public async Task<IActionResult> GetPaged([FromQuery] PagedRequest<RegistrationFilter> request) =>
+        Ok(await _svc.GetPagedAsync(request));
+
+    [HttpGet("all")]
     public async Task<IActionResult> GetAll() =>
-        Ok((await _repo.GetAllAsync()).Select(ToDto));
+        Ok(await _svc.GetAllAsync());
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var r = await _repo.GetByIdAsync(id);
-        return r == null ? NotFound() : Ok(ToDto(r));
-    }
+    public async Task<IActionResult> GetById(int id) =>
+        Ok(await _svc.GetByIdAsync(id));
 
     [HttpGet("vehicle/{vehicleId}")]
     public async Task<IActionResult> GetByVehicle(int vehicleId) =>
-        Ok((await _repo.GetByVehicleIdAsync(vehicleId)).Select(ToDto));
+        Ok(await _svc.GetByVehicleIdAsync(vehicleId));
 
     [HttpGet("vehicle/{vehicleId}/current")]
-    public async Task<IActionResult> GetCurrent(int vehicleId)
-    {
-        var r = await _repo.GetCurrentByVehicleIdAsync(vehicleId);
-        return r == null ? NotFound() : Ok(ToDto(r));
-    }
+    public async Task<IActionResult> GetCurrent(int vehicleId) =>
+        Ok(await _svc.GetCurrentByVehicleIdAsync(vehicleId));
 
     [HttpPost]
     [Authorize(Roles = "Admin,FleetManager")]
     public async Task<IActionResult> Create([FromBody] CreateRegistrationRecordDto dto)
     {
-        var entity = new RegistrationRecord
-        {
-            VehicleId = dto.VehicleId,
-            RegistrationNumber = dto.RegistrationNumber,
-            ValidFrom = dto.ValidFrom,
-            ValidTo = dto.ValidTo,
-            Fee = dto.Fee,
-            Notes = dto.Notes
-        };
-        var created = await _repo.CreateAsync(entity);
-        return CreatedAtAction(nameof(GetById), new { id = created.RegistrationId }, ToDto(created));
+        var created = await _svc.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = created.RegistrationId }, created);
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateRegistrationRecordDto dto)
-    {
-        var updated = new RegistrationRecord
-        {
-            RegistrationNumber = dto.RegistrationNumber ?? string.Empty,
-            ValidFrom = dto.ValidFrom ?? default,
-            ValidTo = dto.ValidTo ?? default,
-            Fee = dto.Fee,
-            Notes = dto.Notes
-        };
-        var result = await _repo.UpdateAsync(id, updated);
-        return result == null ? NotFound() : Ok(ToDto(result));
-    }
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateRegistrationRecordDto dto) =>
+        Ok(await _svc.UpdateAsync(id, dto));
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Delete(int id) =>
-        await _repo.DeleteAsync(id) ? NoContent() : NotFound();
-
-    private static RegistrationRecordDto ToDto(RegistrationRecord r)
+    public async Task<IActionResult> Delete(int id)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        return new RegistrationRecordDto
+        await _svc.DeleteAsync(id);
+        return NoContent();
+    }
+
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,FleetManager")]
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] RegistrationFilter? filter)
+    {
+        var dtos = await _svc.GetFilteredDtosAsync(filter ?? new RegistrationFilter(), search);
+        var columns = RegistrationRecordService.GetExportColumns();
+        if (format?.ToLower() == "pdf")
         {
-            RegistrationId = r.RegistrationId,
-            VehicleId = r.VehicleId,
-            VehicleRegistrationNumber = r.Vehicle?.RegistrationNumber ?? string.Empty,
-            VehicleMake = r.Vehicle?.Make?.Name ?? string.Empty,
-            VehicleModel = r.Vehicle?.Model?.Name ?? string.Empty,
-            RegistrationNumber = r.RegistrationNumber,
-            ValidFrom = r.ValidFrom,
-            ValidTo = r.ValidTo,
-            Fee = r.Fee,
-            Notes = r.Notes,
-            IsActive = r.ValidFrom <= today && r.ValidTo >= today
-        };
+            var bytes = _exportService.ExportToPdf(dtos, columns, "Registration Records Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"registration_{DateTime.Now:yyyyMMdd}.pdf");
+        }
+        else
+        {
+            var bytes = _exportService.ExportToExcel(dtos, columns, "Registration Records");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"registration_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
     }
 }

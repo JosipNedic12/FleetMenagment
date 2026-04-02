@@ -1,7 +1,9 @@
-import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { InspectionApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, Paperclip } from 'lucide-angular';
 import { Inspection, CreateInspectionDto, Vehicle } from '../../../core/models/models';
@@ -14,34 +16,38 @@ import { FileUploadComponent } from '../../../shared/components/file-upload/file
 import { DocumentListComponent } from '../../../shared/components/document-list/document-list.component';
 import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/vehicle-label.component';
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-inspections-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, FileUploadComponent, DocumentListComponent, VehicleLabelComponent, EuNumberPipe],
+  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, FileUploadComponent, DocumentListComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
   template: `
     <div class="page">
       <div class="page-header">
         <div>
           <h1 class="page-title" i18n="@@inspections.list.title">Inspections</h1>
-          <p class="page-subtitle" i18n="@@inspections.list.subtitle">{{ filtered().length }} records</p>
+          <p class="page-subtitle" i18n="@@inspections.list.subtitle">{{ totalCount() }} records</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search vehicle…" i18n-placeholder="@@inspections.list.searchPlaceholder" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="onSearchChange($event)" placeholder="Search vehicle…" i18n-placeholder="@@inspections.list.searchPlaceholder" />
+          <app-export-button (exportAs)="onExport($event)" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="showForm = true" i18n="@@inspections.list.addButton">+ Add Inspection</button>
         </div>
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"         (click)="filter.set('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
-        <button [class.active]="filter() === 'passed'"      (click)="filter.set('passed')" i18n="@@COMMON.CHIPS.PASSED">Passed</button>
-        <button [class.active]="filter() === 'failed'"      (click)="filter.set('failed')" i18n="@@COMMON.CHIPS.FAILED">Failed</button>
-        <button [class.active]="filter() === 'conditional'" (click)="filter.set('conditional')" i18n="@@COMMON.CHIPS.CONDITIONAL">Conditional</button>
+        <button [class.active]="filter() === 'all'"         (click)="onFilterChange('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'passed'"      (click)="onFilterChange('passed')" i18n="@@COMMON.CHIPS.PASSED">Passed</button>
+        <button [class.active]="filter() === 'failed'"      (click)="onFilterChange('failed')" i18n="@@COMMON.CHIPS.FAILED">Failed</button>
+        <button [class.active]="filter() === 'conditional'" (click)="onFilterChange('conditional')" i18n="@@COMMON.CHIPS.CONDITIONAL">Conditional</button>
       </div>
 
       <div class="table-card">
         @if (loading()) { <div class="table-loading" i18n="@@inspections.list.loading">Loading…</div> }
-        @else if (filtered().length === 0) { <div class="table-empty" i18n="@@inspections.list.empty">No inspections found.</div> }
+        @else if (items().length === 0) { <div class="table-empty" i18n="@@inspections.list.empty">No inspections found.</div> }
         @else {
           <table class="table">
             <thead>
@@ -56,7 +62,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
               </tr>
             </thead>
             <tbody>
-              @for (row of filtered(); track row.inspectionId) {
+              @for (row of items(); track row.inspectionId) {
                 <tr (click)="goToDetail(row)">
                   <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></td>
                   <td>{{ row.inspectedAt | date:'dd.MM.yyyy' }}</td>
@@ -78,6 +84,14 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
               }
             </tbody>
           </table>
+          <app-pagination
+            [page]="page()"
+            [pageSize]="pageSize()"
+            [totalCount]="totalCount()"
+            [totalPages]="totalPages()"
+            (pageChange)="onPageChange($event)"
+            (pageSizeChange)="onPageSizeChange($event)"
+          />
         }
       </div>
     </div>
@@ -171,7 +185,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
     tbody tr:hover { background:var(--hover-bg); }
   `]
 })
-export class InspectionsListComponent implements OnInit {
+export class InspectionsListComponent implements OnInit, OnDestroy {
   readonly icons = { Eye, Pencil, Trash2, Paperclip };
   private readonly chipLabels: Record<string, string> = {
     passed:      $localize`:@@COMMON.CHIPS.PASSED:Passed`,
@@ -182,31 +196,80 @@ export class InspectionsListComponent implements OnInit {
   readonly vehicleDisplayFn = (v: Vehicle) => `${v.make} ${v.model} – ${v.registrationNumber}`;
   @ViewChild('docList') docList!: DocumentListComponent;
   docsTarget: Inspection | null = null;
-  inspections = signal<Inspection[]>([]);
-  vehicles    = signal<Vehicle[]>([]);
-  loading = signal(true); saving = signal(false); formError = signal('');
-  search = signal(''); showForm = false; editId: number | null = null;
+
+  private api = inject(InspectionApiService);
+  private vehicleApi = inject(VehicleApiService);
+  private router = inject(Router);
+  auth = inject(AuthService);
+
+  // Server response
+  items      = signal<Inspection[]>([]);
+  totalCount = signal(0);
+  totalPages = signal(0);
+
+  // Pagination state
+  page     = signal(1);
+  pageSize = signal(10);
+
+  // Filter/search/sort state
+  search  = signal('');
+  filter  = signal<string>('all');
+  sortCol = signal('');
+  sortDir = signal<'asc' | 'desc'>('asc');
+
+  loading  = signal(true);
+  saving   = signal(false);
+  formError = signal('');
+
+  vehicles = signal<Vehicle[]>([]);
+  showForm = false;
+  editId: number | null = null;
   deleteTarget: Inspection | null = null;
-  filter = signal<'all' | 'passed' | 'failed' | 'conditional'>('all');
   form: CreateInspectionDto = this.emptyForm();
 
-  filtered = computed(() => {
-    let list = this.inspections();
-    if (this.filter() !== 'all') list = list.filter(i => i.result === this.filter());
-    const q = this.search().toLowerCase();
-    if (q) list = list.filter(i => i.registrationNumber.toLowerCase().includes(q));
-    return list;
-  });
+  private searchSubject = new Subject<string>();
 
-  private router = inject(Router);
+  ngOnInit(): void {
+    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(term => {
+      this.search.set(term); this.page.set(1); this.loadPage();
+    });
+    this.loadPage();
+    this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v));
+  }
 
-  constructor(private api: InspectionApiService, private vehicleApi: VehicleApiService, public auth: AuthService) {}
+  ngOnDestroy(): void { this.searchSubject.complete(); }
 
-  ngOnInit(): void { this.load(); this.vehicleApi.getAll().subscribe(v => this.vehicles.set(v)); }
-
-  load(): void {
+  loadPage(): void {
     this.loading.set(true);
-    this.api.getAll().subscribe({ next: d => { this.inspections.set(d); this.loading.set(false); }, error: () => this.loading.set(false) });
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['result'] = this.filter();
+    this.api.getPaged(
+      { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
+      filterObj
+    ).subscribe({
+      next: res => { this.items.set(res.items); this.totalCount.set(res.totalCount); this.totalPages.set(res.totalPages); this.loading.set(false); },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  onSearchChange(term: string): void { this.searchSubject.next(term); }
+  onFilterChange(value: string): void { this.filter.set(value); this.page.set(1); this.loadPage(); }
+
+  sort(col: string): void {
+    if (this.sortCol() === col) { this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc'); }
+    else { this.sortCol.set(col); this.sortDir.set('asc'); }
+    this.loadPage();
+  }
+
+  onPageChange(p: number): void { this.page.set(p); this.loadPage(); }
+  onPageSizeChange(size: number): void { this.pageSize.set(size); this.page.set(1); this.loadPage(); }
+
+  onExport(format: 'xlsx' | 'pdf'): void {
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['result'] = this.filter();
+    this.api.export(format, this.search() || undefined, filterObj).subscribe(blob => {
+      downloadBlob(blob, `inspections_${new Date().toISOString().slice(0,10)}.${format}`);
+    });
   }
 
   startEdit(row: Inspection): void {
@@ -220,18 +283,24 @@ export class InspectionsListComponent implements OnInit {
     if (this.form.result === 'failed' && !this.form.notes) { this.formError.set('Notes are required when result is Failed.'); return; }
     this.saving.set(true);
     const obs = this.editId ? this.api.update(this.editId, this.form) : this.api.create(this.form);
-    obs.subscribe({ next: () => { this.load(); this.closeForm(); this.saving.set(false); }, error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); } });
+    obs.subscribe({
+      next: () => { this.loadPage(); this.closeForm(); this.saving.set(false); },
+      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+    });
   }
 
   goToDetail(row: Inspection): void { this.router.navigate(['/inspections', row.inspectionId]); }
-
   openDocs(row: Inspection): void { this.docsTarget = row; }
 
   confirmDelete(row: Inspection): void { this.deleteTarget = row; }
   doDelete(): void {
     if (!this.deleteTarget) return;
-    this.api.deleteById(this.deleteTarget.inspectionId).subscribe({ next: () => { this.load(); this.deleteTarget = null; }, error: () => { this.deleteTarget = null; } });
+    this.api.deleteById(this.deleteTarget.inspectionId).subscribe({
+      next: () => { this.loadPage(); this.deleteTarget = null; },
+      error: () => { this.deleteTarget = null; }
+    });
   }
+
   closeForm(): void { this.showForm = false; this.editId = null; this.form = this.emptyForm(); this.formError.set(''); }
   private emptyForm(): CreateInspectionDto { return { vehicleId: 0, inspectedAt: '', result: 'passed' }; }
 }

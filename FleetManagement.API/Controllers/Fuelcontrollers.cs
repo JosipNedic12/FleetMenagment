@@ -1,6 +1,7 @@
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
-using FleetManagement.Domain.Entities;
+using FleetManagement.Application.Common;
+using FleetManagement.Application.Common.Filters;
+using FleetManagement.Application.DTOs;
+using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,93 +14,74 @@ namespace FleetManagement.API.Controllers;
 [Route("api/[controller]")]
 public class FuelCardsController : ControllerBase
 {
-    private readonly IFuelCardRepository _repo;
-    public FuelCardsController(IFuelCardRepository repo) => _repo = repo;
+    private readonly FuelCardService _service;
+    private readonly ExportService _exportService;
+
+    public FuelCardsController(FuelCardService service, ExportService exportService)
+    {
+        _service = service;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
+    public async Task<ActionResult<PagedResponse<FuelCardDto>>> GetPaged(
+        [FromQuery] PagedRequest<FuelCardFilter> request)
+        => Ok(await _service.GetPagedAsync(request));
+
+    [HttpGet("all")]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<FuelCardDto>>> GetAll()
-    {
-        var cards = await _repo.GetAllAsync();
-        return Ok(cards.Select(MapToDto));
-    }
+        => Ok(await _service.GetAllAsync());
 
     [HttpGet("{id}")]
     [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<FuelCardDto>> GetById(int id)
-    {
-        var card = await _repo.GetByIdAsync(id);
-        if (card == null) return NotFound();
-        return Ok(MapToDto(card));
-    }
+        => Ok(await _service.GetByIdAsync(id));
 
     [HttpGet("vehicle/{vehicleId}")]
     [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<FuelCardDto>>> GetByVehicle(int vehicleId)
-    {
-        var cards = await _repo.GetByVehicleIdAsync(vehicleId);
-        return Ok(cards.Select(MapToDto));
-    }
+        => Ok(await _service.GetByVehicleIdAsync(vehicleId));
 
     [HttpPost]
     [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<FuelCardDto>> Create(CreateFuelCardDto dto)
     {
-        var card = new FuelCard
-        {
-            CardNumber = dto.CardNumber.Trim(),
-            Provider = dto.Provider,
-            AssignedVehicleId = dto.AssignedVehicleId,
-            ValidFrom = dto.ValidFrom,
-            ValidTo = dto.ValidTo,
-            Notes = dto.Notes
-        };
-
-        var created = await _repo.CreateAsync(card);
-        return CreatedAtAction(nameof(GetById), new { id = created.FuelCardId }, MapToDto(created));
+        var result = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.FuelCardId }, result);
     }
 
     [HttpPatch("{id}")]
     [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<FuelCardDto>> Update(int id, UpdateFuelCardDto dto)
-    {
-        var updated = await _repo.UpdateAsync(id, new FuelCard
-        {
-            Provider = dto.Provider,
-            AssignedVehicleId = dto.AssignedVehicleId,
-            ValidFrom = dto.ValidFrom,
-            ValidTo = dto.ValidTo,
-            IsActive = dto.IsActive ?? true,
-            Notes = dto.Notes
-        });
-
-        if (updated == null) return NotFound();
-        return Ok(MapToDto(updated));
-    }
+        => Ok(await _service.UpdateAsync(id, dto));
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
-        var result = await _repo.DeleteAsync(id);
-        if (!result) return NotFound();
+        await _service.DeleteAsync(id);
         return NoContent();
     }
 
-    private static FuelCardDto MapToDto(FuelCard c) => new()
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,FleetManager")]
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] FuelCardFilter? filter)
     {
-        FuelCardId = c.FuelCardId,
-        CardNumber = c.CardNumber,
-        Provider = c.Provider,
-        AssignedVehicleId = c.AssignedVehicleId,
-        RegistrationNumber = c.AssignedVehicle?.RegistrationNumber,
-        VehicleMake = c.AssignedVehicle?.Make?.Name,
-        VehicleModel = c.AssignedVehicle?.Model?.Name,
-        ValidFrom = c.ValidFrom,
-        ValidTo = c.ValidTo,
-        IsActive = c.IsActive,
-        Notes = c.Notes
-    };
+        var dtos = await _service.GetFilteredDtosAsync(filter ?? new FuelCardFilter(), search);
+        var columns = FuelCardService.GetExportColumns();
+        if (format?.ToLower() == "pdf")
+        {
+            var bytes = _exportService.ExportToPdf(dtos, columns, "Fuel Cards Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"fuel_cards_{DateTime.Now:yyyyMMdd}.pdf");
+        }
+        else
+        {
+            var bytes = _exportService.ExportToExcel(dtos, columns, "Fuel Cards");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"fuel_cards_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+    }
 }
 
 // -------------------------------------------------------
@@ -109,77 +91,49 @@ public class FuelCardsController : ControllerBase
 [Route("api/[controller]")]
 public class FuelTransactionsController : ControllerBase
 {
-    private readonly IFuelTransactionRepository _repo;
-    public FuelTransactionsController(IFuelTransactionRepository repo) => _repo = repo;
+    private readonly FuelTransactionService _service;
+    private readonly ExportService _exportService;
+
+    public FuelTransactionsController(FuelTransactionService service, ExportService exportService)
+    {
+        _service = service;
+        _exportService = exportService;
+    }
 
     [HttpGet]
     [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
+    public async Task<ActionResult<PagedResponse<FuelTransactionDto>>> GetPaged(
+        [FromQuery] PagedRequest<FuelTransactionFilter> request)
+        => Ok(await _service.GetPagedAsync(request));
+
+    [HttpGet("all")]
+    [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<FuelTransactionDto>>> GetAll()
-    {
-        var transactions = await _repo.GetAllAsync();
-        return Ok(transactions.Select(MapToDto));
-    }
+        => Ok(await _service.GetAllAsync());
 
     [HttpGet("{id}")]
     [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<FuelTransactionDto>> GetById(int id)
-    {
-        var transaction = await _repo.GetByIdAsync(id);
-        if (transaction == null) return NotFound();
-        return Ok(MapToDto(transaction));
-    }
+        => Ok(await _service.GetByIdAsync(id));
 
     [HttpGet("vehicle/{vehicleId}")]
     [Authorize(Roles = "Admin,FleetManager,ReadOnly")]
     public async Task<ActionResult<IEnumerable<FuelTransactionDto>>> GetByVehicle(int vehicleId)
-    {
-        var transactions = await _repo.GetByVehicleIdAsync(vehicleId);
-        return Ok(transactions.Select(MapToDto));
-    }
+        => Ok(await _service.GetByVehicleIdAsync(vehicleId));
 
     [HttpPost]
     [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<FuelTransactionDto>> Create(CreateFuelTransactionDto dto)
     {
-        try
-        {
-            var transaction = new FuelTransaction
-            {
-                VehicleId = dto.VehicleId,
-                FuelCardId = dto.FuelCardId,
-                FuelTypeId = dto.FuelTypeId,
-                PostedAt = dto.PostedAt,
-                OdometerKm = dto.OdometerKm,
-                Liters = dto.Liters,
-                PricePerLiter = dto.PricePerLiter,
-                EnergyKwh = dto.EnergyKwh,
-                PricePerKwh = dto.PricePerKwh,
-                TotalCost = dto.TotalCost,
-                StationName = dto.StationName,
-                ReceiptNumber = dto.ReceiptNumber,
-                Notes = dto.Notes
-            };
-            var created = await _repo.CreateAsync(transaction);
-            return CreatedAtAction(nameof(GetById), new { id = created.TransactionId }, MapToDto(created));
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new
-            {
-                message = ex.Message,
-                inner = ex.InnerException?.Message,
-                trace = ex.StackTrace
-            });
-        }
+        var result = await _service.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = result.TransactionId }, result);
     }
 
-    // PATCH api/v1/fueltransactions/5/suspicious
     [HttpPatch("{id}/suspicious")]
     [Authorize(Roles = "Admin,FleetManager")]
     public async Task<IActionResult> MarkSuspicious(int id, [FromBody] bool isSuspicious)
     {
-        var result = await _repo.MarkSuspiciousAsync(id, isSuspicious);
-        if (!result) return NotFound();
+        await _service.MarkSuspiciousAsync(id, isSuspicious);
         return NoContent();
     }
 
@@ -187,32 +141,25 @@ public class FuelTransactionsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
-        var result = await _repo.DeleteAsync(id);
-        if (!result) return NotFound();
+        await _service.DeleteAsync(id);
         return NoContent();
     }
 
-    private static FuelTransactionDto MapToDto(FuelTransaction t) => new()
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,FleetManager")]
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] FuelTransactionFilter? filter)
     {
-        TransactionId = t.TransactionId,
-        VehicleId = t.VehicleId,
-        RegistrationNumber = t.Vehicle.RegistrationNumber,
-        VehicleMake = t.Vehicle.Make?.Name,
-        VehicleModel = t.Vehicle.Model?.Name,
-        FuelCardId = t.FuelCardId,
-        CardNumber = t.FuelCard?.CardNumber,
-        FuelTypeId = t.FuelTypeId,
-        FuelTypeName = t.FuelType.Label,
-        PostedAt = t.PostedAt,
-        OdometerKm = t.OdometerKm,
-        Liters = t.Liters,
-        PricePerLiter = t.PricePerLiter,
-        EnergyKwh = t.EnergyKwh,
-        PricePerKwh = t.PricePerKwh,
-        TotalCost = t.TotalCost,
-        StationName = t.StationName,
-        ReceiptNumber = t.ReceiptNumber,
-        IsSuspicious = t.IsSuspicious,
-        Notes = t.Notes
-    };
+        var dtos = await _service.GetFilteredDtosAsync(filter ?? new FuelTransactionFilter(), search);
+        var columns = FuelTransactionService.GetExportColumns();
+        if (format?.ToLower() == "pdf")
+        {
+            var bytes = _exportService.ExportToPdf(dtos, columns, "Fuel Transactions Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"fuel_transactions_{DateTime.Now:yyyyMMdd}.pdf");
+        }
+        else
+        {
+            var bytes = _exportService.ExportToExcel(dtos, columns, "Fuel Transactions");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"fuel_transactions_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
+    }
 }

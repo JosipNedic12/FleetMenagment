@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { Notification } from '../models/notification.models';
+import { PagedRequest, PagedResponse } from '../models/paged.models';
 import {
   LoginDto, AuthResponse, CreateAppUserDto,
   MakeDto, ModelDto, VehicleCategoryDto, FuelTypeDto, LicenseCategoryDto, MaintenanceTypeDto,
@@ -81,8 +82,12 @@ export class LookupApiService extends ApiService {
 export class VehicleApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<Vehicle>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<Vehicle>>('Vehicles', params);
+  }
   getAll(): Observable<Vehicle[]> {
-    return this.get<Vehicle[]>('Vehicles');
+    return this.get<Vehicle[]>('Vehicles/all');
   }
   getById(id: number): Observable<Vehicle> {
     return this.get<Vehicle>(`Vehicles/${id}`);
@@ -96,6 +101,18 @@ export class VehicleApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`Vehicles/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('Vehicles/export', params);
+  }
 }
 
 // ─── Employee ─────────────────────────────────────────────────────────────────
@@ -104,8 +121,12 @@ export class VehicleApiService extends ApiService {
 export class EmployeeApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<Employee>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<Employee>>('Employees', params);
+  }
   getAll(): Observable<Employee[]> {
-    return this.get<Employee[]>('Employees');
+    return this.get<Employee[]>('Employees/all');
   }
   getById(id: number): Observable<Employee> {
     return this.get<Employee>(`Employees/${id}`);
@@ -119,6 +140,18 @@ export class EmployeeApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`Employees/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('Employees/export', params);
+  }
 }
 
 // ─── Driver ───────────────────────────────────────────────────────────────────
@@ -127,8 +160,12 @@ export class EmployeeApiService extends ApiService {
 export class DriverApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<Driver>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<Driver>>('Drivers', params);
+  }
   getAll(): Observable<Driver[]> {
-    return this.get<Driver[]>('Drivers');
+    return this.get<Driver[]>('Drivers/all');
   }
   getById(id: number): Observable<Driver> {
     return this.get<Driver>(`Drivers/${id}`);
@@ -142,6 +179,18 @@ export class DriverApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`Drivers/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('Drivers/export', params);
+  }
 }
 
 // ─── Vehicle Assignment ───────────────────────────────────────────────────────
@@ -150,8 +199,12 @@ export class DriverApiService extends ApiService {
 export class VehicleAssignmentApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<VehicleAssignment>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<VehicleAssignment>>('VehicleAssignments', params);
+  }
   getAll(activeOnly = false): Observable<VehicleAssignment[]> {
-    return this.get<VehicleAssignment[]>(`VehicleAssignments${activeOnly ? '?activeOnly=true' : ''}`);
+    return this.get<VehicleAssignment[]>(`VehicleAssignments/all${activeOnly ? '?activeOnly=true' : ''}`);
   }
   getById(id: number): Observable<VehicleAssignment> {
     return this.get<VehicleAssignment>(`VehicleAssignments/${id}`);
@@ -174,6 +227,18 @@ export class VehicleAssignmentApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`VehicleAssignments/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('VehicleAssignments/export', params);
+  }
 }
 
 // ─── Vendor ───────────────────────────────────────────────────────────────────
@@ -182,8 +247,12 @@ export class VehicleAssignmentApiService extends ApiService {
 export class VendorApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<Vendor>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<Vendor>>('Vendors', params);
+  }
   getAll(): Observable<Vendor[]> {
-    return this.get<Vendor[]>('Vendors');
+    return this.get<Vendor[]>('Vendors/all');
   }
   getById(id: number): Observable<Vendor> {
     return this.get<Vendor>(`Vendors/${id}`);
@@ -197,6 +266,18 @@ export class VendorApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`Vendors/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('Vendors/export', params);
+  }
 }
 
 // ─── Maintenance Order ────────────────────────────────────────────────────────
@@ -205,8 +286,12 @@ export class VendorApiService extends ApiService {
 export class MaintenanceOrderApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<MaintenanceOrder>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<MaintenanceOrder>>('MaintenanceOrders', params);
+  }
   getAll(): Observable<MaintenanceOrder[]> {
-    return this.get<MaintenanceOrder[]>('MaintenanceOrders');
+    return this.get<MaintenanceOrder[]>('MaintenanceOrders/all');
   }
   getById(id: number): Observable<MaintenanceOrder> {
     return this.get<MaintenanceOrder>(`MaintenanceOrders/${id}`);
@@ -238,6 +323,18 @@ export class MaintenanceOrderApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`MaintenanceOrders/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('MaintenanceOrders/export', params);
+  }
 }
 
 // ─── Fuel Card ────────────────────────────────────────────────────────────────
@@ -246,8 +343,12 @@ export class MaintenanceOrderApiService extends ApiService {
 export class FuelCardApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<FuelCard>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<FuelCard>>('FuelCards', params);
+  }
   getAll(): Observable<FuelCard[]> {
-    return this.get<FuelCard[]>('FuelCards');
+    return this.get<FuelCard[]>('FuelCards/all');
   }
   getById(id: number): Observable<FuelCard> {
     return this.get<FuelCard>(`FuelCards/${id}`);
@@ -264,6 +365,18 @@ export class FuelCardApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`FuelCards/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('FuelCards/export', params);
+  }
 }
 
 // ─── Fuel Transaction ─────────────────────────────────────────────────────────
@@ -272,8 +385,12 @@ export class FuelCardApiService extends ApiService {
 export class FuelTransactionApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<FuelTransaction>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<FuelTransaction>>('FuelTransactions', params);
+  }
   getAll(): Observable<FuelTransaction[]> {
-    return this.get<FuelTransaction[]>('FuelTransactions');
+    return this.get<FuelTransaction[]>('FuelTransactions/all');
   }
   getById(id: number): Observable<FuelTransaction> {
     return this.get<FuelTransaction>(`FuelTransactions/${id}`);
@@ -293,6 +410,18 @@ export class FuelTransactionApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`FuelTransactions/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('FuelTransactions/export', params);
+  }
 }
 
 // ─── Odometer Log ─────────────────────────────────────────────────────────────
@@ -301,8 +430,12 @@ export class FuelTransactionApiService extends ApiService {
 export class OdometerLogApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<OdometerLog>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<OdometerLog>>('odometerlogs', params);
+  }
   getAll(): Observable<OdometerLog[]> {
-    return this.get<OdometerLog[]>('odometerlogs');
+    return this.get<OdometerLog[]>('odometerlogs/all');
   }
   getByVehicle(vehicleId: number): Observable<OdometerLog[]> {
     return this.get<OdometerLog[]>(`odometerlogs/vehicle/${vehicleId}`);
@@ -316,6 +449,18 @@ export class OdometerLogApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`odometerlogs/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('odometerlogs/export', params);
+  }
 }
 
 // ─── Insurance Policy ────────────────────────────────────────────────────────
@@ -324,8 +469,12 @@ export class OdometerLogApiService extends ApiService {
 export class InsurancePolicyApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<InsurancePolicy>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<InsurancePolicy>>('insurancepolicy', params);
+  }
   getAll(): Observable<InsurancePolicy[]> {
-    return this.get<InsurancePolicy[]>('insurancepolicy');
+    return this.get<InsurancePolicy[]>('insurancepolicy/all');
   }
   getActive(): Observable<InsurancePolicy[]> {
     return this.get<InsurancePolicy[]>('insurancepolicy/active');
@@ -345,6 +494,18 @@ export class InsurancePolicyApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`insurancepolicy/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('insurancepolicy/export', params);
+  }
 }
 
 // ─── Registration Record ─────────────────────────────────────────────────────
@@ -353,8 +514,12 @@ export class InsurancePolicyApiService extends ApiService {
 export class RegistrationApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<RegistrationRecord>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<RegistrationRecord>>('registrationrecord', params);
+  }
   getAll(): Observable<RegistrationRecord[]> {
-    return this.get<RegistrationRecord[]>('registrationrecord');
+    return this.get<RegistrationRecord[]>('registrationrecord/all');
   }
   getByVehicle(vehicleId: number): Observable<RegistrationRecord[]> {
     return this.get<RegistrationRecord[]>(`registrationrecord/vehicle/${vehicleId}`);
@@ -371,6 +536,18 @@ export class RegistrationApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`registrationrecord/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('registrationrecord/export', params);
+  }
 }
 
 // ─── Inspection ───────────────────────────────────────────────────────────────
@@ -379,8 +556,12 @@ export class RegistrationApiService extends ApiService {
 export class InspectionApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<Inspection>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<Inspection>>('inspection', params);
+  }
   getAll(): Observable<Inspection[]> {
-    return this.get<Inspection[]>('inspection');
+    return this.get<Inspection[]>('inspection/all');
   }
   getByVehicle(vehicleId: number): Observable<Inspection[]> {
     return this.get<Inspection[]>(`inspection/vehicle/${vehicleId}`);
@@ -397,6 +578,18 @@ export class InspectionApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`inspection/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('inspection/export', params);
+  }
 }
 
 // ─── Fine ─────────────────────────────────────────────────────────────────────
@@ -405,8 +598,12 @@ export class InspectionApiService extends ApiService {
 export class FineApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<Fine>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<Fine>>('fine', params);
+  }
   getAll(): Observable<Fine[]> {
-    return this.get<Fine[]>('fine');
+    return this.get<Fine[]>('fine/all');
   }
   getUnpaid(): Observable<Fine[]> {
     return this.get<Fine[]>('fine/unpaid');
@@ -432,6 +629,18 @@ export class FineApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`fine/${id}`);
   }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('fine/export', params);
+  }
 }
 
 // ─── Accident ─────────────────────────────────────────────────────────────────
@@ -440,8 +649,12 @@ export class FineApiService extends ApiService {
 export class AccidentApiService extends ApiService {
   constructor(http: HttpClient) { super(http); }
 
+  getPaged(request: PagedRequest, filter?: Record<string, any>): Observable<PagedResponse<Accident>> {
+    const params = this.buildPagedParams(request, filter);
+    return this.getWithParams<PagedResponse<Accident>>('accident', params);
+  }
   getAll(): Observable<Accident[]> {
-    return this.get<Accident[]>('accident');
+    return this.get<Accident[]>('accident/all');
   }
   getByVehicle(vehicleId: number): Observable<Accident[]> {
     return this.get<Accident[]>(`accident/vehicle/${vehicleId}`);
@@ -460,6 +673,18 @@ export class AccidentApiService extends ApiService {
   }
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`accident/${id}`);
+  }
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (search) params = params.set('search', search);
+    if (filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filter.${key}`, value.toString());
+        }
+      }
+    }
+    return this.downloadFile('accident/export', params);
   }
 }
 

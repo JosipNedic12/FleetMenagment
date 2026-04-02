@@ -39,10 +39,6 @@ builder.Services.AddDbContext<FleetDbContext>(options =>
             errorCodesToAdd: null)));
 
 // --- Repositories ---
-builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
-builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
-builder.Services.AddScoped<IDriverRepository, DriverRepository>();
-builder.Services.AddScoped<IVehicleAssignmentRepository, VehicleAssignmentRepository>();
 
 // --- JWT Service ---
 builder.Services.AddScoped<IJwtService, JwtService>();
@@ -102,36 +98,30 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
-builder.Services.AddScoped<IOdometerLogRepository, OdometerLogRepository>();
-builder.Services.AddScoped<IVendorRepository, VendorRepository>();
-builder.Services.AddScoped<IMaintenanceOrderRepository, MaintenanceOrderRepository>();
-builder.Services.AddScoped<IFuelCardRepository, FuelCardRepository>();
-builder.Services.AddScoped<IFuelTransactionRepository, FuelTransactionRepository>();
-builder.Services.AddScoped<IInsurancePolicyRepository, InsurancePolicyRepository>();
-builder.Services.AddScoped<IRegistrationRecordRepository, RegistrationRecordRepository>();
-builder.Services.AddScoped<IFineRepository, FineRepository>();
-builder.Services.AddScoped<IAccidentRepository, AccidentRepository>();
-builder.Services.AddScoped<IInspectionRepository, InspectionRepository>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 
+// --- Export ---
+ExportService.ConfigureLicensing();
+builder.Services.AddScoped<ExportService>();
+
 // --- Application Services ---
-builder.Services.AddScoped<IVehicleService, VehicleService>();
-builder.Services.AddScoped<IAccidentService, AccidentService>();
+builder.Services.AddScoped<AccidentService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IDriverService, DriverService>();
-builder.Services.AddScoped<IEmployeeService, EmployeeService>();
-builder.Services.AddScoped<IFineService, FineService>();
-builder.Services.AddScoped<IFuelCardService, FuelCardService>();
-builder.Services.AddScoped<IFuelTransactionService, FuelTransactionService>();
-builder.Services.AddScoped<IInspectionService, InspectionService>();
-builder.Services.AddScoped<IInsurancePolicyService, InsurancePolicyService>();
+builder.Services.AddScoped<DriverService>();
+builder.Services.AddScoped<EmployeeService>();
+builder.Services.AddScoped<FineService>();
+builder.Services.AddScoped<FuelCardService>();
+builder.Services.AddScoped<FuelTransactionService>();
+builder.Services.AddScoped<InspectionService>();
+builder.Services.AddScoped<InsurancePolicyService>();
 builder.Services.AddScoped<ILookupService, LookupService>();
-builder.Services.AddScoped<IMaintenanceOrderService, MaintenanceOrderService>();
-builder.Services.AddScoped<IOdometerLogService, OdometerLogService>();
-builder.Services.AddScoped<IRegistrationRecordService, RegistrationRecordService>();
-builder.Services.AddScoped<IVehicleAssignmentService, VehicleAssignmentService>();
-builder.Services.AddScoped<IVendorService, VendorService>();
+builder.Services.AddScoped<MaintenanceOrderService>();
+builder.Services.AddScoped<OdometerLogService>();
+builder.Services.AddScoped<RegistrationRecordService>();
+builder.Services.AddScoped<VehicleAssignmentService>();
+builder.Services.AddScoped<VehicleService>();
+builder.Services.AddScoped<VendorService>();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddHostedService<NotificationGeneratorService>();

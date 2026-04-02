@@ -1,7 +1,9 @@
-import { Component, OnInit, signal, computed, inject, HostListener } from '@angular/core';
+import { Component, OnInit, signal, inject, HostListener, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { VehicleApiService, LookupApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2, Car as CarIcon } from 'lucide-angular';
 import { Vehicle, CreateVehicleDto, UpdateVehicleDto, MakeDto, ModelDto, VehicleCategoryDto, FuelTypeDto } from '../../../core/models/models';
@@ -11,32 +13,36 @@ import { ConfirmModalComponent } from '../../../shared/components/modal/confirm-
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 import { VehicleLabelComponent } from '../../../shared/components/vehicle-label/vehicle-label.component';
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
+import { downloadBlob } from '../../../shared/utils/download';
 
 type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
 
 @Component({
   selector: 'app-vehicles-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, VehicleLabelComponent, EuNumberPipe],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent],
   template: `
     <div class="page">
       <div class="page-header">
         <div>
           <h1 class="page-title" i18n="@@vehicles.list.title">Vehicles</h1>
-          <p class="page-subtitle" i18n="@@vehicles.list.subtitle">{{ filtered().length }} vehicles</p>
+          <p class="page-subtitle" i18n="@@vehicles.list.subtitle">{{ totalCount() }} vehicles</p>
         </div>
         <div class="header-actions">
-          <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search reg#, make, model…" i18n-placeholder="@@vehicles.list.searchPlaceholder" />
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="onSearchChange($event)" placeholder="Search reg#, make, model…" i18n-placeholder="@@vehicles.list.searchPlaceholder" />
+          <app-export-button (exportAs)="onExport($event)" />
           <button *hasRole="['Admin','FleetManager']" class="btn btn-primary" (click)="openCreate()" i18n="@@vehicles.list.addButton">+ Add Vehicle</button>
         </div>
       </div>
 
       <div class="filter-tabs">
-        <button [class.active]="filter() === 'all'"     (click)="filter.set('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
-        <button [class.active]="filter() === 'active'"  (click)="filter.set('active')" i18n="@@COMMON.CHIPS.ACTIVE">Active</button>
-        <button [class.active]="filter() === 'service'" (click)="filter.set('service')" i18n="@@COMMON.CHIPS.SERVICE">Service</button>
-        <button [class.active]="filter() === 'retired'" (click)="filter.set('retired')" i18n="@@COMMON.CHIPS.RETIRED">Retired</button>
-        <button [class.active]="filter() === 'sold'"    (click)="filter.set('sold')" i18n="@@COMMON.CHIPS.SOLD">Sold</button>
+        <button [class.active]="filter() === 'all'"     (click)="onFilterChange('all')" i18n="@@COMMON.CHIPS.ALL">All</button>
+        <button [class.active]="filter() === 'active'"  (click)="onFilterChange('active')" i18n="@@COMMON.CHIPS.ACTIVE">Active</button>
+        <button [class.active]="filter() === 'service'" (click)="onFilterChange('service')" i18n="@@COMMON.CHIPS.SERVICE">Service</button>
+        <button [class.active]="filter() === 'retired'" (click)="onFilterChange('retired')" i18n="@@COMMON.CHIPS.RETIRED">Retired</button>
+        <button [class.active]="filter() === 'sold'"    (click)="onFilterChange('sold')" i18n="@@COMMON.CHIPS.SOLD">Sold</button>
       </div>
 
       <div class="table-card">
@@ -54,7 +60,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
               <div class="skeleton-cell w-16"></div>
             </div>
           }
-        } @else if (sorted().length === 0) {
+        } @else if (items().length === 0) {
           <div class="table-empty-state">
             <div class="empty-icon">
               <lucide-icon [img]="icons.CarIcon" [size]="44" [strokeWidth]="1.3"></lucide-icon>
@@ -77,7 +83,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
               </tr>
             </thead>
             <tbody>
-              @for (row of sorted(); track row.vehicleId) {
+              @for (row of items(); track row.vehicleId) {
                 <tr>
                   <td><app-vehicle-label [make]="row.make" [model]="row.model" [registration]="row.registrationNumber" /></td>
                   <td>{{ row.year }}</td>
@@ -99,6 +105,14 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
               }
             </tbody>
           </table>
+          <app-pagination
+            [page]="page()"
+            [pageSize]="pageSize()"
+            [totalCount]="totalCount()"
+            [totalPages]="totalPages()"
+            (pageChange)="onPageChange($event)"
+            (pageSizeChange)="onPageSizeChange($event)"
+          />
         }
       </div>
     </div>
@@ -222,7 +236,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
   `,
   styles: []
 })
-export class VehiclesListComponent implements OnInit {
+export class VehiclesListComponent implements OnInit, OnDestroy {
   readonly icons = { Eye, Pencil, Trash2, CarIcon };
 
   private readonly chipLabels: Record<string, string> = {
@@ -237,74 +251,87 @@ export class VehiclesListComponent implements OnInit {
   private lookupApi = inject(LookupApiService);
   auth = inject(AuthService);
 
-  vehicles   = signal<Vehicle[]>([]);
+  // Server response
+  items      = signal<Vehicle[]>([]);
+  totalCount = signal(0);
+  totalPages = signal(0);
+
+  // Pagination state
+  page     = signal(1);
+  pageSize = signal(10);
+
+  // Filter/search/sort state
+  search  = signal('');
+  filter  = signal<string>('all');
+  sortCol = signal('');
+  sortDir = signal<'asc' | 'desc'>('asc');
+
+  loading  = signal(true);
+  saving   = signal(false);
+  formError = signal('');
+
+  // Lookup data for forms
   makes      = signal<MakeDto[]>([]);
   models     = signal<ModelDto[]>([]);
   categories = signal<VehicleCategoryDto[]>([]);
   fuelTypes  = signal<FuelTypeDto[]>([]);
-  loading = signal(true); saving = signal(false); formError = signal('');
-  search = signal(''); showCreate = false; showEdit = false;
+
+  showCreate = false; showEdit = false;
   editId: number | null = null;
   deleteTarget: Vehicle | null = null;
-  filter = signal<'all' | VehicleStatus>('all');
   readonly currentYear = new Date().getFullYear();
   readonly skeletonRows = [1, 2, 3, 4, 5, 6];
-
-  sortCol = signal('');
-  sortDir = signal<'asc' | 'desc'>('asc');
 
   createForm: CreateVehicleDto = this.emptyCreateForm();
   editForm: UpdateVehicleDto = {};
 
-  filtered = computed(() => {
-    let list = this.vehicles();
-    if (this.filter() !== 'all') list = list.filter(v => v.status === this.filter());
-    const q = this.search().toLowerCase();
-    if (q) list = list.filter(v =>
-      v.registrationNumber.toLowerCase().includes(q) ||
-      v.make.toLowerCase().includes(q) ||
-      v.model.toLowerCase().includes(q)
-    );
-    return list;
-  });
-
-  sorted = computed(() => {
-    const col = this.sortCol();
-    const dir = this.sortDir();
-    if (!col) return this.filtered();
-    return [...this.filtered()].sort((a, b) => {
-      let va: string | number = '';
-      let vb: string | number = '';
-      if (col === 'reg')  { va = a.registrationNumber; vb = b.registrationNumber; }
-      if (col === 'make') { va = a.make + a.model;      vb = b.make + b.model; }
-      if (col === 'year') { va = a.year;                vb = b.year; }
-      if (col === 'odo')  { va = a.currentOdometerKm;   vb = b.currentOdometerKm; }
-      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
-      return dir === 'asc' ? cmp : -cmp;
-    });
-  });
-
-  sort(col: string): void {
-    if (this.sortCol() === col) {
-      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
-    } else {
-      this.sortCol.set(col);
-      this.sortDir.set('asc');
-    }
-  }
+  private searchSubject = new Subject<string>();
 
   ngOnInit(): void {
-    this.load();
+    this.searchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(term => {
+      this.search.set(term);
+      this.page.set(1);
+      this.loadPage();
+    });
+    this.loadPage();
     this.lookupApi.getVehicleCategories().subscribe(c => this.categories.set(c));
     this.lookupApi.getFuelTypes().subscribe(f => this.fuelTypes.set(f));
     this.lookupApi.getMakes().subscribe(m => this.makes.set(m));
   }
 
-  load(): void {
+  ngOnDestroy(): void { this.searchSubject.complete(); }
+
+  loadPage(): void {
     this.loading.set(true);
-    this.api.getAll().subscribe({
-      next: d => { this.vehicles.set(d); this.loading.set(false); },
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['status'] = this.filter();
+    this.api.getPaged(
+      { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
+      filterObj
+    ).subscribe({
+      next: res => { this.items.set(res.items); this.totalCount.set(res.totalCount); this.totalPages.set(res.totalPages); this.loading.set(false); },
       error: () => this.loading.set(false)
+    });
+  }
+
+  onSearchChange(term: string): void { this.searchSubject.next(term); }
+
+  onFilterChange(value: string): void { this.filter.set(value); this.page.set(1); this.loadPage(); }
+
+  sort(col: string): void {
+    if (this.sortCol() === col) { this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc'); }
+    else { this.sortCol.set(col); this.sortDir.set('asc'); }
+    this.loadPage();
+  }
+
+  onPageChange(p: number): void { this.page.set(p); this.loadPage(); }
+  onPageSizeChange(size: number): void { this.pageSize.set(size); this.page.set(1); this.loadPage(); }
+
+  onExport(format: 'xlsx' | 'pdf'): void {
+    const filterObj: Record<string, any> = {};
+    if (this.filter() !== 'all') filterObj['status'] = this.filter();
+    this.api.export(format, this.search() || undefined, filterObj).subscribe(blob => {
+      downloadBlob(blob, `vehicles_${new Date().toISOString().slice(0,10)}.${format}`);
     });
   }
 
@@ -314,11 +341,7 @@ export class VehiclesListComponent implements OnInit {
     if (makeId) this.lookupApi.getModelsByMake(makeId).subscribe(m => this.models.set(m));
   }
 
-  openCreate(): void {
-    this.createForm = this.emptyCreateForm();
-    this.formError.set('');
-    this.showCreate = true;
-  }
+  openCreate(): void { this.createForm = this.emptyCreateForm(); this.formError.set(''); this.showCreate = true; }
 
   saveCreate(): void {
     if (!this.createForm.registrationNumber || !this.createForm.vin || !this.createForm.makeId || !this.createForm.modelId || !this.createForm.categoryId || !this.createForm.fuelTypeId || !this.createForm.year) {
@@ -326,7 +349,7 @@ export class VehiclesListComponent implements OnInit {
     }
     this.saving.set(true);
     this.api.create(this.createForm).subscribe({
-      next: () => { this.load(); this.closeCreate(); this.saving.set(false); },
+      next: () => { this.loadPage(); this.closeCreate(); this.saving.set(false); },
       error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
     });
   }
@@ -336,15 +359,14 @@ export class VehiclesListComponent implements OnInit {
   startEdit(row: Vehicle): void {
     this.editId = row.vehicleId;
     this.editForm = { color: row.color, status: row.status, notes: row.notes };
-    this.formError.set('');
-    this.showEdit = true;
+    this.formError.set(''); this.showEdit = true;
   }
 
   saveEdit(): void {
     if (!this.editId) return;
     this.saving.set(true);
     this.api.update(this.editId, this.editForm).subscribe({
-      next: () => { this.load(); this.closeEdit(); this.saving.set(false); },
+      next: () => { this.loadPage(); this.closeEdit(); this.saving.set(false); },
       error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
     });
   }
@@ -361,7 +383,7 @@ export class VehiclesListComponent implements OnInit {
   doDelete(): void {
     if (!this.deleteTarget) return;
     this.api.deleteById(this.deleteTarget.vehicleId).subscribe({
-      next: () => { this.load(); this.deleteTarget = null; },
+      next: () => { this.loadPage(); this.deleteTarget = null; },
       error: () => { this.deleteTarget = null; }
     });
   }

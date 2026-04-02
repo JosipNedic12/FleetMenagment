@@ -1,6 +1,7 @@
-﻿using FleetManagement.Application.DTOs;
-using FleetManagement.Application.Interfaces;
-using FleetManagement.Domain.Entities;
+using FleetManagement.Application.Common;
+using FleetManagement.Application.Common.Filters;
+using FleetManagement.Application.DTOs;
+using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,99 +12,71 @@ namespace FleetManagement.API.Controllers;
 [Authorize]
 public class InspectionController : ControllerBase
 {
-    private readonly IInspectionRepository _repo;
-    public InspectionController(IInspectionRepository repo) => _repo = repo;
+    private readonly InspectionService _svc;
+    private readonly ExportService _exportService;
+
+    public InspectionController(InspectionService svc, ExportService exportService)
+    {
+        _svc = svc;
+        _exportService = exportService;
+    }
 
     [HttpGet]
+    public async Task<IActionResult> GetPaged([FromQuery] PagedRequest<InspectionFilter> request) =>
+        Ok(await _svc.GetPagedAsync(request));
+
+    [HttpGet("all")]
     public async Task<IActionResult> GetAll() =>
-        Ok((await _repo.GetAllAsync()).Select(ToDto));
+        Ok(await _svc.GetAllAsync());
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var i = await _repo.GetByIdAsync(id);
-        return i == null ? NotFound() : Ok(ToDto(i));
-    }
+    public async Task<IActionResult> GetById(int id) =>
+        Ok(await _svc.GetByIdAsync(id));
 
     [HttpGet("vehicle/{vehicleId}")]
     public async Task<IActionResult> GetByVehicle(int vehicleId) =>
-        Ok((await _repo.GetByVehicleIdAsync(vehicleId)).Select(ToDto));
+        Ok(await _svc.GetByVehicleIdAsync(vehicleId));
 
     [HttpGet("vehicle/{vehicleId}/latest")]
-    public async Task<IActionResult> GetLatest(int vehicleId)
-    {
-        var i = await _repo.GetLatestByVehicleIdAsync(vehicleId);
-        return i == null ? NotFound() : Ok(ToDto(i));
-    }
+    public async Task<IActionResult> GetLatest(int vehicleId) =>
+        Ok(await _svc.GetLatestByVehicleIdAsync(vehicleId));
 
     [HttpPost]
     [Authorize(Roles = "Admin,FleetManager")]
     public async Task<IActionResult> Create([FromBody] CreateInspectionDto dto)
     {
-        var validResults = new[] { "passed", "failed", "conditional" };
-        if (!validResults.Contains(dto.Result))
-            return BadRequest("result must be: passed | failed | conditional");
-
-        // Business rule #19: failed requires notes
-        if (dto.Result == "failed" && string.IsNullOrWhiteSpace(dto.Notes))
-            return BadRequest("Notes are required when result is 'failed'");
-
-        var entity = new Inspection
-        {
-            VehicleId = dto.VehicleId,
-            InspectedAt = dto.InspectedAt,
-            ValidTo = dto.ValidTo,
-            Result = dto.Result,
-            Notes = dto.Notes,
-            OdometerKm = dto.OdometerKm
-        };
-        var created = await _repo.CreateAsync(entity);
-        return CreatedAtAction(nameof(GetById), new { id = created.InspectionId }, ToDto(created));
+        var created = await _svc.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = created.InspectionId }, created);
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateInspectionDto dto)
-    {
-        if (dto.Result != null && !new[] { "passed", "failed", "conditional" }.Contains(dto.Result))
-            return BadRequest("result must be: passed | failed | conditional");
-
-        if (dto.Result == "failed" && string.IsNullOrWhiteSpace(dto.Notes))
-            return BadRequest("Notes are required when result is 'failed'");
-
-        var updated = new Inspection
-        {
-            InspectedAt = dto.InspectedAt ?? default,
-            ValidTo = dto.ValidTo,
-            Result = dto.Result ?? string.Empty,
-            Notes = dto.Notes,
-            OdometerKm = dto.OdometerKm
-        };
-        var result = await _repo.UpdateAsync(id, updated);
-        return result == null ? NotFound() : Ok(ToDto(result));
-    }
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateInspectionDto dto) =>
+        Ok(await _svc.UpdateAsync(id, dto));
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Delete(int id) =>
-        await _repo.DeleteAsync(id) ? NoContent() : NotFound();
-
-    private static InspectionDto ToDto(Inspection i)
+    public async Task<IActionResult> Delete(int id)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        return new InspectionDto
+        await _svc.DeleteAsync(id);
+        return NoContent();
+    }
+
+    [HttpGet("export")]
+    [Authorize(Roles = "Admin,FleetManager")]
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] InspectionFilter? filter)
+    {
+        var dtos = await _svc.GetFilteredDtosAsync(filter ?? new InspectionFilter(), search);
+        var columns = InspectionService.GetExportColumns();
+        if (format?.ToLower() == "pdf")
         {
-            InspectionId = i.InspectionId,
-            VehicleId = i.VehicleId,
-            RegistrationNumber = i.Vehicle?.RegistrationNumber ?? string.Empty,
-            VehicleMake = i.Vehicle?.Make?.Name ?? string.Empty,
-            VehicleModel = i.Vehicle?.Model?.Name ?? string.Empty,
-            InspectedAt = i.InspectedAt,
-            ValidTo = i.ValidTo,
-            Result = i.Result,
-            Notes = i.Notes,
-            OdometerKm = i.OdometerKm,
-            IsValid = i.ValidTo.HasValue && i.ValidTo.Value >= today
-        };
+            var bytes = _exportService.ExportToPdf(dtos, columns, "Inspections Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"inspections_{DateTime.Now:yyyyMMdd}.pdf");
+        }
+        else
+        {
+            var bytes = _exportService.ExportToExcel(dtos, columns, "Inspections");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"inspections_{DateTime.Now:yyyyMMdd}.xlsx");
+        }
     }
 }
