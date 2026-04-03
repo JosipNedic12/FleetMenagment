@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { VehicleAssignmentApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
 import { LucideAngularModule, Eye, Pencil, Trash2 } from 'lucide-angular';
 import { VehicleAssignment, CreateVehicleAssignmentDto, UpdateVehicleAssignmentDto, Vehicle, Driver } from '../../../core/models/models';
@@ -256,8 +256,13 @@ export class AssignmentsListComponent implements OnInit, OnDestroy {
   );
 
   private searchSubject = new Subject<string>();
+  private loadSubject = new Subject<void>();
 
   ngOnInit(): void {
+    this.loadSubject.pipe(switchMap(() => this.buildPageRequest())).subscribe({
+      next: res => { this.items.set(res.items); this.totalCount.set(res.totalCount); this.totalPages.set(res.totalPages); this.loading.set(false); },
+      error: () => this.loading.set(false)
+    });
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged()).subscribe(term => {
       this.search.set(term);
       this.page.set(1);
@@ -274,19 +279,20 @@ export class AssignmentsListComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy(): void { this.searchSubject.complete(); }
+  ngOnDestroy(): void { this.searchSubject.complete(); this.loadSubject.complete(); }
+
+  private buildPageRequest() {
+    const filterObj: Record<string, any> = { ...this.appliedFilters() };
+    if (this.filter() !== 'all') filterObj['status'] = this.filter();
+    return this.api.getPaged(
+      { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
+      filterObj
+    );
+  }
 
   loadPage(): void {
     this.loading.set(true);
-    const filterObj: Record<string, any> = { ...this.appliedFilters() };
-    if (this.filter() !== 'all') filterObj['status'] = this.filter();
-    this.api.getPaged(
-      { page: this.page(), pageSize: this.pageSize(), search: this.search() || undefined, sortBy: this.sortCol() || undefined, sortDirection: this.sortDir() },
-      filterObj
-    ).subscribe({
-      next: res => { this.items.set(res.items); this.totalCount.set(res.totalCount); this.totalPages.set(res.totalPages); this.loading.set(false); },
-      error: () => this.loading.set(false)
-    });
+    this.loadSubject.next();
   }
 
   onSearchChange(term: string): void { this.searchSubject.next(term); }
@@ -315,7 +321,7 @@ export class AssignmentsListComponent implements OnInit, OnDestroy {
   onPageSizeChange(size: number): void { this.pageSize.set(size); this.page.set(1); this.loadPage(); }
 
   onExport(format: 'xlsx' | 'pdf'): void {
-    const filterObj: Record<string, any> = {};
+    const filterObj: Record<string, any> = { ...this.appliedFilters() };
     if (this.filter() !== 'all') filterObj['status'] = this.filter();
     this.api.export(format, this.search() || undefined, filterObj).subscribe(blob => {
       downloadBlob(blob, `assignments_${new Date().toISOString().slice(0,10)}.${format}`);

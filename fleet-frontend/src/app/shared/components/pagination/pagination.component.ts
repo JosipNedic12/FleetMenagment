@@ -199,8 +199,9 @@ export class PaginationComponent {
   }
 
   applyPageSize(): void {
-    let val = this.pageSizeInput();
-    if (!val || val < 1) val = 10;
+    const raw = this.pageSizeInput();
+    let val = typeof raw === 'string' ? parseInt(raw, 10) : Number(raw);
+    if (!val || isNaN(val) || val < 1) val = 10;
     if (val > 500) val = 500;
     this.pageSizeInput.set(val);
     if (val !== this.pageSize) {

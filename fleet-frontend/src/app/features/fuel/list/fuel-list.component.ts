@@ -469,7 +469,7 @@ export class FuelListComponent implements OnInit, OnDestroy {
   }
 
   onExportTx(format: 'xlsx' | 'pdf'): void {
-    this.txApi.export(format, this.txSearch() || undefined).subscribe(blob => {
+    this.txApi.export(format, this.txSearch() || undefined, this.txAppliedFilters()).subscribe(blob => {
       downloadBlob(blob, `fuel_transactions_${new Date().toISOString().slice(0,10)}.${format}`);
     });
   }
