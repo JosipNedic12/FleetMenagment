@@ -6,3 +6,4 @@ appsettings.Development.json
 .claude/
 uploads/
 elk/data/
+seed.sql
