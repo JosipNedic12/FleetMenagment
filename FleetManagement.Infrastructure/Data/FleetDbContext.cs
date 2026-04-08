@@ -36,6 +36,7 @@ public class FleetDbContext : DbContext
     public DbSet<Document> Documents { get; set; }
     public DbSet<VehicleDocument> VehicleDocuments { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<UserActivityLog> UserActivityLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -529,6 +530,21 @@ public class FleetDbContext : DbContext
             entity.HasOne(e => e.User)
                   .WithMany()
                   .HasForeignKey(e => e.UserId);
+        });
+
+        modelBuilder.Entity<UserActivityLog>(entity =>
+        {
+            entity.ToTable("user_activity_log", "fleet");
+            entity.HasKey(e => e.ActivityLogId);
+            entity.Property(e => e.ActivityLogId).HasColumnName("activity_log_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.Action).HasColumnName("action").HasMaxLength(100);
+            entity.Property(e => e.EntityType).HasColumnName("entity_type").HasMaxLength(100);
+            entity.Property(e => e.EntityId).HasColumnName("entity_id");
+            entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
+
+            entity.HasIndex(e => e.UserId).HasDatabaseName("ix_user_activity_log_user_id");
         });
     }
 }

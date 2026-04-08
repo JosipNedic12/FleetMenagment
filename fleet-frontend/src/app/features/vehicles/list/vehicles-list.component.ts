@@ -5,7 +5,7 @@ import { RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { VehicleApiService, LookupApiService } from '../../../core/auth/feature-api.services';
-import { LucideAngularModule, Eye, Pencil, Trash2, Car as CarIcon } from 'lucide-angular';
+import { LucideAngularModule, Pencil, Trash2, Car as CarIcon } from 'lucide-angular';
 import { Vehicle, CreateVehicleDto, UpdateVehicleDto, MakeDto, ModelDto, VehicleCategoryDto, FuelTypeDto } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
@@ -93,7 +93,7 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
             <tbody>
               @for (row of items(); track row.vehicleId) {
                 <tr>
-                  <td><app-vehicle-label [make]="row.make" [model]="row.model" [registration]="row.registrationNumber" /></td>
+                  <td><a [routerLink]="['/vehicles', row.vehicleId]" class="name-link"><app-vehicle-label [make]="row.make" [model]="row.model" [registration]="row.registrationNumber" /></a></td>
                   <td>{{ row.year }}</td>
                   <td>{{ row.category }}</td>
                   <td>{{ row.fuelType }}</td>
@@ -105,7 +105,6 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
                     />
                   </td>
                   <td class="actions">
-                    <a [routerLink]="['/vehicles', row.vehicleId]" class="btn-icon" title="View" i18n-title="@@vehicles.action.view"><lucide-icon [img]="icons.Eye" [size]="15" [strokeWidth]="2"></lucide-icon></a>
                     <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" i18n-title="@@vehicles.action.edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" i18n-title="@@vehicles.action.delete" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
@@ -242,10 +241,14 @@ type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
       (cancelled)="deleteTarget = null"
     />
   `,
-  styles: []
+  styles: [`
+    .name-link { display: block; color: inherit; text-decoration: none; cursor: pointer; transition: color 0.15s; }
+    .name-link:hover { color: var(--brand); }
+    .name-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
+  `]
 })
 export class VehiclesListComponent implements OnInit, OnDestroy {
-  readonly icons = { Eye, Pencil, Trash2, CarIcon };
+  readonly icons = { Pencil, Trash2, CarIcon };
 
   private readonly chipLabels: Record<string, string> = {
     active:  $localize`:@@COMMON.CHIPS.ACTIVE:Active`,
@@ -277,19 +280,19 @@ export class VehiclesListComponent implements OnInit, OnDestroy {
 
   filterFields: FilterField[] = [
     {
-      key: 'status', label: 'Status', type: 'select',
+      key: 'status', label: $localize`:@@vehicles.filter.status:Status`, type: 'select',
       options: [
-        { value: 'active', label: 'Active' },
-        { value: 'service', label: 'In Service' },
-        { value: 'retired', label: 'Retired' },
-        { value: 'sold', label: 'Sold' },
+        { value: 'active',  label: $localize`:@@COMMON.CHIPS.ACTIVE:Aktivno` },
+        { value: 'service', label: $localize`:@@COMMON.CHIPS.SERVICE:Servis` },
+        { value: 'retired', label: $localize`:@@COMMON.CHIPS.RETIRED:Povučeno` },
+        { value: 'sold',    label: $localize`:@@COMMON.CHIPS.SOLD:Prodano` },
       ]
     },
-    { key: 'makeId', label: 'Make', type: 'select', options: [] },
-    { key: 'categoryId', label: 'Category', type: 'select', options: [] },
-    { key: 'fuelTypeId', label: 'Fuel Type', type: 'select', options: [] },
-    { key: 'yearFrom', label: 'Year From', type: 'number', placeholder: 'e.g. 2020' },
-    { key: 'yearTo', label: 'Year To', type: 'number', placeholder: 'e.g. 2024' },
+    { key: 'makeId',      label: $localize`:@@vehicles.filter.make:Marka`,       type: 'select', options: [] },
+    { key: 'categoryId', label: $localize`:@@vehicles.filter.category:Kategorija`, type: 'select', options: [] },
+    { key: 'fuelTypeId', label: $localize`:@@vehicles.filter.fuelType:Gorivo`,   type: 'select', options: [] },
+    { key: 'yearFrom',   label: $localize`:@@vehicles.filter.yearFrom:Godina od`, type: 'number', placeholder: $localize`:@@vehicles.filter.yearFromPlaceholder:npr. 2020` },
+    { key: 'yearTo',     label: $localize`:@@vehicles.filter.yearTo:Godina do`,   type: 'number', placeholder: $localize`:@@vehicles.filter.yearToPlaceholder:npr. 2024` },
   ];
 
   loading  = signal(true);
@@ -399,12 +402,12 @@ export class VehiclesListComponent implements OnInit, OnDestroy {
 
   saveCreate(): void {
     if (!this.createForm.registrationNumber || !this.createForm.vin || !this.createForm.makeId || !this.createForm.modelId || !this.createForm.categoryId || !this.createForm.fuelTypeId || !this.createForm.year) {
-      this.formError.set('Fill all required fields.'); return;
+      this.formError.set($localize`:@@COMMON.FORM.fillRequired:Ispunite sva obavezna polja.`); return;
     }
     this.saving.set(true);
     this.api.create(this.createForm).subscribe({
       next: () => { this.loadPage(); this.closeCreate(); this.saving.set(false); },
-      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? $localize`:@@COMMON.FORM.saveFailed:Spremanje nije uspjelo.`); }
     });
   }
 
@@ -421,7 +424,7 @@ export class VehiclesListComponent implements OnInit, OnDestroy {
     this.saving.set(true);
     this.api.update(this.editId, this.editForm).subscribe({
       next: () => { this.loadPage(); this.closeEdit(); this.saving.set(false); },
-      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? $localize`:@@COMMON.FORM.saveFailed:Spremanje nije uspjelo.`); }
     });
   }
 

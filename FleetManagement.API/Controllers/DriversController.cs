@@ -4,6 +4,7 @@ using FleetManagement.Application.DTOs;
 using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FleetManagement.API.Controllers;
 
@@ -13,11 +14,13 @@ public class DriversController : ControllerBase
 {
     private readonly DriverService _service;
     private readonly ExportService _exportService;
+    private readonly UserActivityService _activity;
 
-    public DriversController(DriverService service, ExportService exportService)
+    public DriversController(DriverService service, ExportService exportService, UserActivityService activity)
     {
         _service = service;
         _exportService = exportService;
+        _activity = activity;
     }
 
     [HttpGet]
@@ -41,19 +44,28 @@ public class DriversController : ControllerBase
     public async Task<ActionResult<DriverDto>> Create(CreateDriverDto dto)
     {
         var result = await _service.CreateAsync(dto);
+        await _activity.LogAsync(GetUserId(), "DriverCreated", "Driver", result.DriverId,
+            $"Dodan vozač {result.FullName}");
         return CreatedAtAction(nameof(GetById), new { id = result.DriverId }, result);
     }
 
     [HttpPatch("{id}")]
     [Authorize(Roles = "Admin,FleetManager")]
     public async Task<ActionResult<DriverDto>> Update(int id, UpdateDriverDto dto)
-        => Ok(await _service.UpdateAsync(id, dto));
+    {
+        var result = await _service.UpdateAsync(id, dto);
+        await _activity.LogAsync(GetUserId(), "DriverUpdated", "Driver", id,
+            $"Ažuriran vozač {result.FullName}");
+        return Ok(result);
+    }
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         await _service.DeleteAsync(id);
+        await _activity.LogAsync(GetUserId(), "DriverDeleted", "Driver", id,
+            $"Obrisan vozač (ID: {id})");
         return NoContent();
     }
 
@@ -73,5 +85,11 @@ public class DriversController : ControllerBase
             var bytes = _exportService.ExportToExcel(dtos, columns, "Drivers");
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"drivers_{DateTime.Now:yyyyMMdd}.xlsx");
         }
+    }
+
+    private int GetUserId()
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return int.TryParse(claim, out var id) ? id : 0;
     }
 }

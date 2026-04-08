@@ -7,15 +7,33 @@ filebeat.inputs:
       - ndjson:
           keys_under_root: true
           add_error_key: true
+          message_key: "@m"
+          overwrite_keys: true
 
 processors:
   - timestamp:
-      field: Timestamp
+      field: "@t"
       layouts:
-        - '2006-01-02T15:04:05.9999999-07:00'
+        - '2006-01-02T15:04:05.9999999Z'
         - '2006-01-02T15:04:05.9999999Z07:00'
-      test:
-        - '2026-03-24T00:47:38.9513773+01:00'
+        - '2006-01-02T15:04:05.9999999-07:00'
+  - rename:
+      fields:
+        - from: "@m"
+          to: "message_rendered"
+        - from: "@mt"
+          to: "message_template"
+        - from: "@l"
+          to: "log_level"
+        - from: "@x"
+          to: "exception"
+        - from: "@i"
+          to: "event_id"
+      ignore_missing: true
+      fail_on_error: false
+  - drop_fields:
+      fields: ["agent", "ecs", "input", "host.name"]
+      ignore_missing: true
 
 output.elasticsearch:
   hosts: ["elasticsearch:9200"]
@@ -24,6 +42,9 @@ output.elasticsearch:
 setup.ilm.enabled: false
 setup.template.name: fleet-logs
 setup.template.pattern: "fleet-logs-*"
+setup.template.settings:
+  index.number_of_shards: 1
+  index.number_of_replicas: 0
 
-logging.level: info
+logging.level: warning
 logging.to_stderr: true

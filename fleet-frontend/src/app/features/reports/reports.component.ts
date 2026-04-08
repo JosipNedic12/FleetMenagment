@@ -118,37 +118,39 @@ interface ComplianceRow {
                 <span class="s-label" i18n="@@reports.fuel.avgPricePerLiter">Avg Price per Liter</span>
               </div>
             </div>
-            <table class="report-table">
-              <thead>
-                <tr>
-                  <th i18n="@@reports.col.vehicle">Vehicle</th>
-                  <th class="num" i18n="@@reports.fuel.col.transactions">Transactions</th>
-                  <th class="num" i18n="@@reports.fuel.col.liters">Liters</th>
-                  <th class="num" i18n="@@reports.fuel.col.totalCost">Total Cost (€)</th>
-                  <th class="num" i18n="@@reports.fuel.col.avgPerFill">Avg per Fill (€)</th>
-                  @for (m of fuelMonths(); track m) {
-                    <th class="num">{{ m }}</th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of fuelRows(); track row.vehicleId) {
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead>
                   <tr>
-                    <td>
-                      <div class="cell-primary">{{ row.reg }}</div>
-                      <div class="cell-sub">{{ row.makeModel }}</div>
-                    </td>
-                    <td class="num">{{ row.txCount }}</td>
-                    <td class="num">{{ row.totalLiters | number:'1.0-0' }}</td>
-                    <td class="num bold">{{ row.totalCost | number:'1.2-2' }}</td>
-                    <td class="num">{{ (row.txCount > 0 ? row.totalCost / row.txCount : 0) | number:'1.2-2' }}</td>
+                    <th i18n="@@reports.col.vehicle">Vehicle</th>
+                    <th class="num" i18n="@@reports.fuel.col.transactions">Transactions</th>
+                    <th class="num" i18n="@@reports.fuel.col.liters">Liters</th>
+                    <th class="num" i18n="@@reports.fuel.col.totalCost">Total Cost (€)</th>
+                    <th class="num" i18n="@@reports.fuel.col.avgPerFill">Avg per Fill (€)</th>
                     @for (m of fuelMonths(); track m) {
-                      <td class="num">{{ (row.months[m] ?? 0) | number:'1.2-2' }}</td>
+                      <th class="num">{{ m }}</th>
                     }
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @for (row of fuelRows(); track row.vehicleId) {
+                    <tr>
+                      <td>
+                        <div class="cell-primary">{{ row.reg }}</div>
+                        <div class="cell-sub">{{ row.makeModel }}</div>
+                      </td>
+                      <td class="num">{{ row.txCount }}</td>
+                      <td class="num">{{ row.totalLiters | number:'1.0-0' }}</td>
+                      <td class="num bold">{{ row.totalCost | number:'1.2-2' }}</td>
+                      <td class="num">{{ (row.txCount > 0 ? row.totalCost / row.txCount : 0) | number:'1.2-2' }}</td>
+                      @for (m of fuelMonths(); track m) {
+                        <td class="num">{{ (row.months[m] ?? 0) | number:'1.2-2' }}</td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
         }
 
@@ -184,33 +186,35 @@ interface ComplianceRow {
                 <span class="s-label" i18n="@@reports.maintenance.laborCost">Labor Cost</span>
               </div>
             </div>
-            <table class="report-table">
-              <thead>
-                <tr>
-                  <th i18n="@@reports.col.vehicle">Vehicle</th>
-                  <th class="num" i18n="@@reports.maintenance.col.orders">Orders</th>
-                  <th class="num" i18n="@@reports.maintenance.col.parts">Parts (€)</th>
-                  <th class="num" i18n="@@reports.maintenance.col.labor">Labor (€)</th>
-                  <th class="num" i18n="@@reports.maintenance.col.total">Total (€)</th>
-                  <th class="num" i18n="@@reports.maintenance.col.avgPerOrder">Avg per Order (€)</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of maintenanceRows(); track row.vehicleId) {
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead>
                   <tr>
-                    <td>
-                      <div class="cell-primary">{{ row.reg }}</div>
-                      <div class="cell-sub">{{ row.makeModel }}</div>
-                    </td>
-                    <td class="num">{{ row.orderCount }}</td>
-                    <td class="num">{{ row.partsCost | number:'1.2-2' }}</td>
-                    <td class="num">{{ row.laborCost | number:'1.2-2' }}</td>
-                    <td class="num bold">{{ row.totalCost | number:'1.2-2' }}</td>
-                    <td class="num">{{ (row.orderCount > 0 ? row.totalCost / row.orderCount : 0) | number:'1.2-2' }}</td>
+                    <th i18n="@@reports.col.vehicle">Vehicle</th>
+                    <th class="num" i18n="@@reports.maintenance.col.orders">Orders</th>
+                    <th class="num" i18n="@@reports.maintenance.col.parts">Parts (€)</th>
+                    <th class="num" i18n="@@reports.maintenance.col.labor">Labor (€)</th>
+                    <th class="num" i18n="@@reports.maintenance.col.total">Total (€)</th>
+                    <th class="num" i18n="@@reports.maintenance.col.avgPerOrder">Avg per Order (€)</th>
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @for (row of maintenanceRows(); track row.vehicleId) {
+                    <tr>
+                      <td>
+                        <div class="cell-primary">{{ row.reg }}</div>
+                        <div class="cell-sub">{{ row.makeModel }}</div>
+                      </td>
+                      <td class="num">{{ row.orderCount }}</td>
+                      <td class="num">{{ row.partsCost | number:'1.2-2' }}</td>
+                      <td class="num">{{ row.laborCost | number:'1.2-2' }}</td>
+                      <td class="num bold">{{ row.totalCost | number:'1.2-2' }}</td>
+                      <td class="num">{{ (row.orderCount > 0 ? row.totalCost / row.orderCount : 0) | number:'1.2-2' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
         }
 
@@ -242,31 +246,33 @@ interface ComplianceRow {
                 <span class="s-label" i18n="@@reports.utilization.avgKmPerVehicle">Avg KM per Active Vehicle</span>
               </div>
             </div>
-            <table class="report-table">
-              <thead>
-                <tr>
-                  <th i18n="@@reports.col.vehicle">Vehicle</th>
-                  <th i18n="@@reports.utilization.col.status">Status</th>
-                  <th class="num" i18n="@@reports.utilization.col.kmThisMonth">KM This Month</th>
-                  <th class="num" i18n="@@reports.utilization.col.totalOdometer">Total Odometer (km)</th>
-                  <th i18n="@@reports.utilization.col.lastLog">Last Log</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of utilizationRows(); track row.vehicleId) {
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead>
                   <tr>
-                    <td>
-                      <div class="cell-primary">{{ row.reg }}</div>
-                      <div class="cell-sub">{{ row.makeModel }}</div>
-                    </td>
-                    <td><span class="badge badge-{{ row.status }}">{{ row.status === 'in_shop' ? 'In Shop' : row.status }}</span></td>
-                    <td class="num bold">{{ row.kmThisMonth | number:'1.0-0' }}</td>
-                    <td class="num">{{ row.kmTotal | number:'1.0-0' }}</td>
-                    <td class="muted">{{ row.lastLogDate ? (row.lastLogDate | date:'dd.MM.yyyy') : '—' }}</td>
+                    <th i18n="@@reports.col.vehicle">Vehicle</th>
+                    <th i18n="@@reports.utilization.col.status">Status</th>
+                    <th class="num" i18n="@@reports.utilization.col.kmThisMonth">KM This Month</th>
+                    <th class="num" i18n="@@reports.utilization.col.totalOdometer">Total Odometer (km)</th>
+                    <th i18n="@@reports.utilization.col.lastLog">Last Log</th>
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @for (row of utilizationRows(); track row.vehicleId) {
+                    <tr>
+                      <td>
+                        <div class="cell-primary">{{ row.reg }}</div>
+                        <div class="cell-sub">{{ row.makeModel }}</div>
+                      </td>
+                      <td><span class="badge badge-{{ row.status }}">{{ row.status === 'in_shop' ? 'In Shop' : row.status }}</span></td>
+                      <td class="num bold">{{ row.kmThisMonth | number:'1.0-0' }}</td>
+                      <td class="num">{{ row.kmTotal | number:'1.0-0' }}</td>
+                      <td class="muted">{{ row.lastLogDate ? (row.lastLogDate | date:'dd.MM.yyyy') : '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
         }
 
@@ -298,31 +304,33 @@ interface ComplianceRow {
                 <span class="s-label" i18n="@@reports.compliance.ok">OK</span>
               </div>
             </div>
-            <table class="report-table">
-              <thead>
-                <tr>
-                  <th i18n="@@reports.col.vehicle">Vehicle</th>
-                  <th i18n="@@reports.compliance.col.type">Type</th>
-                  <th i18n="@@reports.compliance.col.expires">Expires</th>
-                  <th class="num" i18n="@@reports.compliance.col.daysLeft">Days Left</th>
-                  <th i18n="@@reports.compliance.col.status">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of complianceRows(); track row.vehicleId + row.type) {
-                  <tr [class.row-expired]="row.status === 'expired'" [class.row-soon]="row.status === 'soon'">
-                    <td>
-                      <div class="cell-primary">{{ row.reg }}</div>
-                      <div class="cell-sub">{{ row.makeModel }}</div>
-                    </td>
-                    <td>{{ row.type }}</td>
-                    <td>{{ row.expiresAt | date:'dd.MM.yyyy' }}</td>
-                    <td class="num">{{ row.daysLeft }}</td>
-                    <td><span class="badge badge-{{ row.status }}">{{ row.status === 'ok' ? 'OK' : row.status }}</span></td>
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead>
+                  <tr>
+                    <th i18n="@@reports.col.vehicle">Vehicle</th>
+                    <th i18n="@@reports.compliance.col.type">Type</th>
+                    <th i18n="@@reports.compliance.col.expires">Expires</th>
+                    <th class="num" i18n="@@reports.compliance.col.daysLeft">Days Left</th>
+                    <th i18n="@@reports.compliance.col.status">Status</th>
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @for (row of complianceRows(); track row.vehicleId + row.type) {
+                    <tr [class.row-expired]="row.status === 'expired'" [class.row-soon]="row.status === 'soon'">
+                      <td>
+                        <div class="cell-primary">{{ row.reg }}</div>
+                        <div class="cell-sub">{{ row.makeModel }}</div>
+                      </td>
+                      <td>{{ row.type }}</td>
+                      <td>{{ row.expiresAt | date:'dd.MM.yyyy' }}</td>
+                      <td class="num">{{ row.daysLeft }}</td>
+                      <td><span class="badge badge-{{ row.status }}">{{ row.status === 'ok' ? 'OK' : row.status }}</span></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
         }
 
@@ -330,8 +338,8 @@ interface ComplianceRow {
     </div>
   `,
   styles: [`
-    .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--subtle-bg); border-radius: 10px; padding: 4px; width: fit-content; }
-    .tab { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border: none; background: none; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: inherit; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 24px; background: var(--subtle-bg); border-radius: 10px; padding: 4px; width: 100%; max-width: fit-content; }
+    .tab { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border: none; background: none; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: inherit; }
     .tab:hover { background: var(--card-bg); color: var(--text-primary); }
     .tab.active { background: var(--card-bg); color: var(--brand); font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 
@@ -353,7 +361,8 @@ interface ComplianceRow {
     .s-value { font-size: 24px; font-weight: 800; color: var(--text-primary); line-height: 1; }
     .s-label { font-size: 12px; color: var(--text-muted); }
 
-    .report-table { width: 100%; border-collapse: collapse; background: var(--card-bg); border-radius: 10px; overflow: hidden; border: 1.5px solid var(--border); font-size: 13px; }
+    .report-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+    .report-table { width: 100%; border-collapse: collapse; background: var(--card-bg); border-radius: 10px; overflow: hidden; border: 1.5px solid var(--border); font-size: 13px; min-width: 480px; }
     .report-table th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); background: var(--subtle-bg); border-bottom: 1px solid var(--border); }
     .report-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: middle; }
     .report-table tr:last-child td { border-bottom: none; }
@@ -375,6 +384,20 @@ interface ComplianceRow {
     .badge-ok { background: #d1fae5; color: #065f46; }
     .badge-soon { background: #fef3c7; color: #92400e; }
     .badge-expired { background: #fee2e2; color: #991b1b; }
+
+    @media (max-width: 767px) {
+      .tabs { max-width: 100%; }
+      .tab { padding: 7px 10px; font-size: 12px; gap: 4px; }
+      .section-header { flex-wrap: wrap; gap: 8px; }
+      .report-summary { gap: 10px; }
+      .summary-card { min-width: 0; flex: 1; padding: 12px 14px; }
+      .s-value { font-size: 20px; }
+    }
+
+    @media (max-width: 480px) {
+      .tab lucide-icon { display: none; }
+      .summary-card { flex: 1 1 calc(50% - 5px); }
+    }
   `]
 })
 export class ReportsComponent implements OnInit {

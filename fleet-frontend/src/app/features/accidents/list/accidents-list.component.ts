@@ -239,17 +239,17 @@ export class AccidentsListComponent implements OnInit, OnDestroy {
 
   filterFields: FilterField[] = [
     {
-      key: 'severity', label: 'Severity', type: 'select',
+      key: 'severity', label: $localize`:@@accidents.filter.severity:Težina`, type: 'select',
       options: [
-        { value: 'minor', label: 'Minor' },
-        { value: 'major', label: 'Major' },
-        { value: 'total', label: 'Total Loss' },
+        { value: 'minor', label: $localize`:@@COMMON.CHIPS.MINOR:Lakša` },
+        { value: 'major', label: $localize`:@@COMMON.CHIPS.MAJOR:Teža` },
+        { value: 'total', label: $localize`:@@COMMON.CHIPS.TOTAL_LOSS:Totalna šteta` },
       ]
     },
-    { key: 'vehicleId', label: 'Vehicle', type: 'select', options: [] },
-    { key: 'driverId', label: 'Driver', type: 'select', options: [] },
-    { key: 'dateFrom', label: 'Date From', type: 'date' },
-    { key: 'dateTo', label: 'Date To', type: 'date' },
+    { key: 'vehicleId', label: $localize`:@@COMMON.FILTER.vehicle:Vozilo`,  type: 'select', options: [] },
+    { key: 'driverId',  label: $localize`:@@COMMON.FILTER.driver:Vozač`,    type: 'select', options: [] },
+    { key: 'dateFrom',  label: $localize`:@@COMMON.FILTER.dateFrom:Datum od`, type: 'date' },
+    { key: 'dateTo',    label: $localize`:@@COMMON.FILTER.dateTo:Datum do`,   type: 'date' },
   ];
 
   loading  = signal(true);

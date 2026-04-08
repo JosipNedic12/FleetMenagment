@@ -752,7 +752,7 @@
       </trans-unit>
       <trans-unit id="accidents.colActions" datatype="html">
         <source>Actions</source>
-        <target>Akcije</target>
+        <target>Radnje</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/accidents/list/accidents-list.component.ts</context>
           <context context-type="linenumber">54,56</context>
@@ -1160,7 +1160,7 @@
       </trans-unit>
       <trans-unit id="assignments.list.colActions" datatype="html">
         <source>Actions</source>
-        <target>Akcije</target>
+        <target>Radnje</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/assignments/list/assignments-list.component.ts</context>
           <context context-type="linenumber">52,54</context>
@@ -2040,7 +2040,7 @@
       </trans-unit>
       <trans-unit id="drivers.detail.documents.col.actions" datatype="html">
         <source>Actions</source>
-        <target>Akcije</target>
+        <target>Radnje</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/drivers/detail/driver-detail.component.ts</context>
           <context context-type="linenumber">240,242</context>
@@ -2176,7 +2176,7 @@
       </trans-unit>
       <trans-unit id="drivers.list.col.actions" datatype="html">
         <source>Actions</source>
-        <target>Akcije</target>
+        <target>Radnje</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/drivers/list/drivers-list.component.ts</context>
           <context context-type="linenumber">68,70</context>
@@ -2704,7 +2704,7 @@
       </trans-unit>
       <trans-unit id="fines.list.colActions" datatype="html">
         <source>Actions</source>
-        <target>Akcije</target>
+        <target>Radnje</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/fines/list/fines-list.component.ts</context>
           <context context-type="linenumber">56,58</context>
@@ -3200,7 +3200,7 @@
       </trans-unit>
       <trans-unit id="fuel.colActions" datatype="html">
         <source>Actions</source>
-        <target>Akcije</target>
+        <target>Radnje</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/fuel/list/fuel-list.component.ts</context>
           <context context-type="linenumber">57,59</context>
@@ -8483,6 +8483,192 @@
       <trans-unit id="COMMON.CHIPS.SUSPICIOUS" datatype="html">
         <source>Suspicious</source>
         <target>Sumnjivo</target>
+      </trans-unit>
+
+      <!-- FilterPanel -->
+      <trans-unit id="filterPanel.toggleBtn" datatype="html">
+        <source>Filters</source>
+        <target>Filteri</target>
+      </trans-unit>
+      <trans-unit id="filterPanel.filterBy" datatype="html">
+        <source>Filter by</source>
+        <target>Filtriraj po</target>
+      </trans-unit>
+      <trans-unit id="filterPanel.close" datatype="html">
+        <source>Close</source>
+        <target>Zatvori</target>
+      </trans-unit>
+      <trans-unit id="filterPanel.optionAll" datatype="html">
+        <source>All</source>
+        <target>Sve</target>
+      </trans-unit>
+      <trans-unit id="filterPanel.clearAll" datatype="html">
+        <source>Clear all</source>
+        <target>Očisti sve</target>
+      </trans-unit>
+      <trans-unit id="filterPanel.applyFilters" datatype="html">
+        <source>Apply Filters</source>
+        <target>Primijeni filtere</target>
+      </trans-unit>
+
+      <!-- Common form messages -->
+      <trans-unit id="COMMON.FORM.fillRequired" datatype="html">
+        <source>Fill all required fields.</source>
+        <target>Ispunite sva obavezna polja.</target>
+      </trans-unit>
+      <trans-unit id="COMMON.FORM.saveFailed" datatype="html">
+        <source>Save failed.</source>
+        <target>Spremanje nije uspjelo.</target>
+      </trans-unit>
+
+      <!-- Common filter labels -->
+      <trans-unit id="COMMON.FILTER.vehicle" datatype="html">
+        <source>Vehicle</source>
+        <target>Vozilo</target>
+      </trans-unit>
+      <trans-unit id="COMMON.FILTER.driver" datatype="html">
+        <source>Driver</source>
+        <target>Vozač</target>
+      </trans-unit>
+      <trans-unit id="COMMON.FILTER.dateFrom" datatype="html">
+        <source>Date From</source>
+        <target>Datum od</target>
+      </trans-unit>
+      <trans-unit id="COMMON.FILTER.dateTo" datatype="html">
+        <source>Date To</source>
+        <target>Datum do</target>
+      </trans-unit>
+
+      <!-- Vehicles filter -->
+      <trans-unit id="vehicles.filter.status" datatype="html">
+        <source>Status</source>
+        <target>Status</target>
+      </trans-unit>
+      <trans-unit id="vehicles.filter.make" datatype="html">
+        <source>Make</source>
+        <target>Marka</target>
+      </trans-unit>
+      <trans-unit id="vehicles.filter.category" datatype="html">
+        <source>Category</source>
+        <target>Kategorija</target>
+      </trans-unit>
+      <trans-unit id="vehicles.filter.fuelType" datatype="html">
+        <source>Fuel Type</source>
+        <target>Gorivo</target>
+      </trans-unit>
+      <trans-unit id="vehicles.filter.yearFrom" datatype="html">
+        <source>Year From</source>
+        <target>Godina od</target>
+      </trans-unit>
+      <trans-unit id="vehicles.filter.yearFromPlaceholder" datatype="html">
+        <source>e.g. 2020</source>
+        <target>npr. 2020</target>
+      </trans-unit>
+      <trans-unit id="vehicles.filter.yearTo" datatype="html">
+        <source>Year To</source>
+        <target>Godina do</target>
+      </trans-unit>
+      <trans-unit id="vehicles.filter.yearToPlaceholder" datatype="html">
+        <source>e.g. 2024</source>
+        <target>npr. 2024</target>
+      </trans-unit>
+
+      <!-- Drivers filter -->
+      <trans-unit id="drivers.filter.licenseStatus" datatype="html">
+        <source>License Status</source>
+        <target>Status dozvole</target>
+      </trans-unit>
+      <trans-unit id="drivers.filter.expiringSoon" datatype="html">
+        <source>Expiring Soon</source>
+        <target>Uskoro ističe</target>
+      </trans-unit>
+      <trans-unit id="drivers.filter.department" datatype="html">
+        <source>Department</source>
+        <target>Odjel</target>
+      </trans-unit>
+      <trans-unit id="drivers.filter.departmentPlaceholder" datatype="html">
+        <source>e.g. Sales</source>
+        <target>npr. Prodaja</target>
+      </trans-unit>
+
+      <!-- Maintenance filter -->
+      <trans-unit id="maintenance.filter.status" datatype="html">
+        <source>Status</source>
+        <target>Status</target>
+      </trans-unit>
+      <trans-unit id="maintenance.filter.vehicle" datatype="html">
+        <source>Vehicle</source>
+        <target>Vozilo</target>
+      </trans-unit>
+      <trans-unit id="maintenance.filter.vendor" datatype="html">
+        <source>Vendor</source>
+        <target>Dobavljač</target>
+      </trans-unit>
+      <trans-unit id="maintenance.form.error.vehicle" datatype="html">
+        <source>Select a vehicle.</source>
+        <target>Odaberite vozilo.</target>
+      </trans-unit>
+      <trans-unit id="maintenance.form.error.vendor" datatype="html">
+        <source>Select a vendor.</source>
+        <target>Odaberite dobavljača.</target>
+      </trans-unit>
+      <trans-unit id="maintenance.form.error.scheduledAt" datatype="html">
+        <source>Set a scheduled date.</source>
+        <target>Unesite planirani datum.</target>
+      </trans-unit>
+      <trans-unit id="maintenance.form.error.description" datatype="html">
+        <source>Enter a description.</source>
+        <target>Unesite opis.</target>
+      </trans-unit>
+
+      <!-- Accidents filter -->
+      <trans-unit id="accidents.filter.severity" datatype="html">
+        <source>Severity</source>
+        <target>Težina</target>
+      </trans-unit>
+
+      <!-- Fines filter -->
+      <trans-unit id="fines.filter.status" datatype="html">
+        <source>Status</source>
+        <target>Status</target>
+      </trans-unit>
+
+      <!-- Inspections filter -->
+      <trans-unit id="inspections.filter.result" datatype="html">
+        <source>Result</source>
+        <target>Rezultat</target>
+      </trans-unit>
+
+      <!-- Insurance filter -->
+      <trans-unit id="insurance.filter.status" datatype="html">
+        <source>Status</source>
+        <target>Status</target>
+      </trans-unit>
+      <trans-unit id="insurance.filter.insurer" datatype="html">
+        <source>Insurer</source>
+        <target>Osiguratelj</target>
+      </trans-unit>
+      <trans-unit id="insurance.filter.insurerPlaceholder" datatype="html">
+        <source>e.g. Croatia osiguranje</source>
+        <target>npr. Croatia osiguranje</target>
+      </trans-unit>
+
+      <!-- Registration filter -->
+      <trans-unit id="registration.filter.status" datatype="html">
+        <source>Status</source>
+        <target>Status</target>
+      </trans-unit>
+
+      <!-- Assignments filter -->
+      <trans-unit id="assignments.filter.status" datatype="html">
+        <source>Status</source>
+        <target>Status</target>
+      </trans-unit>
+
+      <!-- Fuel filter -->
+      <trans-unit id="fuel.filter.fuelType" datatype="html">
+        <source>Fuel Type</source>
+        <target>Gorivo</target>
       </trans-unit>
     </body>
   </file>

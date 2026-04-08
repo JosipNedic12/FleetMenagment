@@ -13,6 +13,8 @@ using FluentValidation.AspNetCore;
 using Serilog;
 using Serilog.Events;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // --- CORS ---
@@ -31,12 +33,24 @@ builder.Services.AddCors(options =>
 
 // --- Database ---
 builder.Services.AddDbContext<FleetDbContext>(options =>
+{
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         npgsql => npgsql.EnableRetryOnFailure(
             maxRetryCount: 3,
             maxRetryDelay: TimeSpan.FromSeconds(5),
-            errorCodesToAdd: null)));
+            errorCodesToAdd: null));
+
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging();
+        options.LogTo(
+            message => Log.Logger.Warning("SLOW EF QUERY: {Query}", message),
+            new[] { Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.CommandExecuted },
+            LogLevel.Warning,
+            Microsoft.EntityFrameworkCore.Diagnostics.DbContextLoggerOptions.DefaultWithLocalTime);
+    }
+});
 
 // --- Repositories ---
 
@@ -120,6 +134,7 @@ builder.Services.AddScoped<MaintenanceOrderService>();
 builder.Services.AddScoped<OdometerLogService>();
 builder.Services.AddScoped<RegistrationRecordService>();
 builder.Services.AddScoped<VehicleAssignmentService>();
+builder.Services.AddScoped<UserActivityService>();
 builder.Services.AddScoped<VehicleService>();
 builder.Services.AddScoped<VendorService>();
 
@@ -127,26 +142,38 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHostedService<NotificationGeneratorService>();
 
 // --- Serilog ---
-builder.Host.UseSerilog((ctx, lc) => lc
-    .MinimumLevel.Information()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-    .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Information)
-    .MinimumLevel.Override("FleetManagement", LogEventLevel.Debug)
-    .Enrich.WithMachineName()
-    .Enrich.WithThreadId()
-    .Enrich.WithEnvironmentName()
-    .WriteTo.Console(
-        ctx.HostingEnvironment.IsDevelopment()
-            ? (Serilog.Formatting.ITextFormatter)new Serilog.Formatting.Display.MessageTemplateTextFormatter(
-                "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
-            : new Serilog.Formatting.Compact.CompactJsonFormatter())
-    .WriteTo.File(
-        new Serilog.Formatting.Compact.CompactJsonFormatter(),
-        path: "logs/fleet-api-.json",
-        rollingInterval: RollingInterval.Day,
-        fileSizeLimitBytes: 50 * 1024 * 1024,
-        retainedFileCountLimit: 30,
-        rollOnFileSizeLimit: true));
+builder.Host.UseSerilog((ctx, services, lc) =>
+{
+    lc
+        .MinimumLevel.Information()
+        .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+        .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+        .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+        .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Information)
+        .MinimumLevel.Override("FleetManagement", LogEventLevel.Debug)
+        .Enrich.FromLogContext()
+        .Enrich.WithMachineName()
+        .Enrich.WithThreadId()
+        .Enrich.WithEnvironmentName()
+        .Enrich.WithProperty("Application", "FleetManagement.API")
+        .Enrich.WithProperty("Version", typeof(Program).Assembly.GetName().Version?.ToString() ?? "1.0.0")
+        .WriteTo.Console(
+            ctx.HostingEnvironment.IsDevelopment()
+                ? (Serilog.Formatting.ITextFormatter)new Serilog.Formatting.Display.MessageTemplateTextFormatter(
+                    "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}{NewLine}  {Message:lj}{NewLine}{Exception}")
+                : new Serilog.Formatting.Compact.RenderedCompactJsonFormatter())
+        .WriteTo.File(
+            new Serilog.Formatting.Compact.RenderedCompactJsonFormatter(),
+            path: "logs/fleet-api-.json",
+            rollingInterval: RollingInterval.Day,
+            fileSizeLimitBytes: 50 * 1024 * 1024,
+            retainedFileCountLimit: 30,
+            rollOnFileSizeLimit: true,
+            shared: true)
+        .WriteTo.Seq(
+            ctx.Configuration.GetValue<string>("Seq:Url") ?? "http://localhost:5341",
+            restrictedToMinimumLevel: LogEventLevel.Debug);
+});
 
 var app = builder.Build();
 

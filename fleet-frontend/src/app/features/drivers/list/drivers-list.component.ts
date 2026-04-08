@@ -5,7 +5,7 @@ import { RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { DriverApiService, EmployeeApiService, LookupApiService } from '../../../core/auth/feature-api.services';
-import { LucideAngularModule, Eye, Pencil, Trash2, UserRound as UserRoundIcon } from 'lucide-angular';
+import { LucideAngularModule, Pencil, Trash2, UserRound as UserRoundIcon } from 'lucide-angular';
 import { Driver, CreateDriverDto, UpdateDriverDto, Employee, LicenseCategoryDto } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
@@ -85,7 +85,7 @@ import { downloadBlob } from '../../../shared/utils/download';
             <tbody>
               @for (row of items(); track row.driverId) {
                 <tr>
-                  <td><strong>{{ row.fullName }}</strong></td>
+                  <td><a [routerLink]="['/drivers', row.driverId]" class="name-link">{{ row.fullName }}</a></td>
                   <td>{{ row.department ?? '—' }}</td>
                   <td class="mono">{{ row.licenseNumber }}</td>
                   <td>
@@ -102,7 +102,6 @@ import { downloadBlob } from '../../../shared/utils/download';
                     }
                   </td>
                   <td class="actions">
-                    <a [routerLink]="['/drivers', row.driverId]" class="btn-icon" title="View" i18n-title="@@drivers.list.action.view"><lucide-icon [img]="icons.Eye" [size]="15" [strokeWidth]="2"></lucide-icon></a>
                     <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" i18n-title="@@drivers.list.action.edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" i18n-title="@@drivers.list.action.delete" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
@@ -234,10 +233,13 @@ import { downloadBlob } from '../../../shared/utils/download';
     .cat-chip { display:inline-block; background:#e0f2fe; color:#0369a1; border-radius:4px; padding:1px 6px; font-size:11px; font-weight:600; margin:0 2px; }
     .checkbox-group { display:flex; flex-wrap:wrap; gap:8px; }
     .checkbox-label { display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; }
+    .name-link { color: var(--text-primary); font-weight: 600; text-decoration: none; cursor: pointer; transition: color 0.15s; }
+    .name-link:hover { color: var(--brand); text-decoration: underline; }
+    .name-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
   `]
 })
 export class DriversListComponent implements OnInit, OnDestroy {
-  readonly icons = { Eye, Pencil, Trash2, UserRoundIcon };
+  readonly icons = { Pencil, Trash2, UserRoundIcon };
   expiredLabel = $localize`:@@COMMON.CHIPS.EXPIRED:Expired`;
   readonly employeeDisplayFn = (e: Employee) =>
     `${e.firstName} ${e.lastName}${e.department ? ' (' + e.department + ')' : ''}`;
@@ -264,14 +266,14 @@ export class DriversListComponent implements OnInit, OnDestroy {
 
   filterFields: FilterField[] = [
     {
-      key: 'licenseStatus', label: 'License Status', type: 'select',
+      key: 'licenseStatus', label: $localize`:@@drivers.filter.licenseStatus:Status dozvole`, type: 'select',
       options: [
-        { value: 'valid', label: 'Valid' },
-        { value: 'expired', label: 'Expired' },
-        { value: 'expiring_soon', label: 'Expiring Soon' },
+        { value: 'valid',         label: $localize`:@@COMMON.CHIPS.VALID_LICENSE:Važeća dozvola` },
+        { value: 'expired',       label: $localize`:@@COMMON.CHIPS.EXPIRED:Isteklo` },
+        { value: 'expiring_soon', label: $localize`:@@drivers.filter.expiringSoon:Uskoro ističe` },
       ]
     },
-    { key: 'department', label: 'Department', type: 'text', placeholder: 'e.g. Sales' },
+    { key: 'department', label: $localize`:@@drivers.filter.department:Odjel`, type: 'text', placeholder: $localize`:@@drivers.filter.departmentPlaceholder:npr. Prodaja` },
   ];
 
   loading  = signal(true);
@@ -375,12 +377,12 @@ export class DriversListComponent implements OnInit, OnDestroy {
 
   saveCreate(): void {
     if (!this.createForm.employeeId || !this.createForm.licenseNumber || !this.createForm.licenseExpiry) {
-      this.formError.set('Fill all required fields.'); return;
+      this.formError.set($localize`:@@COMMON.FORM.fillRequired:Ispunite sva obavezna polja.`); return;
     }
     this.saving.set(true);
     this.api.create(this.createForm).subscribe({
       next: () => { this.loadPage(); this.closeCreate(); this.saving.set(false); },
-      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? $localize`:@@COMMON.FORM.saveFailed:Spremanje nije uspjelo.`); }
     });
   }
 
@@ -400,7 +402,7 @@ export class DriversListComponent implements OnInit, OnDestroy {
     this.saving.set(true);
     this.api.update(this.editId, this.editForm).subscribe({
       next: () => { this.loadPage(); this.closeEdit(); this.saving.set(false); },
-      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? $localize`:@@COMMON.FORM.saveFailed:Spremanje nije uspjelo.`); }
     });
   }
 

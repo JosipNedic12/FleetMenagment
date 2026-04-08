@@ -368,18 +368,18 @@ export class MaintenanceListComponent implements OnInit, OnDestroy {
 
   filterFields: FilterField[] = [
     {
-      key: 'status', label: 'Status', type: 'select',
+      key: 'status', label: $localize`:@@maintenance.filter.status:Status`, type: 'select',
       options: [
-        { value: 'open', label: 'Open' },
-        { value: 'in_progress', label: 'In Progress' },
-        { value: 'closed', label: 'Closed' },
-        { value: 'cancelled', label: 'Cancelled' },
+        { value: 'open',        label: $localize`:@@COMMON.CHIPS.OPEN:Otvoreno` },
+        { value: 'in_progress', label: $localize`:@@COMMON.CHIPS.IN_PROGRESS:U tijeku` },
+        { value: 'closed',      label: $localize`:@@COMMON.CHIPS.CLOSED:Zatvoreno` },
+        { value: 'cancelled',   label: $localize`:@@COMMON.CHIPS.CANCELLED:Otkazano` },
       ]
     },
-    { key: 'vehicleId', label: 'Vehicle', type: 'select', options: [] },
-    { key: 'vendorId', label: 'Vendor', type: 'select', options: [] },
-    { key: 'dateFrom', label: 'Date From', type: 'date' },
-    { key: 'dateTo', label: 'Date To', type: 'date' },
+    { key: 'vehicleId', label: $localize`:@@maintenance.filter.vehicle:Vozilo`,    type: 'select', options: [] },
+    { key: 'vendorId',  label: $localize`:@@maintenance.filter.vendor:Dobavljač`,  type: 'select', options: [] },
+    { key: 'dateFrom',  label: $localize`:@@COMMON.FILTER.dateFrom:Datum od`,      type: 'date' },
+    { key: 'dateTo',    label: $localize`:@@COMMON.FILTER.dateTo:Datum do`,        type: 'date' },
   ];
 
   loading  = signal(true);
@@ -501,15 +501,15 @@ export class MaintenanceListComponent implements OnInit, OnDestroy {
     if (vehicle) { this.createForm.odometerKm = vehicle.currentOdometerKm; }
   }
   saveCreate(): void {
-    if (!this.createForm.vehicleId) { this.formError.set('Select a vehicle.'); return; }
-    if (!this.createForm.vendorId) { this.formError.set('Select a vendor.'); return; }
-    if (!this.createForm.scheduledAt) { this.formError.set('Set a scheduled date.'); return; }
-    if (!this.createForm.description?.trim()) { this.formError.set('Enter a description.'); return; }
+    if (!this.createForm.vehicleId)           { this.formError.set($localize`:@@maintenance.form.error.vehicle:Odaberite vozilo.`); return; }
+    if (!this.createForm.vendorId)            { this.formError.set($localize`:@@maintenance.form.error.vendor:Odaberite dobavljača.`); return; }
+    if (!this.createForm.scheduledAt)         { this.formError.set($localize`:@@maintenance.form.error.scheduledAt:Unesite planirani datum.`); return; }
+    if (!this.createForm.description?.trim()) { this.formError.set($localize`:@@maintenance.form.error.description:Unesite opis.`); return; }
     this.saving.set(true);
     const payload = { ...this.createForm, scheduledAt: new Date(this.createForm.scheduledAt).toISOString() };
     this.api.create(payload).subscribe({
       next: () => { this.loadPage(); this.closeCreate(); this.saving.set(false); },
-      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? $localize`:@@COMMON.FORM.saveFailed:Spremanje nije uspjelo.`); }
     });
   }
   closeCreate(): void { this.showCreate = false; this.formError.set(''); }
@@ -524,7 +524,7 @@ export class MaintenanceListComponent implements OnInit, OnDestroy {
     this.saving.set(true);
     this.api.update(this.editId, this.editForm).subscribe({
       next: () => { this.loadPage(); this.closeEdit(); this.saving.set(false); },
-      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? $localize`:@@COMMON.FORM.saveFailed:Spremanje nije uspjelo.`); }
     });
   }
   closeEdit(): void { this.showEdit = false; this.editId = null; this.formError.set(''); }

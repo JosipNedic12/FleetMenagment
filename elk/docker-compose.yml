@@ -30,5 +30,16 @@ services:
     depends_on:
       - elasticsearch
 
+  seq:
+    image: datalust/seq:latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_ADMINPASSWORD=admin
+    ports:
+      - "5341:80"
+    volumes:
+      - seq-data:/data
+
 volumes:
   es-data:
+  seq-data:

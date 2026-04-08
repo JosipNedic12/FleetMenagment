@@ -190,10 +190,10 @@ const ENTITY_ROUTES: Record<string, string> = {
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      transition: margin-left 0.25s ease;
+      transition: margin-left 0.25s ease, width 0.25s ease;
     }
-    .content-area.sidebar-expanded  { margin-left: 240px; }
-    .content-area.sidebar-collapsed { margin-left: 64px; }
+    .content-area.sidebar-expanded  { margin-left: 240px; width: calc(100% - 240px); }
+    .content-area.sidebar-collapsed { margin-left: 64px;  width: calc(100% - 64px); }
 
     /* Top bar */
     .topbar {
@@ -326,7 +326,7 @@ const ENTITY_ROUTES: Record<string, string> = {
     .topbar-chevron.rotated { transform: rotate(180deg); }
 
     /* Main content */
-    .main-content { flex: 1; overflow-y: auto; transition: margin-left 0.3s ease; }
+    .main-content { flex: 1; overflow-x: hidden; overflow-y: auto; transition: margin-left 0.3s ease; min-width: 0; }
 
     /* ── Notifications ── */
     .topbar-notif-wrap {
@@ -558,14 +558,39 @@ const ENTITY_ROUTES: Record<string, string> = {
       .content-area.sidebar-expanded,
       .content-area.sidebar-collapsed {
         margin-left: 0 !important;
+        width: 100% !important;
+      }
+      .topbar {
+        padding: 0 12px;
+        gap: 8px;
       }
       .topbar-hamburger { display: flex; }
       .topbar-username  { display: none; }
       .topbar-chevron   { display: none; }
-      .topbar-center    { flex: 1; }
-      .topbar-left      { flex: 0 0 auto; }
-      .topbar-right     { flex: 0 0 auto; }
-      .notif-dropdown   { width: calc(100vw - 32px); right: -16px; }
+      .topbar-center    { flex: 1; min-width: 0; }
+      .topbar-left      { flex: 0 0 auto; min-width: 0; gap: 6px; }
+      .topbar-right     { flex: 0 0 auto; gap: 6px; }
+      .breadcrumb-home  { display: none; }
+      .breadcrumb-sep   { display: none; }
+      .breadcrumb-current { font-size: 14px; font-weight: 700; }
+      .topbar-user {
+        padding: 4px;
+        border: none;
+        background: none;
+        gap: 0;
+      }
+      .notif-dropdown {
+        width: calc(100vw - 24px);
+        right: -8px;
+        max-height: 70vh;
+      }
+      .user-dropdown {
+        right: -4px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .topbar-breadcrumb { display: none; }
     }
   `]
 })

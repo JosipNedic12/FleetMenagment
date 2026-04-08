@@ -243,16 +243,16 @@ export class FinesListComponent implements OnInit, OnDestroy {
 
   filterFields: FilterField[] = [
     {
-      key: 'paidStatus', label: 'Status', type: 'select',
+      key: 'paidStatus', label: $localize`:@@fines.filter.status:Status`, type: 'select',
       options: [
-        { value: 'paid', label: 'Paid' },
-        { value: 'unpaid', label: 'Unpaid' },
+        { value: 'paid',   label: $localize`:@@COMMON.CHIPS.PAID:Plaćeno` },
+        { value: 'unpaid', label: $localize`:@@COMMON.CHIPS.UNPAID:Neplaćeno` },
       ]
     },
-    { key: 'vehicleId', label: 'Vehicle', type: 'select', options: [] },
-    { key: 'driverId', label: 'Driver', type: 'select', options: [] },
-    { key: 'dateFrom', label: 'Date From', type: 'date' },
-    { key: 'dateTo', label: 'Date To', type: 'date' },
+    { key: 'vehicleId', label: $localize`:@@COMMON.FILTER.vehicle:Vozilo`,  type: 'select', options: [] },
+    { key: 'driverId',  label: $localize`:@@COMMON.FILTER.driver:Vozač`,    type: 'select', options: [] },
+    { key: 'dateFrom',  label: $localize`:@@COMMON.FILTER.dateFrom:Datum od`, type: 'date' },
+    { key: 'dateTo',    label: $localize`:@@COMMON.FILTER.dateTo:Datum do`,   type: 'date' },
   ];
 
   loading  = signal(true);

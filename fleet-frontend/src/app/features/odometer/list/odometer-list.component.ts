@@ -26,7 +26,7 @@ import { downloadBlob } from '../../../shared/utils/download';
           <p class="page-subtitle" i18n="@@odometer.subtitle">{{ totalCount() }} entries for selected vehicle</p>
         </div>
         <div class="header-actions">
-          <div style="width:320px">
+          <div style="width:320px; max-width:100%">
             <app-search-select
               [items]="vehicles()"
               [displayFn]="vehicleDisplayFn"
@@ -170,8 +170,8 @@ export class OdometerListComponent implements OnInit {
   appliedFilters    = signal<Record<string, any>>({});
 
   filterFields: FilterField[] = [
-    { key: 'dateFrom', label: 'Date From', type: 'date' },
-    { key: 'dateTo', label: 'Date To', type: 'date' },
+    { key: 'dateFrom', label: $localize`:@@COMMON.FILTER.dateFrom:Datum od`, type: 'date' },
+    { key: 'dateTo',   label: $localize`:@@COMMON.FILTER.dateTo:Datum do`,   type: 'date' },
   ];
   showCreate        = false;
   deleteTarget: OdometerLog | null = null;

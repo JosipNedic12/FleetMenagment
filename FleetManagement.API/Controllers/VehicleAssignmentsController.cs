@@ -4,6 +4,7 @@ using FleetManagement.Application.DTOs;
 using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FleetManagement.API.Controllers;
 
@@ -13,11 +14,13 @@ public class VehicleAssignmentsController : ControllerBase
 {
     private readonly VehicleAssignmentService _service;
     private readonly ExportService _exportService;
+    private readonly UserActivityService _activity;
 
-    public VehicleAssignmentsController(VehicleAssignmentService service, ExportService exportService)
+    public VehicleAssignmentsController(VehicleAssignmentService service, ExportService exportService, UserActivityService activity)
     {
         _service = service;
         _exportService = exportService;
+        _activity = activity;
     }
 
     [HttpGet]
@@ -52,6 +55,8 @@ public class VehicleAssignmentsController : ControllerBase
     public async Task<ActionResult<VehicleAssignmentDto>> Create(CreateVehicleAssignmentDto dto)
     {
         var result = await _service.CreateAsync(dto);
+        await _activity.LogAsync(GetUserId(), "VehicleAssigned", "VehicleAssignment", result.AssignmentId,
+            $"Vozilo {result.RegistrationNumber} dodijeljeno vozaču {result.DriverFullName}");
         return CreatedAtAction(nameof(GetById), new { id = result.AssignmentId }, result);
     }
 
@@ -85,5 +90,11 @@ public class VehicleAssignmentsController : ControllerBase
             var bytes = _exportService.ExportToExcel(dtos, columns, "Assignments");
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"assignments_{DateTime.Now:yyyyMMdd}.xlsx");
         }
+    }
+
+    private int GetUserId()
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return int.TryParse(claim, out var id) ? id : 0;
     }
 }

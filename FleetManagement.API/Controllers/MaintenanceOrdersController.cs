@@ -4,6 +4,7 @@ using FleetManagement.Application.DTOs;
 using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FleetManagement.API.Controllers;
 
@@ -13,11 +14,13 @@ public class MaintenanceOrdersController : ControllerBase
 {
     private readonly MaintenanceOrderService _service;
     private readonly ExportService _exportService;
+    private readonly UserActivityService _activity;
 
-    public MaintenanceOrdersController(MaintenanceOrderService service, ExportService exportService)
+    public MaintenanceOrdersController(MaintenanceOrderService service, ExportService exportService, UserActivityService activity)
     {
         _service = service;
         _exportService = exportService;
+        _activity = activity;
     }
 
     [HttpGet]
@@ -46,6 +49,8 @@ public class MaintenanceOrdersController : ControllerBase
     public async Task<ActionResult<MaintenanceOrderDto>> Create(CreateMaintenanceOrderDto dto)
     {
         var result = await _service.CreateAsync(dto);
+        await _activity.LogAsync(GetUserId(), "MaintenanceCreated", "MaintenanceOrder", result.OrderId,
+            $"Kreiran nalog održavanja za vozilo {result.RegistrationNumber}");
         return CreatedAtAction(nameof(GetById), new { id = result.OrderId }, result);
     }
 
@@ -98,5 +103,11 @@ public class MaintenanceOrdersController : ControllerBase
             var bytes = _exportService.ExportToExcel(dtos, columns, "Maintenance Orders");
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"maintenance_{DateTime.Now:yyyyMMdd}.xlsx");
         }
+    }
+
+    private int GetUserId()
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return int.TryParse(claim, out var id) ? id : 0;
     }
 }

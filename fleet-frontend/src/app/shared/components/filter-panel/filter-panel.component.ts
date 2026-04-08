@@ -19,7 +19,7 @@ export interface FilterField {
     <!-- Toggle button -->
     <button class="filter-toggle-btn" [class.has-filters]="activeFilterCount() > 0" (click)="panelOpen.set(!panelOpen())">
       <lucide-icon [img]="icons.SlidersHorizontal" [size]="15" [strokeWidth]="2"></lucide-icon>
-      Filters
+      <ng-container i18n="@@filterPanel.toggleBtn">Filteri</ng-container>
       @if (activeFilterCount() > 0) {
         <span class="filter-count">{{ activeFilterCount() }}</span>
       }
@@ -31,9 +31,9 @@ export interface FilterField {
         <div class="filter-panel-header">
           <span class="filter-panel-title">
             <lucide-icon [img]="icons.SlidersHorizontal" [size]="14" [strokeWidth]="2"></lucide-icon>
-            Filter by
+            <ng-container i18n="@@filterPanel.filterBy">Filtriraj po</ng-container>
           </span>
-          <button class="btn-icon-sm" (click)="panelOpen.set(false)" title="Close">
+          <button class="btn-icon-sm" (click)="panelOpen.set(false)" i18n-title="@@filterPanel.close" title="Zatvori">
             <lucide-icon [img]="icons.X" [size]="14" [strokeWidth]="2"></lucide-icon>
           </button>
         </div>
@@ -48,7 +48,7 @@ export interface FilterField {
                   class="filter-input"
                   [ngModel]="draft()[field.key] ?? ''"
                   (ngModelChange)="setDraft(field.key, $event)">
-                  <option value="">All</option>
+                  <option value="" i18n="@@filterPanel.optionAll">Sve</option>
                   @for (opt of field.options; track opt.value) {
                     <option [value]="opt.value">{{ opt.label }}</option>
                   }
@@ -90,10 +90,10 @@ export interface FilterField {
         <div class="filter-actions">
           <button class="btn btn-secondary btn-sm" (click)="onClear()">
             <lucide-icon [img]="icons.RotateCcw" [size]="13" [strokeWidth]="2"></lucide-icon>
-            Clear all
+            <ng-container i18n="@@filterPanel.clearAll">Očisti sve</ng-container>
           </button>
-          <button class="btn btn-primary btn-sm" (click)="onApply()">
-            Apply Filters
+          <button class="btn btn-primary btn-sm" (click)="onApply()" i18n="@@filterPanel.applyFilters">
+            Primijeni filtere
           </button>
         </div>
       </div>

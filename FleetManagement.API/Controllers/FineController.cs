@@ -4,6 +4,7 @@ using FleetManagement.Application.DTOs;
 using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FleetManagement.API.Controllers;
 
@@ -14,11 +15,13 @@ public class FineController : ControllerBase
 {
     private readonly FineService _svc;
     private readonly ExportService _exportService;
+    private readonly UserActivityService _activity;
 
-    public FineController(FineService svc, ExportService exportService)
+    public FineController(FineService svc, ExportService exportService, UserActivityService activity)
     {
         _svc = svc;
         _exportService = exportService;
+        _activity = activity;
     }
 
     [HttpGet]
@@ -50,6 +53,8 @@ public class FineController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateFineDto dto)
     {
         var created = await _svc.CreateAsync(dto);
+        await _activity.LogAsync(GetUserId(), "FineCreated", "Fine", created.FineId,
+            $"Nova kazna za vozilo {created.RegistrationNumber}, iznos {created.Amount:F2} €");
         return CreatedAtAction(nameof(GetById), new { id = created.FineId }, created);
     }
 
@@ -58,11 +63,15 @@ public class FineController : ControllerBase
     public async Task<IActionResult> Update(int id, [FromBody] UpdateFineDto dto) =>
         Ok(await _svc.UpdateAsync(id, dto));
 
-    // POST instead of PATCH — simpler, no JsonPatch dependency needed
     [HttpPost("{id}/pay")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> MarkPaid(int id, [FromBody] MarkFinePaidDto dto) =>
-        Ok(await _svc.MarkPaidAsync(id, dto));
+    public async Task<IActionResult> MarkPaid(int id, [FromBody] MarkFinePaidDto dto)
+    {
+        var result = await _svc.MarkPaidAsync(id, dto);
+        await _activity.LogAsync(GetUserId(), "FinePaid", "Fine", id,
+            $"Kazna plaćena za vozilo {result.RegistrationNumber}");
+        return Ok(result);
+    }
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
@@ -88,5 +97,11 @@ public class FineController : ControllerBase
             var bytes = _exportService.ExportToExcel(dtos, columns, "Fines");
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"fines_{DateTime.Now:yyyyMMdd}.xlsx");
         }
+    }
+
+    private int GetUserId()
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return int.TryParse(claim, out var id) ? id : 0;
     }
 }

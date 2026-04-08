@@ -2,6 +2,7 @@
 using FleetManagement.Application.Interfaces;
 using FleetManagement.Domain.Entities;
 using FleetManagement.Infrastructure.Data;
+using FleetManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,11 +16,13 @@ public class AuthController : ControllerBase
 {
     private readonly FleetDbContext _context;
     private readonly IJwtService _jwtService;
+    private readonly UserActivityService _activity;
 
-    public AuthController(FleetDbContext context, IJwtService jwtService)
+    public AuthController(FleetDbContext context, IJwtService jwtService, UserActivityService activity)
     {
         _context = context;
         _jwtService = jwtService;
+        _activity = activity;
     }
 
     [HttpPost("login")]
@@ -36,6 +39,8 @@ public class AuthController : ControllerBase
         // update last login
         user.LastLoginAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+
+        await _activity.LogAsync(user.UserId, "Login", "AppUser", user.UserId, "Prijava u sustav");
 
         var token = _jwtService.GenerateToken(user);
 

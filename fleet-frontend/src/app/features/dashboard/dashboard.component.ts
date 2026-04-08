@@ -109,31 +109,33 @@ interface StatCard {
             @if (complianceReminders().length === 0) {
               <p class="widget-empty" i18n="@@dashboard.complianceEmpty">All compliance items are up to date.</p>
             } @else {
-              <table class="compliance-table">
-                <thead>
-                  <tr>
-                    <th i18n="@@dashboard.colVehicle">Vehicle</th>
-                    <th i18n="@@dashboard.colType">Type</th>
-                    <th i18n="@@dashboard.colExpires">Expires</th>
-                    <th i18n="@@dashboard.colDays">Days</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (item of complianceReminders(); track item.vehicleId + item.type) {
-                    <tr [class]="'compliance-row--' + item.status">
-                      <td class="reg-cell">{{ item.registrationNumber }}</td>
-                      <td>
-                        <span class="type-chip type-chip--{{ item.type | lowercase }}">{{ item.type }}</span>
-                      </td>
-                      <td>{{ item.expiresAt | date:'dd.MM.yyyy' }}</td>
-                      <td>
-                        <span [class]="item.daysLeft < 0 ? 'days-badge days-badge--expired' : 'days-badge days-badge--soon'"
-                          i18n="@@dashboard.daysCell">{{ item.daysLeft < 0 ? (item.daysLeft * -1) + 'd ago' : item.daysLeft + 'd' }}</span>
-                      </td>
+              <div class="compliance-table-wrap">
+                <table class="compliance-table">
+                  <thead>
+                    <tr>
+                      <th i18n="@@dashboard.colVehicle">Vehicle</th>
+                      <th i18n="@@dashboard.colType">Type</th>
+                      <th i18n="@@dashboard.colExpires">Expires</th>
+                      <th i18n="@@dashboard.colDays">Days</th>
                     </tr>
-                  }
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    @for (item of complianceReminders(); track item.vehicleId + item.type) {
+                      <tr [class]="'compliance-row--' + item.status">
+                        <td class="reg-cell">{{ item.registrationNumber }}</td>
+                        <td>
+                          <span class="type-chip type-chip--{{ item.type | lowercase }}">{{ item.type }}</span>
+                        </td>
+                        <td>{{ item.expiresAt | date:'dd.MM.yyyy' }}</td>
+                        <td>
+                          <span [class]="item.daysLeft < 0 ? 'days-badge days-badge--expired' : 'days-badge days-badge--soon'"
+                            i18n="@@dashboard.daysCell">{{ item.daysLeft < 0 ? (item.daysLeft * -1) + 'd ago' : item.daysLeft + 'd' }}</span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
             }
           </div>
 
@@ -318,8 +320,8 @@ interface StatCard {
     </div>
   `,
   styles: [`
-    .page { padding: 32px; max-width: 1200px; }
-    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; }
+    .page { padding: 32px; max-width: 1200px; width: 100%; box-sizing: border-box; }
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
     .page-title { font-size: 24px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
     .page-subtitle { font-size: 14px; color: var(--text-muted); margin: 0; }
 
@@ -396,7 +398,8 @@ interface StatCard {
     .badge--amber { background: rgba(245,158,11,0.12); color: #f59e0b; }
 
     /* Compliance table */
-    .compliance-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+    .compliance-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .compliance-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; min-width: 360px; }
     .compliance-table th { text-align: left; font-weight: 600; color: var(--text-muted); padding: 4px 6px; border-bottom: 1px solid var(--border); }
     .compliance-table td { padding: 6px 6px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
     .compliance-row--expired td { background: var(--row-danger-bg); }
@@ -515,18 +518,36 @@ interface StatCard {
     }
 
     @media (max-width: 1024px) {
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
       .charts-grid { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 900px) {
       .widgets-grid { grid-template-columns: 1fr; }
+      .page { padding: 24px; }
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 767px) {
       .page { padding: 16px; }
-      .stats-grid { grid-template-columns: 1fr; }
-      .charts-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .widgets-grid { gap: 12px; }
+      .charts-grid { gap: 12px; }
+      .header-right { flex-wrap: wrap; gap: 6px; }
+      .stat-card { padding: 14px; gap: 8px; }
+      .stat-value { font-size: 26px; }
+      .chart-card { padding: 16px; }
+      .work-order-stats { grid-template-columns: repeat(2, 1fr); }
+      .compliance-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    }
+
+    @media (max-width: 480px) {
+      .page { padding: 12px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .stat-card { padding: 12px; }
+      .stat-value { font-size: 22px; }
+      .stat-label { font-size: 11px; }
+      .assign-value { font-size: 32px; }
+      .wo-count { font-size: 22px; }
+      .chart-card { padding: 12px; }
+      .chart-wrap { height: 180px; }
+      .chart-wrap--doughnut { height: 200px; }
     }
   `]
 })

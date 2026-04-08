@@ -41,33 +41,60 @@ public class RequestLoggingMiddleware
         var sw = Stopwatch.StartNew();
 
         using (LogContext.PushProperty("CorrelationId", correlationId))
+        using (LogContext.PushProperty("RequestMethod", context.Request.Method))
+        using (LogContext.PushProperty("RequestPath", path))
+        using (LogContext.PushProperty("QueryString", context.Request.QueryString.ToString()))
+        using (LogContext.PushProperty("UserAgent", context.Request.Headers.UserAgent.ToString()))
+        using (LogContext.PushProperty("ClientIp", GetClientIp(context)))
         {
-            await _next(context);
+            try
+            {
+                await _next(context);
+            }
+            finally
+            {
+                sw.Stop();
 
-            sw.Stop();
+                var userId   = GetUserId(context);
+                var userRole = GetUserRole(context);
 
-            var method     = context.Request.Method;
-            var statusCode = context.Response.StatusCode;
-            var elapsed    = sw.ElapsedMilliseconds;
-            var clientIp   = GetClientIp(context);
-            var userId     = GetUserId(context);
+                using (LogContext.PushProperty("UserId", userId))
+                using (LogContext.PushProperty("UserRole", userRole))
+                using (LogContext.PushProperty("StatusCode", context.Response.StatusCode))
+                using (LogContext.PushProperty("ElapsedMs", sw.ElapsedMilliseconds))
+                using (LogContext.PushProperty("ContentType", context.Response.ContentType ?? ""))
+                using (LogContext.PushProperty("RequestContentLength", context.Request.ContentLength ?? 0))
+                {
+                    var statusCode = context.Response.StatusCode;
+                    var elapsed    = sw.ElapsedMilliseconds;
 
-            LogRequest(method, path, statusCode, elapsed, clientIp, userId, correlationId);
+                    if (statusCode >= 500)
+                    {
+                        _logger.LogError(
+                            "HTTP {Method} {Path} → {StatusCode} in {ElapsedMs}ms [User:{UserId} Role:{UserRole} IP:{ClientIp}]",
+                            context.Request.Method, path, statusCode, elapsed, userId, userRole, GetClientIp(context));
+                    }
+                    else if (statusCode >= 400)
+                    {
+                        _logger.LogWarning(
+                            "HTTP {Method} {Path} → {StatusCode} in {ElapsedMs}ms [User:{UserId}]",
+                            context.Request.Method, path, statusCode, elapsed, userId);
+                    }
+                    else if (elapsed > 500)
+                    {
+                        _logger.LogWarning(
+                            "SLOW HTTP {Method} {Path} → {StatusCode} in {ElapsedMs}ms [User:{UserId}]",
+                            context.Request.Method, path, statusCode, elapsed, userId);
+                    }
+                    else
+                    {
+                        _logger.LogInformation(
+                            "HTTP {Method} {Path} → {StatusCode} in {ElapsedMs}ms",
+                            context.Request.Method, path, statusCode, elapsed);
+                    }
+                }
+            }
         }
-    }
-
-    private void LogRequest(string method, string path, int statusCode, long elapsedMs,
-                            string clientIp, string userId, string correlationId)
-    {
-        const string template =
-            "HTTP {Method} {Path} responded {StatusCode} in {ElapsedMs}ms | IP={ClientIp} User={UserId} CorrelationId={CorrelationId}";
-
-        if (statusCode >= 500)
-            _logger.LogError(template, method, path, statusCode, elapsedMs, clientIp, userId, correlationId);
-        else if (statusCode >= 400)
-            _logger.LogWarning(template, method, path, statusCode, elapsedMs, clientIp, userId, correlationId);
-        else
-            _logger.LogInformation(template, method, path, statusCode, elapsedMs, clientIp, userId, correlationId);
     }
 
     private static bool IsExcluded(string path)
@@ -80,22 +107,25 @@ public class RequestLoggingMiddleware
 
     private static string GetClientIp(HttpContext context)
     {
-        // Respect forwarded header when behind a proxy/load balancer
         var forwarded = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(forwarded))
             return forwarded.Split(',')[0].Trim();
-
         return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
     }
 
     private static string GetUserId(HttpContext context)
     {
-        var user = context.User;
-        if (user?.Identity?.IsAuthenticated != true)
-            return "anonymous";
-
-        return user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-               ?? user.FindFirst("sub")?.Value
+        if (context.User?.Identity?.IsAuthenticated != true) return "anonymous";
+        return context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+               ?? context.User.FindFirst("sub")?.Value
                ?? "anonymous";
+    }
+
+    private static string GetUserRole(HttpContext context)
+    {
+        if (context.User?.Identity?.IsAuthenticated != true) return "none";
+        return context.User.FindFirst(ClaimTypes.Role)?.Value
+               ?? context.User.FindFirst("role")?.Value
+               ?? "unknown";
     }
 }

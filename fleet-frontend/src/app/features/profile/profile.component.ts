@@ -2,7 +2,7 @@ import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth/auth.service';
-import { AuthApiService } from '../../core/auth/feature-api.services';
+import { AuthApiService, UserActivityApiService, ActivityLogDto } from '../../core/auth/feature-api.services';
 import { BadgeComponent } from '../../shared/components/badge/badge.component';
 import { TranslateService } from '../../core/services/translate.service';
 import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 'lucide-angular';
@@ -140,27 +140,23 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
           </div>
           <div class="card-body">
             <div class="timeline">
-              <div class="timeline-item">
-                <div class="timeline-dot dot-success"></div>
-                <div class="timeline-content">
-                  <span class="timeline-action">{{ t.profileLoggedIn }}</span>
-                  <span class="timeline-time">{{ t.profileCurrentSession }}</span>
-                </div>
-              </div>
-              <div class="timeline-item">
-                <div class="timeline-dot dot-info"></div>
-                <div class="timeline-content">
-                  <span class="timeline-action">{{ t.profileSessionExpiresActivity }}</span>
-                  <span class="timeline-time">{{ expiresFormatted() }}</span>
-                </div>
-              </div>
-              <div class="timeline-item">
-                <div class="timeline-dot dot-neutral"></div>
-                <div class="timeline-content">
-                  <span class="timeline-action">{{ t.profileTokenIssued }}</span>
-                  <span class="timeline-time">{{ tokenIssuedFormatted() }}</span>
-                </div>
-              </div>
+              @if (activityLoading()) {
+                <div class="timeline-empty">Učitavanje aktivnosti...</div>
+              } @else if (activityError()) {
+                <div class="timeline-empty timeline-error">Greška pri učitavanju aktivnosti.</div>
+              } @else if (activity().length === 0) {
+                <div class="timeline-empty">Nema zabilježenih aktivnosti.</div>
+              } @else {
+                @for (item of activity(); track item.activityLogId) {
+                  <div class="timeline-item">
+                    <div class="timeline-dot" [ngClass]="dotClass(item.action)"></div>
+                    <div class="timeline-content">
+                      <span class="timeline-action">{{ item.description }}</span>
+                      <span class="timeline-time">{{ item.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+                    </div>
+                  </div>
+                }
+              }
             </div>
 
             <div class="session-info">
@@ -423,6 +419,14 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
     .dot-success { background: #22c55e; }
     .dot-info    { background: var(--brand); }
     .dot-neutral { background: #94a3b8; }
+    .dot-warning { background: #f59e0b; }
+    .dot-danger  { background: #ef4444; }
+    .timeline-empty {
+      font-size: 13px;
+      color: var(--text-muted);
+      padding: 12px 0;
+    }
+    .timeline-error { color: #ef4444; }
     .timeline-content { display: flex; flex-direction: column; gap: 2px; }
     .timeline-action {
       font-size: 13px;
@@ -473,6 +477,7 @@ export class ProfileComponent implements OnInit {
   auth = inject(AuthService);
   readonly t = inject(TranslateService);
   private authApi = inject(AuthApiService);
+  private activityApi = inject(UserActivityApiService);
 
   user = this.auth.user;
 
@@ -482,6 +487,10 @@ export class ProfileComponent implements OnInit {
   pwSaving = signal(false);
   pwSuccess = signal(false);
   pwError = signal('');
+
+  activity = signal<ActivityLogDto[]>([]);
+  activityLoading = signal(true);
+  activityError = signal(false);
 
   initials = computed(() =>
     this.auth.fullName()
@@ -555,7 +564,20 @@ export class ProfileComponent implements OnInit {
     this.pwForm.newPassword === this.pwForm.confirmPassword
   );
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.activityApi.getMyActivity(20).subscribe({
+      next: (data) => { this.activity.set(data); this.activityLoading.set(false); },
+      error: () => { this.activityLoading.set(false); this.activityError.set(true); }
+    });
+  }
+
+  dotClass(action: string): string {
+    if (action.includes('Created') || action === 'Login') return 'dot-success';
+    if (action.includes('Updated') || action.includes('Assigned')) return 'dot-info';
+    if (action.includes('Fine') || action.includes('Accident')) return 'dot-warning';
+    if (action.includes('Deleted')) return 'dot-danger';
+    return 'dot-neutral';
+  }
 
   changePassword(): void {
     this.pwError.set('');

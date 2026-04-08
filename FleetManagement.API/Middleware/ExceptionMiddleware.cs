@@ -33,18 +33,22 @@ public class ExceptionMiddleware
             }
             catch (NotFoundException ex)
             {
-                _logger.LogWarning(ex.Message);
+                _logger.LogWarning("NotFound: {Message} | Path={Path}", ex.Message, context.Request.Path);
                 await WriteResponse(context, 404, ex.Message, correlationId);
             }
             catch (ConflictException ex)
             {
-                _logger.LogWarning(ex.Message);
+                _logger.LogWarning("Conflict: {Message} | Path={Path}", ex.Message, context.Request.Path);
                 await WriteResponse(context, 409, ex.Message, correlationId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unhandled exception. Method={Method} Path={Path} CorrelationId={CorrelationId}",
-                    context.Request.Method, context.Request.Path, correlationId);
+                _logger.LogError(ex,
+                    "Unhandled {ExceptionType}: {ExceptionMessage} | Method={Method} Path={Path}",
+                    ex.GetType().Name,
+                    ex.Message,
+                    context.Request.Method,
+                    context.Request.Path);
                 await WriteResponse(context, 500, "An unexpected error occurred.", correlationId);
             }
         }

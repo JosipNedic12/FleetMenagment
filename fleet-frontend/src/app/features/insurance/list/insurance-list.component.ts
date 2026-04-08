@@ -237,14 +237,14 @@ export class InsuranceListComponent implements OnInit, OnDestroy {
 
   filterFields: FilterField[] = [
     {
-      key: 'status', label: 'Status', type: 'select',
+      key: 'status', label: $localize`:@@insurance.filter.status:Status`, type: 'select',
       options: [
-        { value: 'active', label: 'Active' },
-        { value: 'expired', label: 'Expired' },
+        { value: 'active',  label: $localize`:@@COMMON.CHIPS.ACTIVE:Aktivno` },
+        { value: 'expired', label: $localize`:@@COMMON.CHIPS.EXPIRED:Isteklo` },
       ]
     },
-    { key: 'vehicleId', label: 'Vehicle', type: 'select', options: [] },
-    { key: 'insurer', label: 'Insurer', type: 'text', placeholder: 'e.g. Croatia osiguranje' },
+    { key: 'vehicleId', label: $localize`:@@COMMON.FILTER.vehicle:Vozilo`,     type: 'select', options: [] },
+    { key: 'insurer',   label: $localize`:@@insurance.filter.insurer:Osiguratelj`, type: 'text', placeholder: $localize`:@@insurance.filter.insurerPlaceholder:npr. Croatia osiguranje` },
   ];
 
   loading  = signal(true);

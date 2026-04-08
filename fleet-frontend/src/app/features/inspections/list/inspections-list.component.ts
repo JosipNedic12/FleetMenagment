@@ -228,16 +228,16 @@ export class InspectionsListComponent implements OnInit, OnDestroy {
 
   filterFields: FilterField[] = [
     {
-      key: 'result', label: 'Result', type: 'select',
+      key: 'result', label: $localize`:@@inspections.filter.result:Rezultat`, type: 'select',
       options: [
-        { value: 'passed', label: 'Passed' },
-        { value: 'failed', label: 'Failed' },
-        { value: 'conditional', label: 'Conditional' },
+        { value: 'passed',      label: $localize`:@@COMMON.CHIPS.PASSED:Položeno` },
+        { value: 'failed',      label: $localize`:@@COMMON.CHIPS.FAILED:Nije položeno` },
+        { value: 'conditional', label: $localize`:@@COMMON.CHIPS.CONDITIONAL:Uvjetno` },
       ]
     },
-    { key: 'vehicleId', label: 'Vehicle', type: 'select', options: [] },
-    { key: 'dateFrom', label: 'Date From', type: 'date' },
-    { key: 'dateTo', label: 'Date To', type: 'date' },
+    { key: 'vehicleId', label: $localize`:@@COMMON.FILTER.vehicle:Vozilo`,    type: 'select', options: [] },
+    { key: 'dateFrom',  label: $localize`:@@COMMON.FILTER.dateFrom:Datum od`, type: 'date' },
+    { key: 'dateTo',    label: $localize`:@@COMMON.FILTER.dateTo:Datum do`,   type: 'date' },
   ];
 
   loading  = signal(true);

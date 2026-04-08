@@ -214,13 +214,13 @@ export class RegistrationListComponent implements OnInit, OnDestroy {
 
   filterFields: FilterField[] = [
     {
-      key: 'status', label: 'Status', type: 'select',
+      key: 'status', label: $localize`:@@registration.filter.status:Status`, type: 'select',
       options: [
-        { value: 'active', label: 'Valid' },
-        { value: 'expired', label: 'Expired' },
+        { value: 'active',  label: $localize`:@@COMMON.CHIPS.ACTIVE:Aktivno` },
+        { value: 'expired', label: $localize`:@@COMMON.CHIPS.EXPIRED:Isteklo` },
       ]
     },
-    { key: 'vehicleId', label: 'Vehicle', type: 'select', options: [] },
+    { key: 'vehicleId', label: $localize`:@@COMMON.FILTER.vehicle:Vozilo`, type: 'select', options: [] },
   ];
 
   loading  = signal(true);

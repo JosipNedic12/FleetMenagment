@@ -377,10 +377,10 @@ export class FuelListComponent implements OnInit, OnDestroy {
   formError        = signal('');
 
   txFilterFields: FilterField[] = [
-    { key: 'vehicleId', label: 'Vehicle', type: 'select', options: [] },
-    { key: 'fuelTypeId', label: 'Fuel Type', type: 'select', options: [] },
-    { key: 'dateFrom', label: 'Date From', type: 'date' },
-    { key: 'dateTo', label: 'Date To', type: 'date' },
+    { key: 'vehicleId',  label: $localize`:@@COMMON.FILTER.vehicle:Vozilo`,   type: 'select', options: [] },
+    { key: 'fuelTypeId', label: $localize`:@@fuel.filter.fuelType:Gorivo`,    type: 'select', options: [] },
+    { key: 'dateFrom',   label: $localize`:@@COMMON.FILTER.dateFrom:Datum od`, type: 'date' },
+    { key: 'dateTo',     label: $localize`:@@COMMON.FILTER.dateTo:Datum do`,   type: 'date' },
   ];
 
   // Form data

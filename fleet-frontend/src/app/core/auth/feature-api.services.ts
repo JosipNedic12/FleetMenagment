@@ -824,3 +824,23 @@ export class NotificationApiService extends ApiService {
     return this.put<void>('Notifications/read-all', {});
   }
 }
+
+// ─── User Activity ────────────────────────────────────────────────────────────
+
+export interface ActivityLogDto {
+  activityLogId: number;
+  action: string;
+  entityType: string;
+  entityId: number | null;
+  description: string;
+  createdAt: string;
+}
+
+@Injectable({ providedIn: 'root' })
+export class UserActivityApiService extends ApiService {
+  constructor(http: HttpClient) { super(http); }
+
+  getMyActivity(count = 20): Observable<ActivityLogDto[]> {
+    return this.get<ActivityLogDto[]>(`UserActivity?count=${count}`);
+  }
+}
