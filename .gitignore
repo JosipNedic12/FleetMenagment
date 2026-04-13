@@ -7,3 +7,6 @@ appsettings.Development.json
 uploads/
 elk/data/
 seed.sql
+echo "logs/" >> .gitignore
+logs/
+telemetry-simulator/
