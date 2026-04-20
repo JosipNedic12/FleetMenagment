@@ -3,6 +3,7 @@ using FleetManagement.Application.Common;
 using FleetManagement.Application.Common.Filters;
 using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Exceptions;
+using static FleetManagement.Application.Exceptions.ErrorMessageKeys;
 using FleetManagement.Domain.Entities;
 using FleetManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -80,7 +81,7 @@ public class RegistrationRecordService
     {
         var record = await BaseQuery().FirstOrDefaultAsync(r => r.RegistrationId == id);
         if (record == null)
-            throw new NotFoundException($"Registration record with id {id} was not found.");
+            throw new NotFoundException(RegistrationRecordNotFound);
         return MapToDto(record);
     }
 
@@ -102,16 +103,34 @@ public class RegistrationRecordService
             .FirstOrDefaultAsync();
 
         if (record == null)
-            throw new NotFoundException($"No current registration record found for vehicle {vehicleId}.");
+            throw new NotFoundException(RegistrationNoCurrentRecord);
         return MapToDto(record);
     }
 
     public async Task<RegistrationRecordDto> CreateAsync(CreateRegistrationRecordDto dto)
     {
+        var regNorm = dto.RegistrationNumber.Trim().ToUpper();
+
+        var numberUsedInRecords = await _db.RegistrationRecords.AnyAsync(r => r.RegistrationNumber == regNorm);
+        if (numberUsedInRecords)
+            throw new ConflictException(RegistrationNumberDuplicate);
+
+        var numberUsedOnVehicle = await _db.Vehicles.AnyAsync(v =>
+            !v.IsDeleted && v.RegistrationNumber == regNorm);
+        if (numberUsedOnVehicle)
+            throw new ConflictException(RegistrationNumberOnVehicle);
+
+        var hasOverlap = await _db.RegistrationRecords.AnyAsync(r =>
+            r.VehicleId == dto.VehicleId &&
+            r.ValidFrom <= dto.ValidTo &&
+            r.ValidTo >= dto.ValidFrom);
+        if (hasOverlap)
+            throw new ConflictException(RegistrationRecordOverlap);
+
         var record = new RegistrationRecord
         {
             VehicleId = dto.VehicleId,
-            RegistrationNumber = dto.RegistrationNumber.Trim(),
+            RegistrationNumber = regNorm,
             ValidFrom = dto.ValidFrom,
             ValidTo = dto.ValidTo,
             Fee = dto.Fee,
@@ -129,9 +148,36 @@ public class RegistrationRecordService
     {
         var record = await _db.RegistrationRecords.FindAsync(id);
         if (record == null)
-            throw new NotFoundException($"Registration record with id {id} was not found.");
+            throw new NotFoundException(RegistrationRecordNotFound);
 
-        if (dto.RegistrationNumber != null) record.RegistrationNumber = dto.RegistrationNumber;
+        if (dto.RegistrationNumber != null)
+        {
+            var regNorm = dto.RegistrationNumber.Trim().ToUpper();
+
+            var numberUsedInRecords = await _db.RegistrationRecords.AnyAsync(r =>
+                r.RegistrationId != id && r.RegistrationNumber == regNorm);
+            if (numberUsedInRecords)
+                throw new ConflictException(RegistrationNumberDuplicate);
+
+            var numberUsedOnVehicle = await _db.Vehicles.AnyAsync(v =>
+                !v.IsDeleted && v.RegistrationNumber == regNorm);
+            if (numberUsedOnVehicle)
+                throw new ConflictException(RegistrationNumberOnVehicle);
+
+            record.RegistrationNumber = regNorm;
+        }
+
+        var newValidFrom = dto.ValidFrom ?? record.ValidFrom;
+        var newValidTo = dto.ValidTo ?? record.ValidTo;
+
+        var overlaps = await _db.RegistrationRecords.AnyAsync(r =>
+            r.RegistrationId != id &&
+            r.VehicleId == record.VehicleId &&
+            r.ValidFrom <= newValidTo &&
+            r.ValidTo >= newValidFrom);
+        if (overlaps)
+            throw new ConflictException(RegistrationRecordOverlap);
+
         if (dto.ValidFrom.HasValue) record.ValidFrom = dto.ValidFrom.Value;
         if (dto.ValidTo.HasValue) record.ValidTo = dto.ValidTo.Value;
         if (dto.Fee.HasValue) record.Fee = dto.Fee.Value;
@@ -147,7 +193,7 @@ public class RegistrationRecordService
     {
         var record = await _db.RegistrationRecords.FindAsync(id);
         if (record == null)
-            throw new NotFoundException($"Registration record with id {id} was not found.");
+            throw new NotFoundException(RegistrationRecordNotFound);
 
         _db.RegistrationRecords.Remove(record);
         await _db.SaveChangesAsync();

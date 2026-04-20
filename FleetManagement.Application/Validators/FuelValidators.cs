@@ -1,4 +1,5 @@
 ﻿using FleetManagement.Application.DTOs;
+using FleetManagement.Application.Exceptions;
 using FluentValidation;
 
 namespace FleetManagement.Application.Validators;
@@ -11,7 +12,23 @@ public class CreateFuelCardValidator : AbstractValidator<CreateFuelCardDto>
         RuleFor(x => x.Provider).MaximumLength(100).When(x => x.Provider != null);
         RuleFor(x => x.ValidTo)
             .Must((dto, validTo) => validTo == null || validTo >= dto.ValidFrom)
-            .WithMessage("ValidTo must be after ValidFrom.");
+            .WithMessage(ErrorMessageKeys.ValidatorValidToAfterFrom);
+    }
+}
+
+public class UpdateFuelCardValidator : AbstractValidator<UpdateFuelCardDto>
+{
+    public UpdateFuelCardValidator()
+    {
+        RuleFor(x => x.Provider)
+            .MaximumLength(100).When(x => x.Provider != null);
+
+        RuleFor(x => x.ValidTo)
+            .Must((dto, validTo) => validTo == null || !dto.ValidFrom.HasValue || validTo >= dto.ValidFrom)
+            .WithMessage(ErrorMessageKeys.ValidatorValidToAfterFrom);
+
+        RuleFor(x => x.Notes)
+            .MaximumLength(2000).When(x => x.Notes != null);
     }
 }
 

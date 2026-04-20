@@ -3,6 +3,7 @@ using FleetManagement.Application.Common;
 using FleetManagement.Application.Common.Filters;
 using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Exceptions;
+using static FleetManagement.Application.Exceptions.ErrorMessageKeys;
 using FleetManagement.Domain.Entities;
 using FleetManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -88,7 +89,7 @@ public class FuelCardService
     public async Task<FuelCardDto?> GetByIdAsync(int id)
     {
         var card = await BaseQuery().FirstOrDefaultAsync(c => c.FuelCardId == id);
-        if (card == null) throw new NotFoundException($"Fuel card with id {id} was not found.");
+        if (card == null) throw new NotFoundException(FuelCardNotFound);
         return MapToDto(card);
     }
 
@@ -100,9 +101,14 @@ public class FuelCardService
 
     public async Task<FuelCardDto> CreateAsync(CreateFuelCardDto dto)
     {
+        var cardNumberNorm = dto.CardNumber.Trim().ToUpper();
+        var exists = await _db.FuelCards.AnyAsync(c => c.CardNumber == cardNumberNorm);
+        if (exists)
+            throw new ConflictException(FuelCardNumberDuplicate);
+
         var card = new FuelCard
         {
-            CardNumber = dto.CardNumber.Trim(),
+            CardNumber = cardNumberNorm,
             Provider = dto.Provider,
             AssignedVehicleId = dto.AssignedVehicleId,
             ValidFrom = dto.ValidFrom,
@@ -119,7 +125,7 @@ public class FuelCardService
     public async Task<FuelCardDto?> UpdateAsync(int id, UpdateFuelCardDto dto)
     {
         var card = await _db.FuelCards.FindAsync(id);
-        if (card == null) throw new NotFoundException($"Fuel card with id {id} was not found.");
+        if (card == null) throw new NotFoundException(FuelCardNotFound);
 
         card.Provider = dto.Provider;
         card.AssignedVehicleId = dto.AssignedVehicleId;
@@ -136,7 +142,7 @@ public class FuelCardService
     public async Task<bool> DeleteAsync(int id)
     {
         var card = await _db.FuelCards.FindAsync(id);
-        if (card == null) throw new NotFoundException($"Fuel card with id {id} was not found.");
+        if (card == null) throw new NotFoundException(FuelCardNotFound);
 
         card.IsActive = false;
         card.ModifiedAt = DateTime.UtcNow;

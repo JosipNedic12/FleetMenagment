@@ -56,7 +56,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
           </button>
           @if (inspection()) {
             <app-badge
-              [label]="inspection()!.result"
+              [label]="resultLabel(inspection()!.result)"
               [variant]="resultVariant(inspection()!.result)"
             />
           }
@@ -87,13 +87,13 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
               <div class="kv-row">
                 <span class="kv-label" i18n="@@inspections.detail.result">Result</span>
                 <span class="kv-value">
-                  <app-badge [label]="inspection()!.result" [variant]="resultVariant(inspection()!.result)" />
+                  <app-badge [label]="resultLabel(inspection()!.result)" [variant]="resultVariant(inspection()!.result)" />
                 </span>
               </div>
               <div class="kv-row">
                 <span class="kv-label" i18n="@@inspections.detail.validity">Validity</span>
                 <span class="kv-value">
-                  <app-badge [label]="inspection()!.isValid ? 'Valid' : 'Expired'" [variant]="inspection()!.isValid ? 'success' : 'danger'" />
+                  <app-badge [label]="inspection()!.isValid ? labelValid : labelExpired" [variant]="inspection()!.isValid ? 'success' : 'danger'" />
                 </span>
               </div>
             </div>
@@ -259,6 +259,16 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 })
 export class InspectionDetailComponent implements OnInit {
   readonly icons = { ArrowLeft, Pencil };
+
+  readonly labelValid   = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
+  readonly labelExpired = $localize`:@@COMMON.CHIPS.EXPIRED:Expired`;
+
+  private readonly resultLabels: Record<string, string> = {
+    passed:      $localize`:@@COMMON.CHIPS.PASSED:Passed`,
+    failed:      $localize`:@@COMMON.CHIPS.FAILED:Failed`,
+    conditional: $localize`:@@COMMON.CHIPS.CONDITIONAL:Conditional`,
+  };
+  resultLabel(result: string): string { return this.resultLabels[result] ?? result; }
 
   inspection = signal<Inspection | null>(null);
   loading    = signal(true);

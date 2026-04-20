@@ -47,7 +47,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
             <ng-container i18n="@@fuel.editButton">Edit</ng-container>
           </button>
           @if (tx()?.isSuspicious) {
-            <app-badge label="Suspicious" variant="danger" />
+            <app-badge [label]="suspiciousLabel" variant="danger" />
           }
         </div>
       </div>
@@ -89,7 +89,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                 <span class="kv-label" i18n="@@fuel.kvSuspicious">Suspicious</span>
                 <span class="kv-value">
                   <app-badge
-                    [label]="tx()!.isSuspicious ? 'Yes' : 'No'"
+                    [label]="tx()!.isSuspicious ? yesLabel : noLabel"
                     [variant]="tx()!.isSuspicious ? 'danger' : 'success'"
                   />
                 </span>
@@ -281,6 +281,10 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 })
 export class FuelDetailComponent implements OnInit {
   readonly icons = { ArrowLeft, Pencil };
+
+  readonly suspiciousLabel = 'Sumnjivo';
+  readonly yesLabel        = 'Da';
+  readonly noLabel         = 'Ne';
 
   tx      = signal<FuelTransaction | null>(null);
   loading = signal(true);

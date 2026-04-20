@@ -58,7 +58,7 @@ const ENTITY_ROUTES: Record<string, string> = {
   standalone: true,
   imports: [RouterOutlet, SidebarComponent, GlobalSearchComponent, LucideAngularModule, ToastComponent, DatePipe],
   template: `
-    <div class="app-shell">
+    <div class="app-shell" [class.sidebar-collapsed]="sidebar.collapsed()">
       <!-- Mobile backdrop -->
       @if (mobileOpen()) {
         <div class="mobile-backdrop" (click)="mobileOpen.set(false)"></div>
@@ -70,7 +70,7 @@ const ENTITY_ROUTES: Record<string, string> = {
         (mobileClose)="mobileOpen.set(false)"
       />
 
-      <div class="content-area" [class.sidebar-collapsed]="sidebar.collapsed()" [class.sidebar-expanded]="!sidebar.collapsed()">
+      <div class="content-area">
         <header class="topbar">
           <!-- Left: hamburger (mobile) + breadcrumb -->
           <div class="topbar-left">
@@ -183,17 +183,25 @@ const ENTITY_ROUTES: Record<string, string> = {
     </div>
   `,
   styles: [`
-    .app-shell { min-height: 100vh; background: var(--page-bg); }
+    .app-shell {
+      min-height: 100vh;
+      background: var(--page-bg);
+    }
 
-    /* Content area shifts with sidebar */
+    /*
+     * Sidebar is position:fixed and overlays the content.
+     * content-area spans the FULL viewport width always.
+     * padding-left keeps content from hiding behind the sidebar.
+     * Centering in topbar/main is relative to the full viewport — no jump.
+     */
     .content-area {
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      transition: margin-left 0.25s ease, width 0.25s ease;
+      padding-left: 240px;
+      transition: padding-left 0.25s ease;
     }
-    .content-area.sidebar-expanded  { margin-left: 240px; width: calc(100% - 240px); }
-    .content-area.sidebar-collapsed { margin-left: 64px;  width: calc(100% - 64px); }
+    .app-shell.sidebar-collapsed .content-area { padding-left: 64px; }
 
     /* Top bar */
     .topbar {
@@ -217,6 +225,7 @@ const ENTITY_ROUTES: Record<string, string> = {
       min-width: 0;
     }
 
+    /* Center search against the visible content width, not full viewport */
     .topbar-center {
       flex: 0 0 auto;
     }
@@ -326,7 +335,7 @@ const ENTITY_ROUTES: Record<string, string> = {
     .topbar-chevron.rotated { transform: rotate(180deg); }
 
     /* Main content */
-    .main-content { flex: 1; overflow-x: hidden; overflow-y: auto; transition: margin-left 0.3s ease; min-width: 0; }
+    .main-content { flex: 1; overflow-x: hidden; overflow-y: auto; min-width: 0; }
 
     /* ── Notifications ── */
     .topbar-notif-wrap {
@@ -555,11 +564,8 @@ const ENTITY_ROUTES: Record<string, string> = {
 
     /* ── Mobile ── */
     @media (max-width: 767px) {
-      .content-area.sidebar-expanded,
-      .content-area.sidebar-collapsed {
-        margin-left: 0 !important;
-        width: 100% !important;
-      }
+      .content-area,
+      .app-shell.sidebar-collapsed .content-area { padding-left: 0 !important; }
       .topbar {
         padding: 0 12px;
         gap: 8px;

@@ -276,10 +276,13 @@ export class RegistrationDetailComponent implements OnInit {
 
   goBack(): void { this.router.navigate(['/registration']); }
 
+  private readonly _labelActive  = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
+  private readonly _labelExpired = $localize`:@@COMMON.CHIPS.EXPIRED:Expired`;
+
   statusLabel(): string {
     const r = this.record();
     if (!r) return '';
-    return r.isActive ? 'Active' : 'Expired';
+    return r.isActive ? this._labelActive : this._labelExpired;
   }
 
   statusVariant(): 'success' | 'danger' {

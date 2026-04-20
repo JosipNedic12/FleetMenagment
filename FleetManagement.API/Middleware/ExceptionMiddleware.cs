@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FleetManagement.Application.Exceptions;
+using FleetManagement.API.Localization;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
 
@@ -21,9 +22,10 @@ public class ExceptionMiddleware
         var correlationId = context.Items.TryGetValue("CorrelationId", out var cid)
             ? cid?.ToString() ?? Guid.NewGuid().ToString()
             : Guid.NewGuid().ToString();
-        // Header already set by RequestLoggingMiddleware; set here only as fallback
         if (!context.Response.HasStarted)
             context.Response.Headers["X-Correlation-Id"] = correlationId;
+
+        var lang = ResolveLanguage(context);
 
         using (LogContext.PushProperty("CorrelationId", correlationId))
         {
@@ -34,12 +36,14 @@ public class ExceptionMiddleware
             catch (NotFoundException ex)
             {
                 _logger.LogWarning("NotFound: {Message} | Path={Path}", ex.Message, context.Request.Path);
-                await WriteResponse(context, 404, ex.Message, correlationId);
+                var msg = ErrorMessages.Get(ex.Message, lang);
+                await WriteResponse(context, 404, msg, correlationId);
             }
             catch (ConflictException ex)
             {
                 _logger.LogWarning("Conflict: {Message} | Path={Path}", ex.Message, context.Request.Path);
-                await WriteResponse(context, 409, ex.Message, correlationId);
+                var msg = ErrorMessages.Get(ex.Message, lang);
+                await WriteResponse(context, 409, msg, correlationId);
             }
             catch (Exception ex)
             {
@@ -49,9 +53,21 @@ public class ExceptionMiddleware
                     ex.Message,
                     context.Request.Method,
                     context.Request.Path);
-                await WriteResponse(context, 500, "An unexpected error occurred.", correlationId);
+                var msg = lang.StartsWith("hr") ? "Došlo je do neočekivane greške." : "An unexpected error occurred.";
+                await WriteResponse(context, 500, msg, correlationId);
             }
         }
+    }
+
+    private static string ResolveLanguage(HttpContext context)
+    {
+        var accept = context.Request.Headers["Accept-Language"].ToString();
+        if (!string.IsNullOrWhiteSpace(accept))
+        {
+            var primary = accept.Split(',')[0].Trim().Split(';')[0].Trim();
+            return primary;
+        }
+        return "hr";
     }
 
     private static async Task WriteResponse(HttpContext context, int statusCode, string message, string correlationId)

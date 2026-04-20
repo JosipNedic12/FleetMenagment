@@ -3,6 +3,7 @@ using FleetManagement.Application.Common;
 using FleetManagement.Application.Common.Filters;
 using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Exceptions;
+using static FleetManagement.Application.Exceptions.ErrorMessageKeys;
 using FleetManagement.Domain.Entities;
 using FleetManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -94,7 +95,7 @@ public class InsurancePolicyService
     {
         var policy = await BaseQuery().FirstOrDefaultAsync(p => p.PolicyId == id);
         if (policy == null)
-            throw new NotFoundException($"Insurance policy with id {id} was not found.");
+            throw new NotFoundException(InsurancePolicyNotFound);
         return MapToDto(policy);
     }
 
@@ -109,10 +110,24 @@ public class InsurancePolicyService
 
     public async Task<InsurancePolicyDto> CreateAsync(CreateInsurancePolicyDto dto)
     {
+        var policyNumberNorm = dto.PolicyNumber.Trim();
+
+        var numberExists = await _db.InsurancePolicies.AnyAsync(p => p.PolicyNumber == policyNumberNorm);
+        if (numberExists)
+            throw new ConflictException(InsurancePolicyNumberDuplicate);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var hasActivePolicy = await _db.InsurancePolicies.AnyAsync(p =>
+            p.VehicleId == dto.VehicleId &&
+            p.ValidFrom <= dto.ValidTo &&
+            p.ValidTo >= dto.ValidFrom);
+        if (hasActivePolicy)
+            throw new ConflictException(InsurancePolicyOverlap);
+
         var policy = new InsurancePolicy
         {
             VehicleId = dto.VehicleId,
-            PolicyNumber = dto.PolicyNumber.Trim(),
+            PolicyNumber = policyNumberNorm,
             Insurer = dto.Insurer.Trim(),
             ValidFrom = dto.ValidFrom,
             ValidTo = dto.ValidTo,
@@ -131,7 +146,18 @@ public class InsurancePolicyService
     {
         var policy = await _db.InsurancePolicies.FindAsync(id);
         if (policy == null)
-            throw new NotFoundException($"Insurance policy with id {id} was not found.");
+            throw new NotFoundException(InsurancePolicyNotFound);
+
+        var newValidFrom = dto.ValidFrom ?? policy.ValidFrom;
+        var newValidTo = dto.ValidTo ?? policy.ValidTo;
+
+        var overlaps = await _db.InsurancePolicies.AnyAsync(p =>
+            p.PolicyId != id &&
+            p.VehicleId == policy.VehicleId &&
+            p.ValidFrom <= newValidTo &&
+            p.ValidTo >= newValidFrom);
+        if (overlaps)
+            throw new ConflictException(InsurancePolicyOverlap);
 
         if (dto.Insurer != null) policy.Insurer = dto.Insurer;
         if (dto.ValidFrom.HasValue) policy.ValidFrom = dto.ValidFrom.Value;
@@ -149,7 +175,7 @@ public class InsurancePolicyService
     {
         var policy = await _db.InsurancePolicies.FindAsync(id);
         if (policy == null)
-            throw new NotFoundException($"Insurance policy with id {id} was not found.");
+            throw new NotFoundException(InsurancePolicyNotFound);
 
         _db.InsurancePolicies.Remove(policy);
         await _db.SaveChangesAsync();

@@ -46,7 +46,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
           </button>
           @if (assignment()) {
             <app-badge
-              [label]="assignment()!.isActive ? 'Active' : 'Ended'"
+              [label]="assignment()!.isActive ? labelActive : labelEnded"
               [variant]="assignment()!.isActive ? 'success' : 'neutral'"
             />
           }
@@ -100,7 +100,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
                 <span class="kv-label" i18n="@@assignments.detail.labelStatus">Status</span>
                 <span class="kv-value">
                   <app-badge
-                    [label]="assignment()!.isActive ? 'Active' : 'Ended'"
+                    [label]="assignment()!.isActive ? labelActive : labelEnded"
                     [variant]="assignment()!.isActive ? 'success' : 'neutral'"
                   />
                 </span>
@@ -241,6 +241,9 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
 })
 export class AssignmentDetailComponent implements OnInit {
   readonly icons = { ArrowLeft, Pencil };
+
+  readonly labelActive = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
+  readonly labelEnded  = $localize`:@@COMMON.CHIPS.ENDED:Ended`;
 
   assignment = signal<VehicleAssignment | null>(null);
   loading    = signal(true);

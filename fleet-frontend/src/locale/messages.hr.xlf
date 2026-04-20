@@ -3470,6 +3470,30 @@
           <context context-type="linenumber">295,296</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="fuel.badge.suspicious" datatype="html">
+        <source>Suspicious</source>
+        <target>Sumnjivo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/fuel/detail/fuel-detail.component.ts</context>
+          <context context-type="linenumber">1,1</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="fuel.badge.yes" datatype="html">
+        <source>Yes</source>
+        <target>Da</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/fuel/detail/fuel-detail.component.ts</context>
+          <context context-type="linenumber">1,1</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="fuel.badge.no" datatype="html">
+        <source>No</source>
+        <target>Ne</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/fuel/detail/fuel-detail.component.ts</context>
+          <context context-type="linenumber">1,1</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="inspections.detail.breadcrumbDashboard" datatype="html">
         <source>Dashboard</source>
         <target>Nadzorna ploča</target>
@@ -5084,6 +5108,38 @@
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/maintenance/list/maintenance-list.component.ts</context>
           <context context-type="linenumber">302,303</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="maintenance.status.open" datatype="html">
+        <source>Open</source>
+        <target>Otvoreno</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/maintenance/detail/maintenance-detail.component.ts</context>
+          <context context-type="linenumber">1,1</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="maintenance.status.inProgress" datatype="html">
+        <source>In Progress</source>
+        <target>U tijeku</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/maintenance/detail/maintenance-detail.component.ts</context>
+          <context context-type="linenumber">1,1</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="maintenance.status.closed" datatype="html">
+        <source>Closed</source>
+        <target>Zatvoreno</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/maintenance/detail/maintenance-detail.component.ts</context>
+          <context context-type="linenumber">1,1</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="maintenance.status.cancelled" datatype="html">
+        <source>Cancelled</source>
+        <target>Otkazano</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/maintenance/detail/maintenance-detail.component.ts</context>
+          <context context-type="linenumber">1,1</context>
         </context-group>
       </trans-unit>
       <trans-unit id="odometer.title" datatype="html">
@@ -8483,6 +8539,38 @@
       <trans-unit id="COMMON.CHIPS.SUSPICIOUS" datatype="html">
         <source>Suspicious</source>
         <target>Sumnjivo</target>
+      </trans-unit>
+
+      <!-- Pagination -->
+      <trans-unit id="COMMON.PAGINATION.showing" datatype="html">
+        <source>Showing <x id="START_TAG_STRONG" ctype="x-strong"/><x id="INTERPOLATION" equiv-text="{{ startItem() }}"/><x id="CLOSE_TAG_STRONG" ctype="x-strong"/>–<x id="START_TAG_STRONG" ctype="x-strong"/><x id="INTERPOLATION_1" equiv-text="{{ endItem() }}"/><x id="CLOSE_TAG_STRONG" ctype="x-strong"/> of <x id="START_TAG_STRONG" ctype="x-strong"/><x id="INTERPOLATION_2" equiv-text="{{ totalCount }}"/><x id="CLOSE_TAG_STRONG" ctype="x-strong"/></source>
+        <target>Prikazano <x id="START_TAG_STRONG" ctype="x-strong"/><x id="INTERPOLATION" equiv-text="{{ startItem() }}"/><x id="CLOSE_TAG_STRONG" ctype="x-strong"/>–<x id="START_TAG_STRONG" ctype="x-strong"/><x id="INTERPOLATION_1" equiv-text="{{ endItem() }}"/><x id="CLOSE_TAG_STRONG" ctype="x-strong"/> od <x id="START_TAG_STRONG" ctype="x-strong"/><x id="INTERPOLATION_2" equiv-text="{{ totalCount }}"/><x id="CLOSE_TAG_STRONG" ctype="x-strong"/></target>
+      </trans-unit>
+      <trans-unit id="COMMON.PAGINATION.rows" datatype="html">
+        <source>Rows</source>
+        <target>Redovi</target>
+      </trans-unit>
+
+      <!-- Export button -->
+      <trans-unit id="COMMON.EXPORT.label" datatype="html">
+        <source>Export</source>
+        <target>Izvoz</target>
+      </trans-unit>
+      <trans-unit id="COMMON.EXPORT.excelLabel" datatype="html">
+        <source>Excel</source>
+        <target>Excel</target>
+      </trans-unit>
+      <trans-unit id="COMMON.EXPORT.excelHint" datatype="html">
+        <source>.xlsx spreadsheet</source>
+        <target>.xlsx tablica</target>
+      </trans-unit>
+      <trans-unit id="COMMON.EXPORT.pdfLabel" datatype="html">
+        <source>PDF</source>
+        <target>PDF</target>
+      </trans-unit>
+      <trans-unit id="COMMON.EXPORT.pdfHint" datatype="html">
+        <source>Printable report</source>
+        <target>Izvještaj za ispis</target>
       </trans-unit>
 
       <!-- FilterPanel -->

@@ -217,7 +217,7 @@ type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | '
                       <td>{{ r.assignedFrom | date:'dd.MM.yyyy' }}</td>
                       <td>{{ r.assignedTo ? (r.assignedTo | date:'dd.MM.yyyy') : '—' }}</td>
                       <td>{{ r.notes || '—' }}</td>
-                      <td><app-badge [label]="r.isActive ? 'Active' : 'Ended'" [variant]="r.isActive ? 'success' : 'neutral'" /></td>
+                      <td><app-badge [label]="r.isActive ? labelActive : labelEnded" [variant]="r.isActive ? 'success' : 'neutral'" /></td>
                     </tr>
                   }
                 </tbody>
@@ -243,7 +243,7 @@ type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | '
                       <td>{{ r.validTo | date:'dd.MM.yyyy' }}</td>
                       <td>{{ r.premium | euNumber:'1.2-2' }} €</td>
                       <td>{{ r.coverageNotes || '—' }}</td>
-                      <td><app-badge [label]="r.isActive ? 'Active' : 'Expired'" [variant]="r.isActive ? 'success' : 'neutral'" /></td>
+                      <td><app-badge [label]="r.isActive ? labelActive : labelExpired" [variant]="r.isActive ? 'success' : 'neutral'" /></td>
                     </tr>
                   }
                 </tbody>
@@ -264,12 +264,12 @@ type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | '
                   @for (r of inspections(); track r.inspectionId) {
                     <tr>
                       <td>{{ r.inspectedAt | date:'dd.MM.yyyy' }}</td>
-                      <td><app-badge [label]="r.result"
+                      <td><app-badge [label]="inspectionResultLabel(r.result)"
                         [variant]="r.result === 'passed' ? 'success' : r.result === 'failed' ? 'danger' : 'warning'" /></td>
                       <td>{{ r.validTo ? (r.validTo | date:'dd.MM.yyyy') : '—' }}</td>
                       <td>{{ r.odometerKm != null ? (r.odometerKm | euNumber) + ' km' : '—' }}</td>
                       <td>{{ r.notes || '—' }}</td>
-                      <td><app-badge [label]="r.isValid ? 'Valid' : 'Expired'" [variant]="r.isValid ? 'success' : 'neutral'" /></td>
+                      <td><app-badge [label]="r.isValid ? labelValid : labelExpired" [variant]="r.isValid ? 'success' : 'neutral'" /></td>
                     </tr>
                   }
                 </tbody>
@@ -293,7 +293,7 @@ type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | '
                       <td>{{ r.driverName || '—' }}</td>
                       <td>{{ r.reason }}</td>
                       <td>{{ r.amount | euNumber:'1.2-2' }} €</td>
-                      <td><app-badge [label]="r.isPaid ? 'Paid' : 'Unpaid'" [variant]="r.isPaid ? 'success' : 'danger'" /></td>
+                      <td><app-badge [label]="r.isPaid ? labelPaid : labelUnpaid" [variant]="r.isPaid ? 'success' : 'danger'" /></td>
                     </tr>
                   }
                 </tbody>
@@ -480,6 +480,20 @@ type Tab = 'overview' | 'maintenance' | 'fuel' | 'assignments' | 'insurance' | '
 })
 export class VehicleDetailComponent implements OnInit {
   readonly icons = { ArrowLeft, Car, Wrench, Fuel, Users, Shield, ClipboardCheck, TriangleAlert, Siren, FileText, Download };
+
+  readonly labelActive  = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
+  readonly labelEnded   = $localize`:@@COMMON.CHIPS.ENDED:Ended`;
+  readonly labelExpired = $localize`:@@COMMON.CHIPS.EXPIRED:Expired`;
+  readonly labelPaid    = $localize`:@@COMMON.CHIPS.PAID:Paid`;
+  readonly labelUnpaid  = $localize`:@@COMMON.CHIPS.UNPAID:Unpaid`;
+  readonly labelValid   = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
+
+  private readonly inspectionResultLabels: Record<string, string> = {
+    passed:      $localize`:@@COMMON.CHIPS.PASSED:Passed`,
+    failed:      $localize`:@@COMMON.CHIPS.FAILED:Failed`,
+    conditional: $localize`:@@COMMON.CHIPS.CONDITIONAL:Conditional`,
+  };
+  inspectionResultLabel(result: string): string { return this.inspectionResultLabels[result] ?? result; }
 
   readonly tabs: { id: Tab; label: string; icon: any }[] = [
     { id: 'overview',     label: $localize`:@@vehicles.detail.tab.overview:Overview`,       icon: Car },

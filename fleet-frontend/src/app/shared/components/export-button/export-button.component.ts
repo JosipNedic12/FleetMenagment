@@ -10,22 +10,22 @@ import { LucideAngularModule, Download, FileSpreadsheet, FileText } from 'lucide
     <div class="export-wrapper">
       <button class="btn btn-secondary" (click)="open = !open">
         <lucide-icon [img]="icons.Download" [size]="15" [strokeWidth]="2"></lucide-icon>
-        Export
+        <ng-container i18n="@@COMMON.EXPORT.label">Export</ng-container>
       </button>
       @if (open) {
         <div class="export-menu">
           <button class="export-option" (click)="select('xlsx')">
             <lucide-icon [img]="icons.FileSpreadsheet" [size]="15" [strokeWidth]="2" class="icon-excel"></lucide-icon>
             <div class="export-option-text">
-              <span class="export-option-label">Excel</span>
-              <span class="export-option-hint">.xlsx spreadsheet</span>
+              <span class="export-option-label" i18n="@@COMMON.EXPORT.excelLabel">Excel</span>
+              <span class="export-option-hint" i18n="@@COMMON.EXPORT.excelHint">.xlsx spreadsheet</span>
             </div>
           </button>
           <button class="export-option" (click)="select('pdf')">
             <lucide-icon [img]="icons.FileText" [size]="15" [strokeWidth]="2" class="icon-pdf"></lucide-icon>
             <div class="export-option-text">
-              <span class="export-option-label">PDF</span>
-              <span class="export-option-hint">Printable report</span>
+              <span class="export-option-label" i18n="@@COMMON.EXPORT.pdfLabel">PDF</span>
+              <span class="export-option-hint" i18n="@@COMMON.EXPORT.pdfHint">Printable report</span>
             </div>
           </button>
         </div>

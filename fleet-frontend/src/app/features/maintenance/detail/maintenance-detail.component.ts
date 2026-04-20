@@ -49,7 +49,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
           </button>
           @if (order()) {
             <app-badge
-              [label]="order()!.status"
+              [label]="statusLabel(order()!.status)"
               [variant]="statusVariant(order()!.status)"
             />
           }
@@ -76,7 +76,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
               <div class="kv-row">
                 <span class="kv-label" i18n="@@maintenance.col.status">Status</span>
                 <span class="kv-value">
-                  <app-badge [label]="order()!.status" [variant]="statusVariant(order()!.status)" />
+                  <app-badge [label]="statusLabel(order()!.status)" [variant]="statusVariant(order()!.status)" />
                 </span>
               </div>
               <div class="kv-row">
@@ -318,6 +318,16 @@ export class MaintenanceDetailComponent implements OnInit {
   }
 
   goBack(): void { this.router.navigate(['/maintenance']); }
+
+  statusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      open:        'Otvoreno',
+      in_progress: 'U tijeku',
+      closed:      'Zatvoreno',
+      cancelled:   'Otkazano',
+    };
+    return labels[status] ?? status;
+  }
 
   statusVariant(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
     switch (status) {

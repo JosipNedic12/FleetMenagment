@@ -10,7 +10,7 @@ import { LucideAngularModule, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsR
   template: `
     <div class="pagination-bar">
       <!-- Left: item range info -->
-      <span class="pagination-info">
+      <span class="pagination-info" i18n="@@COMMON.PAGINATION.showing">
         Showing <strong>{{ startItem() }}</strong>–<strong>{{ endItem() }}</strong> of <strong>{{ totalCount }}</strong>
       </span>
 
@@ -41,7 +41,7 @@ import { LucideAngularModule, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsR
 
       <!-- Right: page size input (typeable) -->
       <div class="page-size-control">
-        <label class="page-size-label">Rows</label>
+        <label class="page-size-label" i18n="@@COMMON.PAGINATION.rows">Rows</label>
         <input
           type="number"
           class="page-size-input"

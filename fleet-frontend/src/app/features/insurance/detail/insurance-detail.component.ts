@@ -280,10 +280,13 @@ export class InsuranceDetailComponent implements OnInit {
 
   goBack(): void { this.router.navigate(['/insurance']); }
 
+  private readonly _labelActive  = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
+  private readonly _labelExpired = $localize`:@@COMMON.CHIPS.EXPIRED:Expired`;
+
   statusLabel(): string {
     const p = this.policy();
     if (!p) return '';
-    return p.isActive ? 'Active' : 'Expired';
+    return p.isActive ? this._labelActive : this._labelExpired;
   }
 
   statusVariant(): 'success' | 'danger' {

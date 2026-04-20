@@ -3,6 +3,7 @@ using FleetManagement.Application.Common;
 using FleetManagement.Application.Common.Filters;
 using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Exceptions;
+using static FleetManagement.Application.Exceptions.ErrorMessageKeys;
 using FleetManagement.Domain.Entities;
 using FleetManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -85,14 +86,14 @@ public class DriverService
     public async Task<DriverDto?> GetByIdAsync(int id)
     {
         var driver = await BaseQuery().FirstOrDefaultAsync(d => d.DriverId == id);
-        if (driver == null) throw new NotFoundException($"Driver with id {id} was not found.");
+        if (driver == null) throw new NotFoundException(DriverNotFound);
         return MapToDto(driver);
     }
 
     public async Task<DriverDto> CreateAsync(CreateDriverDto dto)
     {
         var exists = await _db.Drivers.AnyAsync(d => !d.IsDeleted && d.LicenseNumber == dto.LicenseNumber);
-        if (exists) throw new ConflictException("A driver with this license number already exists.");
+        if (exists) throw new ConflictException(DriverLicenseDuplicate);
 
         var driver = new Driver
         {
@@ -125,9 +126,17 @@ public class DriverService
             .Include(d => d.LicenseCategories)
             .FirstOrDefaultAsync(d => d.DriverId == id && !d.IsDeleted);
 
-        if (driver == null) throw new NotFoundException($"Driver with id {id} was not found.");
+        if (driver == null) throw new NotFoundException(DriverNotFound);
 
-        if (dto.LicenseNumber != null) driver.LicenseNumber = dto.LicenseNumber;
+        if (dto.LicenseNumber != null)
+        {
+            var licenseNorm = dto.LicenseNumber.Trim();
+            var duplicate = await _db.Drivers.AnyAsync(d =>
+                !d.IsDeleted && d.DriverId != id && d.LicenseNumber == licenseNorm);
+            if (duplicate)
+                throw new ConflictException(DriverLicenseDuplicate);
+            driver.LicenseNumber = licenseNorm;
+        }
         if (dto.LicenseExpiry.HasValue && dto.LicenseExpiry != default) driver.LicenseExpiry = dto.LicenseExpiry.Value;
         if (dto.Notes != null) driver.Notes = dto.Notes;
         driver.ModifiedAt = DateTime.UtcNow;
@@ -152,7 +161,7 @@ public class DriverService
     public async Task<bool> DeleteAsync(int id)
     {
         var driver = await _db.Drivers.FindAsync(id);
-        if (driver == null || driver.IsDeleted) throw new NotFoundException($"Driver with id {id} was not found.");
+        if (driver == null || driver.IsDeleted) throw new NotFoundException(DriverNotFound);
 
         driver.IsDeleted = true;
         driver.ModifiedAt = DateTime.UtcNow;

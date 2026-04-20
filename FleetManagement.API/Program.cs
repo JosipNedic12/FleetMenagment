@@ -1,5 +1,7 @@
 using System.Text;
 using FleetManagement.API.Middleware;
+using FleetManagement.API.Localization;
+using Microsoft.AspNetCore.Mvc;
 using FleetManagement.Application.Interfaces;
 using FleetManagement.Infrastructure.Data;
 using FleetManagement.Infrastructure.Repositories;
@@ -82,6 +84,23 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 // --- Controllers ---
 builder.Services.AddControllers();
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var lang = context.HttpContext.Request.Headers["Accept-Language"].ToString();
+        var primary = lang.Split(',').FirstOrDefault()?.Split(';').FirstOrDefault()?.Trim() ?? "hr";
+
+        var firstKey = context.ModelState
+            .Where(e => e.Value?.Errors.Count > 0)
+            .SelectMany(e => e.Value!.Errors)
+            .Select(e => e.ErrorMessage)
+            .FirstOrDefault() ?? "error.unknown";
+
+        var message = ErrorMessages.Get(firstKey, primary);
+        return new BadRequestObjectResult(new { message });
+    };
+});
 builder.Services.AddEndpointsApiExplorer();
 
 // --- Swagger with JWT support ---

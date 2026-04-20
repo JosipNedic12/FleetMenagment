@@ -49,7 +49,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
           </button>
           @if (fine()) {
             <app-badge
-              [label]="fine()!.isPaid ? 'Paid' : 'Unpaid'"
+              [label]="fine()!.isPaid ? labelPaid : labelUnpaid"
               [variant]="fine()!.isPaid ? 'success' : 'danger'"
             />
           }
@@ -107,7 +107,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                 <span class="kv-label" i18n="@@fines.detail.labelStatus">Status</span>
                 <span class="kv-value">
                   <app-badge
-                    [label]="fine()!.isPaid ? 'Paid' : 'Unpaid'"
+                    [label]="fine()!.isPaid ? labelPaid : labelUnpaid"
                     [variant]="fine()!.isPaid ? 'success' : 'danger'"
                   />
                 </span>
@@ -277,8 +277,9 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 export class FineDetailComponent implements OnInit {
   readonly icons = { ArrowLeft, Pencil };
 
-  // i18n labels used in interpolated expressions
-  detailLabel = $localize`:@@fines.detail.breadcrumbDetail:Detail`;
+  readonly detailLabel  = $localize`:@@fines.detail.breadcrumbDetail:Detail`;
+  readonly labelPaid    = $localize`:@@COMMON.CHIPS.PAID:Paid`;
+  readonly labelUnpaid  = $localize`:@@COMMON.CHIPS.UNPAID:Unpaid`;
 
   fine    = signal<Fine | null>(null);
   loading = signal(true);

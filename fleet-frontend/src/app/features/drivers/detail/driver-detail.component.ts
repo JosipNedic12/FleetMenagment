@@ -124,7 +124,7 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents' | 'documents';
                   <span class="kv-label" i18n="@@drivers.detail.overview.licenseStatus">License Status</span>
                   <span class="kv-value">
                     <app-badge
-                      [label]="driver()!.licenseExpired ? 'Expired' : 'Valid'"
+                      [label]="driver()!.licenseExpired ? labelExpired : labelValid"
                       [variant]="driver()!.licenseExpired ? 'danger' : 'success'"
                     />
                   </span>
@@ -159,7 +159,7 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents' | 'documents';
                       <td>{{ r.assignedFrom | date:'dd.MM.yyyy' }}</td>
                       <td>{{ r.assignedTo ? (r.assignedTo | date:'dd.MM.yyyy') : '—' }}</td>
                       <td>{{ r.notes || '—' }}</td>
-                      <td><app-badge [label]="r.isActive ? 'Active' : 'Ended'" [variant]="r.isActive ? 'success' : 'neutral'" /></td>
+                      <td><app-badge [label]="r.isActive ? labelActive : labelEnded" [variant]="r.isActive ? 'success' : 'neutral'" /></td>
                     </tr>
                   }
                 </tbody>
@@ -183,7 +183,7 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents' | 'documents';
                       <td><a [routerLink]="['/vehicles', r.vehicleId]" class="link"><app-vehicle-label [make]="r.vehicleMake" [model]="r.vehicleModel" [registration]="r.registrationNumber" /></a></td>
                       <td>{{ r.reason }}</td>
                       <td>{{ r.amount | euNumber:'1.2-2' }} €</td>
-                      <td><app-badge [label]="r.isPaid ? 'Paid' : 'Unpaid'" [variant]="r.isPaid ? 'success' : 'danger'" /></td>
+                      <td><app-badge [label]="r.isPaid ? labelPaid : labelUnpaid" [variant]="r.isPaid ? 'success' : 'danger'" /></td>
                     </tr>
                   }
                 </tbody>
@@ -416,6 +416,13 @@ type Tab = 'overview' | 'assignments' | 'fines' | 'accidents' | 'documents';
 })
 export class DriverDetailComponent implements OnInit {
   readonly icons = { ArrowLeft, IdCard, Users, TriangleAlert, Siren, FileText, Download, Trash2 };
+
+  readonly labelActive  = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
+  readonly labelEnded   = $localize`:@@COMMON.CHIPS.ENDED:Ended`;
+  readonly labelExpired = $localize`:@@COMMON.CHIPS.EXPIRED:Expired`;
+  readonly labelValid   = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
+  readonly labelPaid    = $localize`:@@COMMON.CHIPS.PAID:Paid`;
+  readonly labelUnpaid  = $localize`:@@COMMON.CHIPS.UNPAID:Unpaid`;
 
   readonly tabs: { id: Tab; label: string; icon: any }[] = [
     { id: 'overview',    label: $localize`:@@drivers.detail.tab.overview:Overview`,       icon: IdCard },

@@ -3,6 +3,7 @@ using FleetManagement.Application.Common;
 using FleetManagement.Application.Common.Filters;
 using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Exceptions;
+using static FleetManagement.Application.Exceptions.ErrorMessageKeys;
 using FleetManagement.Domain.Entities;
 using FleetManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -109,22 +110,24 @@ public class VehicleService
             .FirstOrDefaultAsync(v => v.VehicleId == id);
 
         if (vehicle == null)
-            throw new NotFoundException($"Vehicle with id {id} was not found.");
+            throw new NotFoundException(VehicleNotFound);
 
         return MapToDto(vehicle);
     }
 
     public async Task<VehicleDto> CreateAsync(CreateVehicleDto dto)
     {
-        // Duplicate check (was in repository)
+        var regNorm = dto.RegistrationNumber.ToUpper().Trim();
+        var vinNorm = dto.Vin.ToUpper().Trim();
+
         var exists = await _db.Vehicles.AnyAsync(v =>
             !v.IsDeleted &&
-            (v.RegistrationNumber == dto.RegistrationNumber || v.Vin == dto.Vin));
+            (v.RegistrationNumber == regNorm || v.Vin == vinNorm));
 
         if (exists)
         {
-            _logger.LogWarning("Duplicate vehicle: Reg={Reg} VIN={Vin}", dto.RegistrationNumber, dto.Vin);
-            throw new ConflictException("A vehicle with this registration number or VIN already exists.");
+            _logger.LogWarning("Duplicate vehicle: Reg={Reg} VIN={Vin}", regNorm, vinNorm);
+            throw new ConflictException(VehicleDuplicate);
         }
 
         var vehicle = new Vehicle
@@ -155,10 +158,10 @@ public class VehicleService
     {
         var vehicle = await _db.Vehicles.FindAsync(id);
         if (vehicle == null || vehicle.IsDeleted)
-            throw new NotFoundException($"Vehicle with id {id} was not found.");
+            throw new NotFoundException(VehicleNotFound);
 
         vehicle.Color = dto.Color;
-        vehicle.Status = dto.Status ?? "active";
+        vehicle.Status = dto.Status ?? vehicle.Status;
         vehicle.Notes = dto.Notes;
         vehicle.ModifiedAt = DateTime.UtcNow;
 
@@ -174,7 +177,7 @@ public class VehicleService
     {
         var vehicle = await _db.Vehicles.FindAsync(id);
         if (vehicle == null || vehicle.IsDeleted)
-            throw new NotFoundException($"Vehicle with id {id} was not found.");
+            throw new NotFoundException(VehicleNotFound);
 
         vehicle.IsDeleted = true;
         vehicle.ModifiedAt = DateTime.UtcNow;

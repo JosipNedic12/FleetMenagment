@@ -33,12 +33,12 @@ type BadgeVariant = 'success' | 'warning' | 'danger' | 'neutral';
         <div style="display:flex; align-items:center; gap:12px">
           <button class="back-btn" (click)="goBack()">
             <lucide-icon [img]="icons.ArrowLeft" [size]="16" [strokeWidth]="2"></lucide-icon>
-            Accidents
+            <ng-container i18n="@@accidents.breadcrumbAccidents">Accidents</ng-container>
           </button>
           <div>
             @if (accident()) {
               <h1 class="page-title">Accident #{{ accident()!.accidentId }} · {{ accident()!.vehicleMake }} {{ accident()!.vehicleModel }}</h1>
-              <p class="page-subtitle"><span class="mono">{{ accident()!.registrationNumber }}</span> · {{ accident()!.occurredAt | date:'dd.MM.yyyy HH:mm' }} · {{ accident()!.severity | titlecase }}</p>
+              <p class="page-subtitle"><span class="mono">{{ accident()!.registrationNumber }}</span> · {{ accident()!.occurredAt | date:'dd.MM.yyyy HH:mm' }} · {{ severityLabel(accident()!.severity) }}</p>
             } @else {
               <h1 class="page-title" i18n="@@accidents.detailTitle">Accident Detail</h1>
             }
@@ -51,7 +51,7 @@ type BadgeVariant = 'success' | 'warning' | 'danger' | 'neutral';
           </button>
           @if (accident()) {
             <app-badge
-              [label]="accident()!.severity | titlecase"
+              [label]="severityLabel(accident()!.severity)"
               [variant]="severityVariant(accident()!.severity)"
             />
           }
@@ -90,7 +90,7 @@ type BadgeVariant = 'success' | 'warning' | 'danger' | 'neutral';
                 <span class="kv-label" i18n="@@accidents.labelSeverity">Severity</span>
                 <span class="kv-value">
                   <app-badge
-                    [label]="accident()!.severity | titlecase"
+                    [label]="severityLabel(accident()!.severity)"
                     [variant]="severityVariant(accident()!.severity)"
                   />
                 </span>
@@ -322,6 +322,14 @@ export class AccidentDetailComponent implements OnInit {
     });
     this.driverApi.getAll().subscribe(d => this.drivers.set(d));
   }
+
+  private readonly severityLabels: Record<string, string> = {
+    minor: $localize`:@@COMMON.CHIPS.MINOR:Minor`,
+    major: $localize`:@@COMMON.CHIPS.MAJOR:Major`,
+    total: $localize`:@@COMMON.CHIPS.TOTAL_LOSS:Total Loss`,
+  };
+
+  severityLabel(severity: string): string { return this.severityLabels[severity] ?? severity; }
 
   severityVariant(severity: string): BadgeVariant {
     switch (severity) {
