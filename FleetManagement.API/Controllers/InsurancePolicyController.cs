@@ -64,19 +64,20 @@ public class InsurancePolicyController : ControllerBase
 
     [HttpGet("export")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] InsuranceFilter? filter)
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] InsuranceFilter? filter, [FromQuery] string lang = "hr")
     {
         var dtos = await _svc.GetFilteredDtosAsync(filter ?? new InsuranceFilter(), search);
-        var columns = InsurancePolicyService.GetExportColumns();
+        var columns = InsurancePolicyService.GetExportColumns(lang);
         if (format?.ToLower() == "pdf")
         {
-            var bytes = _exportService.ExportToPdf(dtos, columns, "Insurance Policies Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
-            return File(bytes, "application/pdf", $"insurance_{DateTime.Now:yyyyMMdd}.pdf");
+            var title = lang == "hr" ? "Izvještaj osiguranja" : "Insurance Policies Report";
+            var bytes = _exportService.ExportToPdf(dtos, columns, title, $"{dtos.Count} {(lang == "hr" ? "zapisa" : "records")} · {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"{(lang == "hr" ? "osiguranja" : "insurance")}_{DateTime.Now:yyyyMMdd}.pdf");
         }
         else
         {
-            var bytes = _exportService.ExportToExcel(dtos, columns, "Insurance Policies");
-            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"insurance_{DateTime.Now:yyyyMMdd}.xlsx");
+            var bytes = _exportService.ExportToExcel(dtos, columns, lang == "hr" ? "Osiguranja" : "Insurance Policies");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{(lang == "hr" ? "osiguranja" : "insurance")}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 }

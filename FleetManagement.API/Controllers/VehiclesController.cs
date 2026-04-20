@@ -73,19 +73,20 @@ public class VehiclesController : ControllerBase
 
     [HttpGet("export")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] VehicleFilter? filter)
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] VehicleFilter? filter, [FromQuery] string lang = "hr")
     {
         var dtos = await _service.GetFilteredDtosAsync(filter ?? new VehicleFilter(), search);
-        var columns = VehicleService.GetExportColumns();
+        var columns = VehicleService.GetExportColumns(lang);
         if (format?.ToLower() == "pdf")
         {
-            var bytes = _exportService.ExportToPdf(dtos, columns, "Vehicles Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
-            return File(bytes, "application/pdf", $"vehicles_{DateTime.Now:yyyyMMdd}.pdf");
+            var title = lang == "hr" ? "Izvještaj vozila" : "Vehicles Report";
+            var bytes = _exportService.ExportToPdf(dtos, columns, title, $"{dtos.Count} {(lang == "hr" ? "zapisa" : "records")} · {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"{(lang == "hr" ? "vozila" : "vehicles")}_{DateTime.Now:yyyyMMdd}.pdf");
         }
         else
         {
-            var bytes = _exportService.ExportToExcel(dtos, columns, "Vehicles");
-            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"vehicles_{DateTime.Now:yyyyMMdd}.xlsx");
+            var bytes = _exportService.ExportToExcel(dtos, columns, lang == "hr" ? "Vozila" : "Vehicles");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{(lang == "hr" ? "vozila" : "vehicles")}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 

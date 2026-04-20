@@ -235,15 +235,15 @@ public class FineService
         return entities.Select(MapToDto).ToList();
     }
 
-    public static List<ExportColumn<FineDto>> GetExportColumns() => new()
+    public static List<ExportColumn<FineDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Vehicle",      Width = 16, ValueSelector = f => f.RegistrationNumber },
-        new() { Header = "Driver",       Width = 22, ValueSelector = f => f.DriverName ?? "" },
-        new() { Header = "Date",         Width = 14, ValueSelector = f => f.OccurredAt },
-        new() { Header = "Amount (EUR)", Width = 12, ValueSelector = f => f.Amount },
-        new() { Header = "Reason",       Width = 24, ValueSelector = f => f.Reason },
-        new() { Header = "Paid",         Width = 10, ValueSelector = f => f.PaidAt.HasValue ? "Yes" : "No" },
-        new() { Header = "Paid At",      Width = 14, ValueSelector = f => f.PaidAt?.ToString("d") ?? "" },
+        new() { Header = lang == "hr" ? "Vozilo"       : "Vehicle",      Width = 16, ValueSelector = f => f.RegistrationNumber },
+        new() { Header = lang == "hr" ? "Vozač"        : "Driver",       Width = 22, ValueSelector = f => f.DriverName ?? "" },
+        new() { Header = lang == "hr" ? "Datum"        : "Date",         Width = 14, ValueSelector = f => f.OccurredAt },
+        new() { Header = lang == "hr" ? "Iznos (EUR)"  : "Amount (EUR)", Width = 12, ValueSelector = f => f.Amount },
+        new() { Header = lang == "hr" ? "Razlog"       : "Reason",       Width = 24, ValueSelector = f => f.Reason },
+        new() { Header = lang == "hr" ? "Plaćeno"      : "Paid",         Width = 10, ValueSelector = f => f.PaidAt.HasValue ? (lang == "hr" ? "Da" : "Yes") : (lang == "hr" ? "Ne" : "No") },
+        new() { Header = lang == "hr" ? "Datum uplate" : "Paid At",      Width = 14, ValueSelector = f => f.PaidAt?.ToString("d") ?? "" },
     };
 
     private static FineDto MapToDto(Fine f) => new()

@@ -197,13 +197,13 @@ public class InspectionService
         return entities.Select(MapToDto).ToList();
     }
 
-    public static List<ExportColumn<InspectionDto>> GetExportColumns() => new()
+    public static List<ExportColumn<InspectionDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Vehicle",       Width = 16, ValueSelector = i => i.RegistrationNumber },
-        new() { Header = "Inspected At",  Width = 14, ValueSelector = i => i.InspectedAt },
-        new() { Header = "Valid To",      Width = 14, ValueSelector = i => i.ValidTo },
-        new() { Header = "Result",        Width = 10, ValueSelector = i => i.Result },
-        new() { Header = "Odometer (km)", Width = 14, ValueSelector = i => i.OdometerKm ?? 0 },
+        new() { Header = lang == "hr" ? "Vozilo"        : "Vehicle",       Width = 16, ValueSelector = i => i.RegistrationNumber },
+        new() { Header = lang == "hr" ? "Datum pregleda": "Inspected At",  Width = 14, ValueSelector = i => i.InspectedAt },
+        new() { Header = lang == "hr" ? "Vrijedi do"    : "Valid To",      Width = 14, ValueSelector = i => i.ValidTo },
+        new() { Header = lang == "hr" ? "Rezultat"      : "Result",        Width = 10, ValueSelector = i => i.Result },
+        new() { Header = lang == "hr" ? "Kilometraža"   : "Odometer (km)", Width = 14, ValueSelector = i => i.OdometerKm ?? 0 },
     };
 
     private static InspectionDto MapToDto(Inspection i)

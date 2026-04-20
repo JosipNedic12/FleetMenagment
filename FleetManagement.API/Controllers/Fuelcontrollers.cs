@@ -67,19 +67,20 @@ public class FuelCardsController : ControllerBase
 
     [HttpGet("export")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] FuelCardFilter? filter)
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] FuelCardFilter? filter, [FromQuery] string lang = "hr")
     {
         var dtos = await _service.GetFilteredDtosAsync(filter ?? new FuelCardFilter(), search);
-        var columns = FuelCardService.GetExportColumns();
+        var columns = FuelCardService.GetExportColumns(lang);
         if (format?.ToLower() == "pdf")
         {
-            var bytes = _exportService.ExportToPdf(dtos, columns, "Fuel Cards Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
-            return File(bytes, "application/pdf", $"fuel_cards_{DateTime.Now:yyyyMMdd}.pdf");
+            var title = lang == "hr" ? "Izvještaj kartica goriva" : "Fuel Cards Report";
+            var bytes = _exportService.ExportToPdf(dtos, columns, title, $"{dtos.Count} {(lang == "hr" ? "zapisa" : "records")} · {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"{(lang == "hr" ? "kartice_goriva" : "fuel_cards")}_{DateTime.Now:yyyyMMdd}.pdf");
         }
         else
         {
-            var bytes = _exportService.ExportToExcel(dtos, columns, "Fuel Cards");
-            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"fuel_cards_{DateTime.Now:yyyyMMdd}.xlsx");
+            var bytes = _exportService.ExportToExcel(dtos, columns, lang == "hr" ? "Kartice goriva" : "Fuel Cards");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{(lang == "hr" ? "kartice_goriva" : "fuel_cards")}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 }
@@ -147,19 +148,20 @@ public class FuelTransactionsController : ControllerBase
 
     [HttpGet("export")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] FuelTransactionFilter? filter)
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] FuelTransactionFilter? filter, [FromQuery] string lang = "hr")
     {
         var dtos = await _service.GetFilteredDtosAsync(filter ?? new FuelTransactionFilter(), search);
-        var columns = FuelTransactionService.GetExportColumns();
+        var columns = FuelTransactionService.GetExportColumns(lang);
         if (format?.ToLower() == "pdf")
         {
-            var bytes = _exportService.ExportToPdf(dtos, columns, "Fuel Transactions Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
-            return File(bytes, "application/pdf", $"fuel_transactions_{DateTime.Now:yyyyMMdd}.pdf");
+            var title = lang == "hr" ? "Izvještaj transakcija goriva" : "Fuel Transactions Report";
+            var bytes = _exportService.ExportToPdf(dtos, columns, title, $"{dtos.Count} {(lang == "hr" ? "zapisa" : "records")} · {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"{(lang == "hr" ? "transakcije_goriva" : "fuel_transactions")}_{DateTime.Now:yyyyMMdd}.pdf");
         }
         else
         {
-            var bytes = _exportService.ExportToExcel(dtos, columns, "Fuel Transactions");
-            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"fuel_transactions_{DateTime.Now:yyyyMMdd}.xlsx");
+            var bytes = _exportService.ExportToExcel(dtos, columns, lang == "hr" ? "Transakcije goriva" : "Fuel Transactions");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{(lang == "hr" ? "transakcije_goriva" : "fuel_transactions")}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 }

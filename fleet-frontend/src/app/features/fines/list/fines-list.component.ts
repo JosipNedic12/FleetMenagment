@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { FineApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
@@ -22,7 +22,7 @@ import { downloadBlob } from '../../../shared/utils/download';
 @Component({
   selector: 'app-fines-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -72,8 +72,8 @@ import { downloadBlob } from '../../../shared/utils/download';
             </thead>
             <tbody>
               @for (row of items(); track row.fineId) {
-                <tr (click)="goToDetail(row)">
-                  <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></td>
+                <tr>
+                  <td><a [routerLink]="['/fines', row.fineId]" class="name-link"><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></a></td>
                   <td>{{ row.driverName ?? '—' }}</td>
                   <td>{{ row.occurredAt | date:'dd.MM.yyyy' }}</td>
                   <td>{{ row.reason }}</td>
@@ -90,11 +90,11 @@ import { downloadBlob } from '../../../shared/utils/download';
                         *hasRole="['Admin','FleetManager']"
                         class="btn-icon"
                         title="Mark as Paid" i18n-title="@@fines.list.markPaidTitle"
-                        (click)="$event.stopPropagation(); openPayModal(row)"
+                        (click)="openPayModal(row)"
                       ><lucide-icon [img]="icons.CreditCard" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     }
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" i18n-title="@@fines.list.editTitle" (click)="$event.stopPropagation(); startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" i18n-title="@@fines.list.deleteTitle" (click)="$event.stopPropagation(); confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" i18n-title="@@fines.list.editTitle" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" i18n-title="@@fines.list.deleteTitle" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -201,8 +201,9 @@ import { downloadBlob } from '../../../shared/utils/download';
     />
   `,
   styles: [`
-    tbody tr { cursor:pointer; transition:background 0.12s; }
-    tbody tr:hover { background:var(--hover-bg); }
+    .name-link { color: inherit; text-decoration: none; }
+    .name-link:hover { color: var(--brand); }
+    .name-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
   `]
 })
 export class FinesListComponent implements OnInit, OnDestroy {

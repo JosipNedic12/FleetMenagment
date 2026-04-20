@@ -157,14 +157,14 @@ public class VendorService
         return entities.Select(MapToDto).ToList();
     }
 
-    public static List<ExportColumn<VendorDto>> GetExportColumns() => new()
+    public static List<ExportColumn<VendorDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Name",           Width = 25, ValueSelector = v => v.Name },
-        new() { Header = "Contact Person", Width = 20, ValueSelector = v => v.ContactPerson ?? "" },
-        new() { Header = "Phone",          Width = 15, ValueSelector = v => v.Phone ?? "" },
-        new() { Header = "Email",          Width = 25, ValueSelector = v => v.Email ?? "" },
-        new() { Header = "Address",        Width = 30, ValueSelector = v => v.Address ?? "" },
-        new() { Header = "Active",         Width = 10, ValueSelector = v => v.IsActive ? "Yes" : "No" },
+        new() { Header = lang == "hr" ? "Naziv"            : "Name",           Width = 25, ValueSelector = v => v.Name },
+        new() { Header = lang == "hr" ? "Kontakt osoba"    : "Contact Person", Width = 20, ValueSelector = v => v.ContactPerson ?? "" },
+        new() { Header = lang == "hr" ? "Telefon"          : "Phone",          Width = 15, ValueSelector = v => v.Phone ?? "" },
+        new() { Header = "Email",                                               Width = 25, ValueSelector = v => v.Email ?? "" },
+        new() { Header = lang == "hr" ? "Adresa"           : "Address",        Width = 30, ValueSelector = v => v.Address ?? "" },
+        new() { Header = lang == "hr" ? "Aktivan"          : "Active",         Width = 10, ValueSelector = v => v.IsActive ? (lang == "hr" ? "Da" : "Yes") : (lang == "hr" ? "Ne" : "No") },
     };
 
     private static VendorDto MapToDto(Vendor v) => new()

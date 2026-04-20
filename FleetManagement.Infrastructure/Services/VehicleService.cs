@@ -220,18 +220,18 @@ public class VehicleService
     }
 
     // ── Export column definitions (Phase 5 will use this) ──
-    public static List<ExportColumn<VehicleDto>> GetExportColumns() => new()
+    public static List<ExportColumn<VehicleDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Reg. Number",  Width = 18, ValueSelector = v => v.RegistrationNumber },
-        new() { Header = "VIN",          Width = 22, ValueSelector = v => v.Vin },
-        new() { Header = "Make",         Width = 15, ValueSelector = v => v.Make },
-        new() { Header = "Model",        Width = 15, ValueSelector = v => v.Model },
-        new() { Header = "Category",     Width = 14, ValueSelector = v => v.Category },
-        new() { Header = "Fuel Type",    Width = 12, ValueSelector = v => v.FuelType },
-        new() { Header = "Year",         Width = 8,  ValueSelector = v => v.Year },
-        new() { Header = "Color",        Width = 10, ValueSelector = v => v.Color ?? "" },
-        new() { Header = "Status",       Width = 10, ValueSelector = v => v.Status },
-        new() { Header = "Odometer (km)",Width = 14, ValueSelector = v => v.CurrentOdometerKm },
+        new() { Header = lang == "hr" ? "Reg. oznaka"   : "Reg. Number",   Width = 18, ValueSelector = v => v.RegistrationNumber },
+        new() { Header = "VIN",                                             Width = 22, ValueSelector = v => v.Vin },
+        new() { Header = lang == "hr" ? "Marka"         : "Make",          Width = 15, ValueSelector = v => v.Make },
+        new() { Header = lang == "hr" ? "Model"         : "Model",         Width = 15, ValueSelector = v => v.Model },
+        new() { Header = lang == "hr" ? "Kategorija"    : "Category",      Width = 14, ValueSelector = v => v.Category },
+        new() { Header = lang == "hr" ? "Vrsta goriva"  : "Fuel Type",     Width = 12, ValueSelector = v => v.FuelType },
+        new() { Header = lang == "hr" ? "Godina"        : "Year",          Width = 8,  ValueSelector = v => v.Year },
+        new() { Header = lang == "hr" ? "Boja"          : "Color",         Width = 10, ValueSelector = v => v.Color ?? "" },
+        new() { Header = lang == "hr" ? "Status"        : "Status",        Width = 10, ValueSelector = v => v.Status },
+        new() { Header = lang == "hr" ? "Kilometraža"   : "Odometer (km)", Width = 14, ValueSelector = v => v.CurrentOdometerKm },
     };
 
     // ── DTO mapping ──

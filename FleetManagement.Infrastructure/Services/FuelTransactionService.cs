@@ -172,16 +172,16 @@ public class FuelTransactionService
         return entities.Select(MapToDto).ToList();
     }
 
-    public static List<ExportColumn<FuelTransactionDto>> GetExportColumns() => new()
+    public static List<ExportColumn<FuelTransactionDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Vehicle",       Width = 16, ValueSelector = t => t.RegistrationNumber },
-        new() { Header = "Date",          Width = 14, ValueSelector = t => t.PostedAt },
-        new() { Header = "Fuel Type",     Width = 12, ValueSelector = t => t.FuelTypeName },
-        new() { Header = "Liters",        Width = 10, ValueSelector = t => t.Liters },
-        new() { Header = "Price/L",       Width = 10, ValueSelector = t => t.PricePerLiter },
-        new() { Header = "Total Cost",    Width = 12, ValueSelector = t => t.TotalCost },
-        new() { Header = "Station",       Width = 18, ValueSelector = t => t.StationName ?? "" },
-        new() { Header = "Odometer (km)", Width = 14, ValueSelector = t => t.OdometerKm ?? 0 },
+        new() { Header = lang == "hr" ? "Vozilo"        : "Vehicle",       Width = 16, ValueSelector = t => t.RegistrationNumber },
+        new() { Header = lang == "hr" ? "Datum"         : "Date",          Width = 14, ValueSelector = t => t.PostedAt },
+        new() { Header = lang == "hr" ? "Vrsta goriva"  : "Fuel Type",     Width = 12, ValueSelector = t => t.FuelTypeName },
+        new() { Header = lang == "hr" ? "Litri"         : "Liters",        Width = 10, ValueSelector = t => t.Liters },
+        new() { Header = lang == "hr" ? "Cijena/L"      : "Price/L",       Width = 10, ValueSelector = t => t.PricePerLiter },
+        new() { Header = lang == "hr" ? "Ukupno"        : "Total Cost",    Width = 12, ValueSelector = t => t.TotalCost },
+        new() { Header = lang == "hr" ? "Postaja"       : "Station",       Width = 18, ValueSelector = t => t.StationName ?? "" },
+        new() { Header = lang == "hr" ? "Kilometraža"   : "Odometer (km)", Width = 14, ValueSelector = t => t.OdometerKm ?? 0 },
     };
 
     private static FuelTransactionDto MapToDto(FuelTransaction t) => new()

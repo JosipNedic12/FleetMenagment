@@ -64,19 +64,20 @@ public class RegistrationRecordController : ControllerBase
 
     [HttpGet("export")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] RegistrationFilter? filter)
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] RegistrationFilter? filter, [FromQuery] string lang = "hr")
     {
         var dtos = await _svc.GetFilteredDtosAsync(filter ?? new RegistrationFilter(), search);
-        var columns = RegistrationRecordService.GetExportColumns();
+        var columns = RegistrationRecordService.GetExportColumns(lang);
         if (format?.ToLower() == "pdf")
         {
-            var bytes = _exportService.ExportToPdf(dtos, columns, "Registration Records Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
-            return File(bytes, "application/pdf", $"registration_{DateTime.Now:yyyyMMdd}.pdf");
+            var title = lang == "hr" ? "Izvještaj registracija" : "Registration Records Report";
+            var bytes = _exportService.ExportToPdf(dtos, columns, title, $"{dtos.Count} {(lang == "hr" ? "zapisa" : "records")} · {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"{(lang == "hr" ? "registracije" : "registration")}_{DateTime.Now:yyyyMMdd}.pdf");
         }
         else
         {
-            var bytes = _exportService.ExportToExcel(dtos, columns, "Registration Records");
-            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"registration_{DateTime.Now:yyyyMMdd}.xlsx");
+            var bytes = _exportService.ExportToExcel(dtos, columns, lang == "hr" ? "Registracije" : "Registration Records");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{(lang == "hr" ? "registracije" : "registration")}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 }

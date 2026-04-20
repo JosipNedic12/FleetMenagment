@@ -83,19 +83,20 @@ public class FineController : ControllerBase
 
     [HttpGet("export")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] FineFilter? filter)
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] FineFilter? filter, [FromQuery] string lang = "hr")
     {
         var dtos = await _svc.GetFilteredDtosAsync(filter ?? new FineFilter(), search);
-        var columns = FineService.GetExportColumns();
+        var columns = FineService.GetExportColumns(lang);
         if (format?.ToLower() == "pdf")
         {
-            var bytes = _exportService.ExportToPdf(dtos, columns, "Fines Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
-            return File(bytes, "application/pdf", $"fines_{DateTime.Now:yyyyMMdd}.pdf");
+            var title = lang == "hr" ? "Izvještaj kazni" : "Fines Report";
+            var bytes = _exportService.ExportToPdf(dtos, columns, title, $"{dtos.Count} {(lang == "hr" ? "zapisa" : "records")} · {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"{(lang == "hr" ? "kazne" : "fines")}_{DateTime.Now:yyyyMMdd}.pdf");
         }
         else
         {
-            var bytes = _exportService.ExportToExcel(dtos, columns, "Fines");
-            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"fines_{DateTime.Now:yyyyMMdd}.xlsx");
+            var bytes = _exportService.ExportToExcel(dtos, columns, lang == "hr" ? "Kazne" : "Fines");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{(lang == "hr" ? "kazne" : "fines")}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 

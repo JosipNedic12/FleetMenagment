@@ -222,15 +222,15 @@ public class AccidentService
         return entities.Select(MapToDto).ToList();
     }
 
-    public static List<ExportColumn<AccidentDto>> GetExportColumns() => new()
+    public static List<ExportColumn<AccidentDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Vehicle",       Width = 16, ValueSelector = a => a.RegistrationNumber },
-        new() { Header = "Driver",        Width = 22, ValueSelector = a => a.DriverName ?? "" },
-        new() { Header = "Date",          Width = 14, ValueSelector = a => a.OccurredAt },
-        new() { Header = "Severity",      Width = 10, ValueSelector = a => a.Severity },
-        new() { Header = "Damage (EUR)",  Width = 12, ValueSelector = a => a.DamageEstimate ?? 0m },
-        new() { Header = "Police Report", Width = 10, ValueSelector = a => !string.IsNullOrEmpty(a.PoliceReport) ? "Yes" : "No" },
-        new() { Header = "Description",   Width = 30, ValueSelector = a => a.Description },
+        new() { Header = lang == "hr" ? "Vozilo"          : "Vehicle",       Width = 16, ValueSelector = a => a.RegistrationNumber },
+        new() { Header = lang == "hr" ? "Vozač"           : "Driver",        Width = 22, ValueSelector = a => a.DriverName ?? "" },
+        new() { Header = lang == "hr" ? "Datum"           : "Date",          Width = 14, ValueSelector = a => a.OccurredAt },
+        new() { Header = lang == "hr" ? "Težina"          : "Severity",      Width = 10, ValueSelector = a => a.Severity },
+        new() { Header = lang == "hr" ? "Šteta (EUR)"     : "Damage (EUR)",  Width = 12, ValueSelector = a => a.DamageEstimate ?? 0m },
+        new() { Header = lang == "hr" ? "Pol. izvještaj"  : "Police Report", Width = 10, ValueSelector = a => !string.IsNullOrEmpty(a.PoliceReport) ? (lang == "hr" ? "Da" : "Yes") : (lang == "hr" ? "Ne" : "No") },
+        new() { Header = lang == "hr" ? "Opis"            : "Description",   Width = 30, ValueSelector = a => a.Description },
     };
 
     private static AccidentDto MapToDto(Accident a) => new()

@@ -150,17 +150,17 @@ public class FuelCardService
         return entities.Select(MapToDto).ToList();
     }
 
-    public static List<ExportColumn<FuelCardDto>> GetExportColumns() => new()
+    public static List<ExportColumn<FuelCardDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Card Number",    Width = 20, ValueSelector = c => c.CardNumber },
-        new() { Header = "Provider",       Width = 15, ValueSelector = c => c.Provider ?? "" },
-        new() { Header = "Vehicle Reg.",   Width = 18, ValueSelector = c => c.RegistrationNumber ?? "" },
-        new() { Header = "Make",           Width = 12, ValueSelector = c => c.VehicleMake ?? "" },
-        new() { Header = "Model",          Width = 12, ValueSelector = c => c.VehicleModel ?? "" },
-        new() { Header = "Valid From",     Width = 14, ValueSelector = c => c.ValidFrom.HasValue ? (object)c.ValidFrom.Value : "" },
-        new() { Header = "Valid To",       Width = 14, ValueSelector = c => c.ValidTo.HasValue ? (object)c.ValidTo.Value : "" },
-        new() { Header = "Active",         Width = 10, ValueSelector = c => c.IsActive ? "Yes" : "No" },
-        new() { Header = "Notes",          Width = 25, ValueSelector = c => c.Notes ?? "" },
+        new() { Header = lang == "hr" ? "Broj kartice"  : "Card Number",  Width = 20, ValueSelector = c => c.CardNumber },
+        new() { Header = lang == "hr" ? "Dobavljač"     : "Provider",     Width = 15, ValueSelector = c => c.Provider ?? "" },
+        new() { Header = lang == "hr" ? "Reg. oznaka"   : "Vehicle Reg.", Width = 18, ValueSelector = c => c.RegistrationNumber ?? "" },
+        new() { Header = lang == "hr" ? "Marka"         : "Make",         Width = 12, ValueSelector = c => c.VehicleMake ?? "" },
+        new() { Header = lang == "hr" ? "Model"         : "Model",        Width = 12, ValueSelector = c => c.VehicleModel ?? "" },
+        new() { Header = lang == "hr" ? "Vrijedi od"    : "Valid From",   Width = 14, ValueSelector = c => c.ValidFrom.HasValue ? (object)c.ValidFrom.Value : "" },
+        new() { Header = lang == "hr" ? "Vrijedi do"    : "Valid To",     Width = 14, ValueSelector = c => c.ValidTo.HasValue ? (object)c.ValidTo.Value : "" },
+        new() { Header = lang == "hr" ? "Aktivna"       : "Active",       Width = 10, ValueSelector = c => c.IsActive ? (lang == "hr" ? "Da" : "Yes") : (lang == "hr" ? "Ne" : "No") },
+        new() { Header = lang == "hr" ? "Napomena"      : "Notes",        Width = 25, ValueSelector = c => c.Notes ?? "" },
     };
 
     private static FuelCardDto MapToDto(FuelCard c) => new()

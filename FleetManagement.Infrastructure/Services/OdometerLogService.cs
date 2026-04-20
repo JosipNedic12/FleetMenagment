@@ -150,12 +150,12 @@ public class OdometerLogService
         return entities.Select(MapToDto).ToList();
     }
 
-    public static List<ExportColumn<OdometerLogDto>> GetExportColumns() => new()
+    public static List<ExportColumn<OdometerLogDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Vehicle",       Width = 16, ValueSelector = l => l.RegistrationNumber },
-        new() { Header = "Odometer (km)", Width = 14, ValueSelector = l => l.OdometerKm },
-        new() { Header = "Date",          Width = 14, ValueSelector = l => l.LogDate },
-        new() { Header = "Notes",         Width = 30, ValueSelector = l => l.Notes ?? "" },
+        new() { Header = lang == "hr" ? "Vozilo"      : "Vehicle",       Width = 16, ValueSelector = l => l.RegistrationNumber },
+        new() { Header = lang == "hr" ? "Kilometraža" : "Odometer (km)", Width = 14, ValueSelector = l => l.OdometerKm },
+        new() { Header = lang == "hr" ? "Datum"       : "Date",          Width = 14, ValueSelector = l => l.LogDate },
+        new() { Header = lang == "hr" ? "Napomena"    : "Notes",         Width = 30, ValueSelector = l => l.Notes ?? "" },
     };
 
     private static OdometerLogDto MapToDto(OdometerLog l) => new()

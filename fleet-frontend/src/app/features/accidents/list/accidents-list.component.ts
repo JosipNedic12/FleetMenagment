@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { AccidentApiService, VehicleApiService, DriverApiService } from '../../../core/auth/feature-api.services';
@@ -22,7 +22,7 @@ import { downloadBlob } from '../../../shared/utils/download';
 @Component({
   selector: 'app-accidents-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -70,8 +70,8 @@ import { downloadBlob } from '../../../shared/utils/download';
             </thead>
             <tbody>
               @for (row of items(); track row.accidentId) {
-                <tr (click)="goToDetail(row)">
-                  <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></td>
+                <tr>
+                  <td><a [routerLink]="['/accidents', row.accidentId]" class="name-link"><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></a></td>
                   <td>{{ row.driverName ?? '—' }}</td>
                   <td>{{ row.occurredAt | date:'dd.MM.yyyy' }}</td>
                   <td>
@@ -84,8 +84,8 @@ import { downloadBlob } from '../../../shared/utils/download';
                   <td>{{ row.damageEstimate != null ? (row.damageEstimate | euNumber:'1.2-2') + ' €' : '—' }}</td>
                   <td class="mono">{{ row.policeReport ?? '—' }}</td>
                   <td class="actions">
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="$event.stopPropagation(); startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="$event.stopPropagation(); confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -198,8 +198,9 @@ import { downloadBlob } from '../../../shared/utils/download';
       border-radius: 8px; padding: 10px 14px;
       font-size: 13px; color: #92400e;
     }
-    tbody tr { cursor:pointer; transition:background 0.12s; }
-    tbody tr:hover { background:var(--hover-bg); }
+    .name-link { color: inherit; text-decoration: none; }
+    .name-link:hover { color: var(--brand); }
+    .name-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
   `]
 })
 export class AccidentsListComponent implements OnInit, OnDestroy {

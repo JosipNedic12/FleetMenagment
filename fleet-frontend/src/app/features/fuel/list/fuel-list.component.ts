@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { FuelCardApiService, FuelTransactionApiService, VehicleApiService, LookupApiService } from '../../../core/auth/feature-api.services';
@@ -26,7 +26,7 @@ import { downloadBlob } from '../../../shared/utils/download';
 @Component({
   selector: 'app-fuel-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -126,8 +126,8 @@ import { downloadBlob } from '../../../shared/utils/download';
               </thead>
               <tbody>
                 @for (row of txItems(); track row.transactionId) {
-                  <tr [class.suspicious-row]="row.isSuspicious" (click)="goToDetail(row)">
-                    <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></td>
+                  <tr [class.suspicious-row]="row.isSuspicious">
+                    <td><a [routerLink]="['/fuel', row.transactionId]" class="name-link"><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></a></td>
                     <td>{{ row.postedAt | date:'dd.MM.yyyy' }}</td>
                     <td>{{ row.fuelTypeName }}</td>
                     <td>
@@ -138,11 +138,11 @@ import { downloadBlob } from '../../../shared/utils/download';
                     <td>{{ row.stationName ?? '—' }}</td>
                     <td class="actions">
                       @if (!row.isSuspicious) {
-                        <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Mark suspicious" i18n-title="@@fuel.markSuspiciousTitle" (click)="$event.stopPropagation(); markSuspicious(row)"><lucide-icon [img]="icons.TriangleAlert" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                        <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Mark suspicious" i18n-title="@@fuel.markSuspiciousTitle" (click)="markSuspicious(row)"><lucide-icon [img]="icons.TriangleAlert" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                       } @else {
                         <app-badge [label]="suspiciousLabel" variant="danger" />
                       }
-                      <button *hasRole="'Admin'" class="btn-icon danger" (click)="$event.stopPropagation(); confirmDeleteTx(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                      <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDeleteTx(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     </td>
                   </tr>
                 }
@@ -335,8 +335,9 @@ import { downloadBlob } from '../../../shared/utils/download';
     .section-actions { display:flex; gap:12px; margin-bottom:16px; align-items:center; }
     .suspicious-row { background:#fff7ed; }
     .warning-btn { color:#d97706; }
-    tbody tr { cursor:pointer; transition:background 0.12s; }
-    tbody tr:hover { background:var(--hover-bg); }
+    .name-link { color: inherit; text-decoration: none; }
+    .name-link:hover { color: var(--brand); }
+    .name-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
   `]
 })
 export class FuelListComponent implements OnInit, OnDestroy {

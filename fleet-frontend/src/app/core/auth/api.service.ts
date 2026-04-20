@@ -1,14 +1,20 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PagedRequest, PagedResponse } from '../models/paged.models';
+import { LanguageService } from '../services/language.service';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   protected base = environment.apiUrl;
+  private lang = inject(LanguageService);
 
   constructor(protected http: HttpClient) {}
+
+  protected currentLang(): string {
+    return this.lang.currentLocale();
+  }
 
   get<T>(path: string): Observable<T> {
     return this.http.get<T>(`${this.base}/${path}`);

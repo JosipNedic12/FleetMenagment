@@ -196,13 +196,13 @@ public class DriverService
         return entities.Select(MapToDto).ToList();
     }
 
-    public static List<ExportColumn<DriverDto>> GetExportColumns() => new()
+    public static List<ExportColumn<DriverDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Full Name",          Width = 22, ValueSelector = d => d.FullName },
-        new() { Header = "Department",         Width = 16, ValueSelector = d => d.Department ?? "" },
-        new() { Header = "License Number",     Width = 18, ValueSelector = d => d.LicenseNumber },
-        new() { Header = "License Expiry",     Width = 14, ValueSelector = d => d.LicenseExpiry },
-        new() { Header = "License Categories", Width = 20, ValueSelector = d => string.Join(", ", d.LicenseCategories) },
+        new() { Header = lang == "hr" ? "Ime i prezime"       : "Full Name",          Width = 22, ValueSelector = d => d.FullName },
+        new() { Header = lang == "hr" ? "Odjel"               : "Department",         Width = 16, ValueSelector = d => d.Department ?? "" },
+        new() { Header = lang == "hr" ? "Broj vozačke"        : "License Number",     Width = 18, ValueSelector = d => d.LicenseNumber },
+        new() { Header = lang == "hr" ? "Istek vozačke"       : "License Expiry",     Width = 14, ValueSelector = d => d.LicenseExpiry },
+        new() { Header = lang == "hr" ? "Kategorije vozačke"  : "License Categories", Width = 20, ValueSelector = d => string.Join(", ", d.LicenseCategories) },
     };
 
     private static DriverDto MapToDto(Driver d) => new()

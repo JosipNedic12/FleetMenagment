@@ -193,15 +193,15 @@ public class InsurancePolicyService
         return entities.Select(MapToDto).ToList();
     }
 
-    public static List<ExportColumn<InsurancePolicyDto>> GetExportColumns() => new()
+    public static List<ExportColumn<InsurancePolicyDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Vehicle",       Width = 16, ValueSelector = p => p.RegistrationNumber },
-        new() { Header = "Policy #",      Width = 18, ValueSelector = p => p.PolicyNumber },
-        new() { Header = "Insurer",       Width = 18, ValueSelector = p => p.Insurer },
-        new() { Header = "Valid From",    Width = 14, ValueSelector = p => p.ValidFrom },
-        new() { Header = "Valid To",      Width = 14, ValueSelector = p => p.ValidTo },
-        new() { Header = "Premium (EUR)", Width = 14, ValueSelector = p => p.Premium },
-        new() { Header = "Status",        Width = 10, ValueSelector = p => p.IsActive ? "Active" : "Expired" },
+        new() { Header = lang == "hr" ? "Vozilo"         : "Vehicle",       Width = 16, ValueSelector = p => p.RegistrationNumber },
+        new() { Header = lang == "hr" ? "Broj police"    : "Policy #",      Width = 18, ValueSelector = p => p.PolicyNumber },
+        new() { Header = lang == "hr" ? "Osiguravatelj"  : "Insurer",       Width = 18, ValueSelector = p => p.Insurer },
+        new() { Header = lang == "hr" ? "Vrijedi od"     : "Valid From",    Width = 14, ValueSelector = p => p.ValidFrom },
+        new() { Header = lang == "hr" ? "Vrijedi do"     : "Valid To",      Width = 14, ValueSelector = p => p.ValidTo },
+        new() { Header = lang == "hr" ? "Premija (EUR)"  : "Premium (EUR)", Width = 14, ValueSelector = p => p.Premium },
+        new() { Header = lang == "hr" ? "Status"         : "Status",        Width = 10, ValueSelector = p => p.IsActive ? (lang == "hr" ? "Aktivna" : "Active") : (lang == "hr" ? "Istekla" : "Expired") },
     };
 
     private static InsurancePolicyDto MapToDto(InsurancePolicy p) => new()

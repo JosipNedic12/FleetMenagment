@@ -58,19 +58,20 @@ public class VendorsController : ControllerBase
 
     [HttpGet("export")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] VendorFilter? filter)
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] VendorFilter? filter, [FromQuery] string lang = "hr")
     {
         var dtos = await _svc.GetFilteredDtosAsync(filter ?? new VendorFilter(), search);
-        var columns = VendorService.GetExportColumns();
+        var columns = VendorService.GetExportColumns(lang);
         if (format?.ToLower() == "pdf")
         {
-            var bytes = _exportService.ExportToPdf(dtos, columns, "Vendors Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
-            return File(bytes, "application/pdf", $"vendors_{DateTime.Now:yyyyMMdd}.pdf");
+            var title = lang == "hr" ? "Izvještaj dobavljača" : "Vendors Report";
+            var bytes = _exportService.ExportToPdf(dtos, columns, title, $"{dtos.Count} {(lang == "hr" ? "zapisa" : "records")} · {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"{(lang == "hr" ? "dobavljaci" : "vendors")}_{DateTime.Now:yyyyMMdd}.pdf");
         }
         else
         {
-            var bytes = _exportService.ExportToExcel(dtos, columns, "Vendors");
-            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"vendors_{DateTime.Now:yyyyMMdd}.xlsx");
+            var bytes = _exportService.ExportToExcel(dtos, columns, lang == "hr" ? "Dobavljači" : "Vendors");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{(lang == "hr" ? "dobavljaci" : "vendors")}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 }

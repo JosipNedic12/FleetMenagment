@@ -89,19 +89,20 @@ public class MaintenanceOrdersController : ControllerBase
 
     [HttpGet("export")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] MaintenanceFilter? filter)
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] MaintenanceFilter? filter, [FromQuery] string lang = "hr")
     {
         var dtos = await _service.GetFilteredDtosAsync(filter ?? new MaintenanceFilter(), search);
-        var columns = MaintenanceOrderService.GetExportColumns();
+        var columns = MaintenanceOrderService.GetExportColumns(lang);
         if (format?.ToLower() == "pdf")
         {
-            var bytes = _exportService.ExportToPdf(dtos, columns, "Maintenance Orders Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
-            return File(bytes, "application/pdf", $"maintenance_{DateTime.Now:yyyyMMdd}.pdf");
+            var title = lang == "hr" ? "Izvještaj radnih naloga" : "Maintenance Orders Report";
+            var bytes = _exportService.ExportToPdf(dtos, columns, title, $"{dtos.Count} {(lang == "hr" ? "zapisa" : "records")} · {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"{(lang == "hr" ? "radni_nalozi" : "maintenance")}_{DateTime.Now:yyyyMMdd}.pdf");
         }
         else
         {
-            var bytes = _exportService.ExportToExcel(dtos, columns, "Maintenance Orders");
-            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"maintenance_{DateTime.Now:yyyyMMdd}.xlsx");
+            var bytes = _exportService.ExportToExcel(dtos, columns, lang == "hr" ? "Radni nalozi" : "Maintenance Orders");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{(lang == "hr" ? "radni_nalozi" : "maintenance")}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 

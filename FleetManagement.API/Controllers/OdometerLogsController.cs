@@ -59,19 +59,20 @@ public class OdometerLogsController : ControllerBase
 
     [HttpGet("export")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] OdometerFilter? filter)
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] OdometerFilter? filter, [FromQuery] string lang = "hr")
     {
         var dtos = await _service.GetFilteredDtosAsync(filter ?? new OdometerFilter(), search);
-        var columns = OdometerLogService.GetExportColumns();
+        var columns = OdometerLogService.GetExportColumns(lang);
         if (format?.ToLower() == "pdf")
         {
-            var bytes = _exportService.ExportToPdf(dtos, columns, "Odometer Logs Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
-            return File(bytes, "application/pdf", $"odometer_{DateTime.Now:yyyyMMdd}.pdf");
+            var title = lang == "hr" ? "Izvještaj kilometraže" : "Odometer Logs Report";
+            var bytes = _exportService.ExportToPdf(dtos, columns, title, $"{dtos.Count} {(lang == "hr" ? "zapisa" : "records")} · {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"{(lang == "hr" ? "kilometraza" : "odometer")}_{DateTime.Now:yyyyMMdd}.pdf");
         }
         else
         {
-            var bytes = _exportService.ExportToExcel(dtos, columns, "Odometer Logs");
-            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"odometer_{DateTime.Now:yyyyMMdd}.xlsx");
+            var bytes = _exportService.ExportToExcel(dtos, columns, lang == "hr" ? "Kilometraža" : "Odometer Logs");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{(lang == "hr" ? "kilometraza" : "odometer")}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 }

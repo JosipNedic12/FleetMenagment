@@ -275,16 +275,16 @@ public class MaintenanceOrderService
         return entities.Select(MapToDto).ToList();
     }
 
-    public static List<ExportColumn<MaintenanceOrderDto>> GetExportColumns() => new()
+    public static List<ExportColumn<MaintenanceOrderDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Vehicle",     Width = 16, ValueSelector = o => o.RegistrationNumber },
-        new() { Header = "Vendor",      Width = 18, ValueSelector = o => o.VendorName ?? "" },
-        new() { Header = "Status",      Width = 12, ValueSelector = o => o.Status },
-        new() { Header = "Reported",    Width = 14, ValueSelector = o => o.ReportedAt },
-        new() { Header = "Scheduled",   Width = 14, ValueSelector = o => o.ScheduledAt?.ToString("d") ?? "" },
-        new() { Header = "Closed",      Width = 14, ValueSelector = o => o.ClosedAt?.ToString("d") ?? "" },
-        new() { Header = "Total Cost",  Width = 12, ValueSelector = o => o.TotalCost ?? 0m },
-        new() { Header = "Description", Width = 30, ValueSelector = o => o.Description ?? "" },
+        new() { Header = lang == "hr" ? "Vozilo"      : "Vehicle",     Width = 16, ValueSelector = o => o.RegistrationNumber },
+        new() { Header = lang == "hr" ? "Servis"      : "Vendor",      Width = 18, ValueSelector = o => o.VendorName ?? "" },
+        new() { Header = lang == "hr" ? "Status"      : "Status",      Width = 12, ValueSelector = o => o.Status },
+        new() { Header = lang == "hr" ? "Prijavljeno" : "Reported",    Width = 14, ValueSelector = o => o.ReportedAt },
+        new() { Header = lang == "hr" ? "Zakazano"    : "Scheduled",   Width = 14, ValueSelector = o => o.ScheduledAt?.ToString("d") ?? "" },
+        new() { Header = lang == "hr" ? "Zatvoreno"   : "Closed",      Width = 14, ValueSelector = o => o.ClosedAt?.ToString("d") ?? "" },
+        new() { Header = lang == "hr" ? "Ukupno"      : "Total Cost",  Width = 12, ValueSelector = o => o.TotalCost ?? 0m },
+        new() { Header = lang == "hr" ? "Opis"        : "Description", Width = 30, ValueSelector = o => o.Description ?? "" },
     };
 
     private static MaintenanceOrderDto MapToDto(MaintenanceOrder o) => new()

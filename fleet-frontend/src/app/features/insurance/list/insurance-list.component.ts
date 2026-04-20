@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { InsurancePolicyApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
+import { RouterModule } from '@angular/router';
 import { LucideAngularModule, Eye, Pencil, Trash2, Paperclip } from 'lucide-angular';
 import { InsurancePolicy, CreateInsurancePolicyDto, Vehicle } from '../../../core/models/models';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -24,7 +25,7 @@ import { downloadBlob } from '../../../shared/utils/download';
 @Component({
   selector: 'app-insurance-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, FileUploadComponent, DocumentListComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, FileUploadComponent, DocumentListComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
   template: `
     <div class="page">
       <!-- Header -->
@@ -78,8 +79,8 @@ import { downloadBlob } from '../../../shared/utils/download';
             </thead>
             <tbody>
               @for (row of items(); track row.policyId) {
-                <tr (click)="goToDetail(row)">
-                  <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></td>
+                <tr>
+                  <td><a [routerLink]="['/insurance', row.policyId]" class="name-link"><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></a></td>
                   <td class="mono">{{ row.policyNumber }}</td>
                   <td>{{ row.insurer }}</td>
                   <td>{{ row.validFrom | date:'dd.MM.yyyy' }}</td>
@@ -92,9 +93,9 @@ import { downloadBlob } from '../../../shared/utils/download';
                     />
                   </td>
                   <td class="actions">
-                    <button class="btn-icon" title="Documents" i18n-title="@@insurance.list.actionDocuments" (click)="$event.stopPropagation(); openDocs(row)"><lucide-icon [img]="icons.Paperclip" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" i18n-title="@@insurance.list.actionEdit" (click)="$event.stopPropagation(); startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" i18n-title="@@insurance.list.actionDelete" (click)="$event.stopPropagation(); confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button class="btn-icon" title="Documents" i18n-title="@@insurance.list.actionDocuments" (click)="openDocs(row)"><lucide-icon [img]="icons.Paperclip" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" i18n-title="@@insurance.list.actionEdit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" title="Delete" i18n-title="@@insurance.list.actionDelete" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -203,8 +204,9 @@ import { downloadBlob } from '../../../shared/utils/download';
   `,
   styles: [`
     .modal-box--wide { width: min(720px, 95vw); }
-    tbody tr { cursor:pointer; transition:background 0.12s; }
-    tbody tr:hover { background:var(--hover-bg); }
+    .name-link { color: inherit; text-decoration: none; }
+    .name-link:hover { color: var(--brand); }
+    .name-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
   `]
 })
 export class InsuranceListComponent implements OnInit, OnDestroy {

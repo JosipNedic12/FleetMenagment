@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { RegistrationApiService, VehicleApiService } from '../../../core/auth/feature-api.services';
@@ -24,7 +24,7 @@ import { downloadBlob } from '../../../shared/utils/download';
 @Component({
   selector: 'app-registration-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, FileUploadComponent, DocumentListComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, FileUploadComponent, DocumentListComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -70,8 +70,8 @@ import { downloadBlob } from '../../../shared/utils/download';
             </thead>
             <tbody>
               @for (row of items(); track row.registrationId) {
-                <tr (click)="goToDetail(row)">
-                  <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.vehicleRegistrationNumber" /></td>
+                <tr>
+                  <td><a [routerLink]="['/registration', row.registrationId]" class="name-link"><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.vehicleRegistrationNumber" /></a></td>
                   <td class="mono">{{ row.registrationNumber }}</td>
                   <td>{{ row.validFrom | date:'dd.MM.yyyy' }}</td>
                   <td>{{ row.validTo | date:'dd.MM.yyyy' }}</td>
@@ -80,9 +80,9 @@ import { downloadBlob } from '../../../shared/utils/download';
                     <app-badge [label]="row.isActive ? activeLabel : expiredLabel" [variant]="row.isActive ? 'success' : 'danger'" />
                   </td>
                   <td class="actions">
-                    <button class="btn-icon" title="Documents" (click)="$event.stopPropagation(); openDocs(row)"><lucide-icon [img]="icons.Paperclip" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="$event.stopPropagation(); startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
-                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="$event.stopPropagation(); confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button class="btn-icon" title="Documents" (click)="openDocs(row)"><lucide-icon [img]="icons.Paperclip" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="'Admin'" class="btn-icon danger" (click)="confirmDelete(row)"><lucide-icon [img]="icons.Trash2" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                   </td>
                 </tr>
               }
@@ -181,8 +181,9 @@ import { downloadBlob } from '../../../shared/utils/download';
   `,
   styles: [`
     .modal-box--wide { width: min(720px, 95vw); }
-    tbody tr { cursor:pointer; transition:background 0.12s; }
-    tbody tr:hover { background:var(--hover-bg); }
+    .name-link { color: inherit; text-decoration: none; }
+    .name-link:hover { color: var(--brand); }
+    .name-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
   `]
 })
 export class RegistrationListComponent implements OnInit, OnDestroy {

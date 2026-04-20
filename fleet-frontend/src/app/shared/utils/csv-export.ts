@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import * as XLSX from 'xlsx';
 
 export interface CsvColumn<T> {
   header: string;
@@ -12,6 +13,17 @@ function triggerDownload(blob: Blob, filename: string): void {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+export function exportXlsx<T>(filename: string, rows: T[], columns: CsvColumn<T>[]): void {
+  const wsData = [
+    columns.map(c => c.header),
+    ...rows.map(row => columns.map(c => c.value(row))),
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Report');
+  XLSX.writeFile(wb, filename);
 }
 
 export function exportCsv<T>(filename: string, rows: T[], columns: CsvColumn<T>[]): void {

@@ -187,14 +187,14 @@ public class RegistrationRecordService
         return entities.Select(MapToDto).ToList();
     }
 
-    public static List<ExportColumn<RegistrationRecordDto>> GetExportColumns() => new()
+    public static List<ExportColumn<RegistrationRecordDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Vehicle",    Width = 16, ValueSelector = r => r.VehicleRegistrationNumber },
-        new() { Header = "Reg Number", Width = 18, ValueSelector = r => r.RegistrationNumber },
-        new() { Header = "Valid From", Width = 14, ValueSelector = r => r.ValidFrom },
-        new() { Header = "Valid To",   Width = 14, ValueSelector = r => r.ValidTo },
-        new() { Header = "Fee (EUR)",  Width = 12, ValueSelector = r => r.Fee ?? 0m },
-        new() { Header = "Status",     Width = 10, ValueSelector = r => r.IsActive ? "Valid" : "Expired" },
+        new() { Header = lang == "hr" ? "Vozilo"        : "Vehicle",    Width = 16, ValueSelector = r => r.VehicleRegistrationNumber },
+        new() { Header = lang == "hr" ? "Broj reg."     : "Reg Number", Width = 18, ValueSelector = r => r.RegistrationNumber },
+        new() { Header = lang == "hr" ? "Vrijedi od"    : "Valid From", Width = 14, ValueSelector = r => r.ValidFrom },
+        new() { Header = lang == "hr" ? "Vrijedi do"    : "Valid To",   Width = 14, ValueSelector = r => r.ValidTo },
+        new() { Header = lang == "hr" ? "Naknada (EUR)" : "Fee (EUR)",  Width = 12, ValueSelector = r => r.Fee ?? 0m },
+        new() { Header = lang == "hr" ? "Status"        : "Status",     Width = 10, ValueSelector = r => r.IsActive ? (lang == "hr" ? "Vrijedi" : "Valid") : (lang == "hr" ? "Istekla" : "Expired") },
     };
 
     private static RegistrationRecordDto MapToDto(RegistrationRecord r)

@@ -226,14 +226,14 @@ public class VehicleAssignmentService
         return entities.Select(MapToDto).ToList();
     }
 
-    public static List<ExportColumn<VehicleAssignmentDto>> GetExportColumns() => new()
+    public static List<ExportColumn<VehicleAssignmentDto>> GetExportColumns(string lang = "hr") => new()
     {
-        new() { Header = "Vehicle",       Width = 18, ValueSelector = a => a.RegistrationNumber },
-        new() { Header = "Driver",        Width = 22, ValueSelector = a => a.DriverFullName },
-        new() { Header = "Department",    Width = 16, ValueSelector = a => a.Department ?? "" },
-        new() { Header = "Assigned From", Width = 14, ValueSelector = a => a.AssignedFrom },
-        new() { Header = "Assigned To",   Width = 14, ValueSelector = a => a.AssignedTo?.ToString() ?? "Active" },
-        new() { Header = "Status",        Width = 10, ValueSelector = a => a.IsActive ? "Active" : "Ended" },
+        new() { Header = lang == "hr" ? "Vozilo"      : "Vehicle",       Width = 18, ValueSelector = a => a.RegistrationNumber },
+        new() { Header = lang == "hr" ? "Vozač"       : "Driver",        Width = 22, ValueSelector = a => a.DriverFullName },
+        new() { Header = lang == "hr" ? "Odjel"       : "Department",    Width = 16, ValueSelector = a => a.Department ?? "" },
+        new() { Header = lang == "hr" ? "Dodjeljeno"  : "Assigned From", Width = 14, ValueSelector = a => a.AssignedFrom },
+        new() { Header = lang == "hr" ? "Završeno"    : "Assigned To",   Width = 14, ValueSelector = a => a.AssignedTo?.ToString() ?? (lang == "hr" ? "Aktivno" : "Active") },
+        new() { Header = lang == "hr" ? "Status"      : "Status",        Width = 10, ValueSelector = a => a.IsActive ? (lang == "hr" ? "Aktivno" : "Active") : (lang == "hr" ? "Završeno" : "Ended") },
     };
 
     private static VehicleAssignmentDto MapToDto(VehicleAssignment a) => new()

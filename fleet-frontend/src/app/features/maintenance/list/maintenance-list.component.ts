@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, signal, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { MaintenanceOrderApiService, VehicleApiService, VendorApiService, LookupApiService } from '../../../core/auth/feature-api.services';
@@ -29,7 +29,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
 @Component({
   selector: 'app-maintenance-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -99,8 +99,8 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
             </thead>
             <tbody>
               @for (row of items(); track row.orderId) {
-                <tr (click)="goToDetail(row)">
-                  <td><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></td>
+                <tr>
+                  <td><a [routerLink]="['/maintenance', row.orderId]" class="name-link"><app-vehicle-label [make]="row.vehicleMake" [model]="row.vehicleModel" [registration]="row.registrationNumber" /></a></td>
                   <td>{{ row.vendorName ?? '—' }}</td>
                   <td>
                     <app-badge [label]="statusLabel(row.status)" [variant]="statusVariant(row.status)" />
@@ -110,16 +110,16 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
                   <td>{{ row.items.length }}</td>
                   <td>{{ row.totalCost != null ? (row.totalCost | euNumber:'1.2-2') + ' €' : '—' }}</td>
                   <td class="actions">
-                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" i18n-title="@@maintenance.action.edit" (click)="$event.stopPropagation(); startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
+                    <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Edit" i18n-title="@@maintenance.action.edit" (click)="startEdit(row)"><lucide-icon [img]="icons.Pencil" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                     @if (row.status === 'open') {
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon start-btn" title="Start order" i18n-title="@@maintenance.action.startOrder" (click)="$event.stopPropagation(); startOrder(row)"><lucide-icon [img]="icons.Play" [size]="14" [strokeWidth]="2"></lucide-icon></button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon start-btn" title="Start order" i18n-title="@@maintenance.action.startOrder" (click)="startOrder(row)"><lucide-icon [img]="icons.Play" [size]="14" [strokeWidth]="2"></lucide-icon></button>
                     }
                     @if (row.status === 'in_progress') {
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon close-btn" title="Close order" i18n-title="@@maintenance.action.closeOrder" (click)="$event.stopPropagation(); openClose(row)"><lucide-icon [img]="icons.Check" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Cancel order" i18n-title="@@maintenance.action.cancelOrder" (click)="$event.stopPropagation(); openCancel(row)"><lucide-icon [img]="icons.X" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon close-btn" title="Close order" i18n-title="@@maintenance.action.closeOrder" (click)="openClose(row)"><lucide-icon [img]="icons.Check" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Cancel order" i18n-title="@@maintenance.action.cancelOrder" (click)="openCancel(row)"><lucide-icon [img]="icons.X" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
                     }
                     @if (row.status === 'open' || row.status === 'in_progress') {
-                      <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Add item" i18n-title="@@maintenance.action.addItem" (click)="$event.stopPropagation(); openAddItem(row)"><lucide-icon [img]="icons.Plus" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
+                      <button *hasRole="['Admin','FleetManager']" class="btn-icon" title="Add item" i18n-title="@@maintenance.action.addItem" (click)="openAddItem(row)"><lucide-icon [img]="icons.Plus" [size]="15" [strokeWidth]="2.5"></lucide-icon></button>
                     }
                   </td>
                 </tr>
@@ -131,7 +131,7 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
                           <span class="item-chip">
                             {{ item.maintenanceTypeName }}
                             ({{ item.totalCost | euNumber:'1.0-0' }} €)
-                            <button *hasRole="['Admin','FleetManager']" class="item-del" title="Remove" i18n-title="@@maintenance.action.removeItem" (click)="$event.stopPropagation(); deleteItem(item)">×</button>
+                            <button *hasRole="['Admin','FleetManager']" class="item-del" title="Remove" i18n-title="@@maintenance.action.removeItem" (click)="deleteItem(item)">×</button>
                           </span>
                         }
                       </div>
@@ -335,8 +335,9 @@ type OrderStatus = 'open' | 'in_progress' | 'closed' | 'cancelled';
     .item-del { background:none; border:none; cursor:pointer; color:#ef4444; font-size:14px; padding:0; line-height:1; }
     .btn-danger { background:#ef4444; color:white; border:none; border-radius:8px; padding:8px 16px; font-size:14px; cursor:pointer; }
     .btn-danger:hover { background:#dc2626; }
-    tbody tr { cursor:pointer; transition:background 0.12s; }
-    tbody tr:hover { background:var(--hover-bg); }
+    .name-link { color: inherit; text-decoration: none; }
+    .name-link:hover { color: var(--brand); }
+    .name-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
   `]
 })
 export class MaintenanceListComponent implements OnInit, OnDestroy {

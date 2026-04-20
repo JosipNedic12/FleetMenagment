@@ -69,19 +69,20 @@ public class AccidentController : ControllerBase
 
     [HttpGet("export")]
     [Authorize(Roles = "Admin,FleetManager")]
-    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] AccidentFilter? filter)
+    public async Task<IActionResult> Export([FromQuery] string format, [FromQuery] string? search, [FromQuery] AccidentFilter? filter, [FromQuery] string lang = "hr")
     {
         var dtos = await _svc.GetFilteredDtosAsync(filter ?? new AccidentFilter(), search);
-        var columns = AccidentService.GetExportColumns();
+        var columns = AccidentService.GetExportColumns(lang);
         if (format?.ToLower() == "pdf")
         {
-            var bytes = _exportService.ExportToPdf(dtos, columns, "Accidents Report", $"{dtos.Count} records · Exported {DateTime.Now:dd.MM.yyyy}");
-            return File(bytes, "application/pdf", $"accidents_{DateTime.Now:yyyyMMdd}.pdf");
+            var title = lang == "hr" ? "Izvještaj nezgoda" : "Accidents Report";
+            var bytes = _exportService.ExportToPdf(dtos, columns, title, $"{dtos.Count} {(lang == "hr" ? "zapisa" : "records")} · {DateTime.Now:dd.MM.yyyy}");
+            return File(bytes, "application/pdf", $"{(lang == "hr" ? "nezgode" : "accidents")}_{DateTime.Now:yyyyMMdd}.pdf");
         }
         else
         {
-            var bytes = _exportService.ExportToExcel(dtos, columns, "Accidents");
-            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"accidents_{DateTime.Now:yyyyMMdd}.xlsx");
+            var bytes = _exportService.ExportToExcel(dtos, columns, lang == "hr" ? "Nezgode" : "Accidents");
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{(lang == "hr" ? "nezgode" : "accidents")}_{DateTime.Now:yyyyMMdd}.xlsx");
         }
     }
 
