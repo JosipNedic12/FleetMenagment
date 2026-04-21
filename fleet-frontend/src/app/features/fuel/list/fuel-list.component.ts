@@ -482,14 +482,17 @@ export class FuelListComponent implements OnInit, OnDestroy {
     this.formError.set(''); this.showCreateCard = true;
   }
   saveCard(): void {
-    if (!this.cardForm.cardNumber) { this.formError.set('Card number is required.'); return; }
+    if (!this.cardForm.cardNumber) {
+      this.formError.set($localize`:@@fuel.cardNumberRequired:Broj kartice je obavezan.`);
+      return;
+    }
     this.saving.set(true);
     const obs = this.editCardId
       ? this.cardApi.update(this.editCardId, this.cardForm as UpdateFuelCardDto)
       : this.cardApi.create(this.cardForm);
     obs.subscribe({
       next: () => { this.loadCards(); this.cardApi.getAll().subscribe(c => this.allCards.set(c)); this.closeCreateCard(); this.saving.set(false); },
-      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? $localize`:@@COMMON.FORM.saveFailed:Spremanje nije uspjelo.`); }
     });
   }
   closeCreateCard(): void { this.showCreateCard = false; this.editCardId = null; this.formError.set(''); }
@@ -500,13 +503,14 @@ export class FuelListComponent implements OnInit, OnDestroy {
   }
   saveTx(): void {
     if (!this.txForm.vehicleId || !this.txForm.fuelTypeId || !this.txForm.postedAt) {
-      this.formError.set('Fill all required fields.'); return;
+      this.formError.set($localize`:@@COMMON.FORM.fillRequired:Ispunite sva obavezna polja.`);
+      return;
     }
     const payload = { ...this.txForm, postedAt: new Date(this.txForm.postedAt).toISOString() };
     this.saving.set(true);
     this.txApi.create(payload).subscribe({
       next: () => { this.loadTx(); this.closeCreateTx(); this.saving.set(false); },
-      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? $localize`:@@COMMON.FORM.saveFailed:Spremanje nije uspjelo.`); }
     });
   }
   closeCreateTx(): void { this.showCreateTx = false; this.formError.set(''); }

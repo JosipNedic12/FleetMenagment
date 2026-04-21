@@ -70,6 +70,12 @@ public static class ErrorMessages
             ["hr"] = "Ovo vozilo već ima aktivnu registraciju koja se preklapa s navedenim razdobljem."
         },
 
+        [ErrorMessageKeys.VehicleAssignmentActiveConflict] = new()
+        {
+            ["en"] = "This vehicle already has an active assignment. End it before creating a new one.",
+            ["hr"] = "Ovo vozilo već ima aktivnu dodjelu. Završite je prije kreiranja nove."
+        },
+
         [ErrorMessageKeys.FuelCardNotFound] = new()
         {
             ["en"] = "Fuel card not found.",

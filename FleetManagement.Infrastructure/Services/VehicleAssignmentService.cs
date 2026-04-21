@@ -3,6 +3,7 @@ using FleetManagement.Application.Common;
 using FleetManagement.Application.Common.Filters;
 using FleetManagement.Application.DTOs;
 using FleetManagement.Application.Exceptions;
+using static FleetManagement.Application.Exceptions.ErrorMessageKeys;
 using FleetManagement.Domain.Entities;
 using FleetManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -137,7 +138,7 @@ public class VehicleAssignmentService
         if (await VehicleHasActiveAssignmentAsync(dto.VehicleId))
         {
             _logger.LogWarning("Assignment conflict: vehicle {VehicleId} already has an active assignment", dto.VehicleId);
-            throw new ConflictException("This vehicle already has an active assignment. End it before creating a new one.");
+            throw new ConflictException(ErrorMessageKeys.VehicleAssignmentActiveConflict);
         }
 
         var assignment = new VehicleAssignment

@@ -77,7 +77,7 @@ import { downloadBlob } from '../../../shared/utils/download';
                   <td>
                     <app-badge
                       [label]="severityLabel(row.severity)"
-                      [variant]="row.severity === 'minor' ? 'warning' : 'danger'"
+                      [variant]="row.severity === 'minor' ? 'success' : row.severity === 'major' ? 'warning' : 'danger'"
                     />
                   </td>
                   <td class="notes-cell">{{ row.description }}</td>

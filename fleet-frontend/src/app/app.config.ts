@@ -7,6 +7,7 @@ import localeEn from '@angular/common/locales/en';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { languageInterceptor } from './core/interceptors/language.interceptor';
+import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { LanguageService } from './core/services/language.service';
 import { LUCIDE_ICONS, LucideIconProvider } from 'lucide-angular';
 import {
@@ -28,7 +29,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor, languageInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, languageInterceptor, errorInterceptor])),
     { provide: LOCALE_ID, useFactory: detectLocale },
     {
       provide: APP_INITIALIZER,

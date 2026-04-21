@@ -185,6 +185,7 @@ import { LucideAngularModule, Lock, Check, X, Eye, EyeOff, ClipboardList } from 
       gap: 20px;
     }
     .user-card { grid-column: 1 / -1; }
+    .password-card { align-self: start; }
 
     /* ── Cards ────────────────────────────────────────────── */
     .profile-card {

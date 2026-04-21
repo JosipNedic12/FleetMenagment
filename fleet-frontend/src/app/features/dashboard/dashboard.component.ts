@@ -111,6 +111,9 @@ interface StatCard {
             } @else {
               <div class="compliance-table-wrap">
                 <table class="compliance-table">
+                  <colgroup>
+                    <col class="col-reg" /><col class="col-type" /><col class="col-exp" /><col class="col-days" />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th i18n="@@dashboard.colVehicle">Vehicle</th>
@@ -124,12 +127,11 @@ interface StatCard {
                       <tr [class]="'compliance-row--' + item.status">
                         <td class="reg-cell">{{ item.registrationNumber }}</td>
                         <td>
-                          <span class="type-chip type-chip--{{ item.type | lowercase }}">{{ item.type }}</span>
+                          <span class="type-chip type-chip--{{ item.type | lowercase }}">{{ complianceTypeLabel(item.type) }}</span>
                         </td>
                         <td>{{ item.expiresAt | date:'dd.MM.yyyy' }}</td>
                         <td>
-                          <span [class]="item.daysLeft < 0 ? 'days-badge days-badge--expired' : 'days-badge days-badge--soon'"
-                            i18n="@@dashboard.daysCell">{{ item.daysLeft < 0 ? (item.daysLeft * -1) + 'd ago' : item.daysLeft + 'd' }}</span>
+                          <span [class]="item.daysLeft < 0 ? 'days-badge days-badge--expired' : 'days-badge days-badge--soon'">{{ item.daysLeft < 0 ? (item.daysLeft * -1) + 'd' : item.daysLeft + 'd' }}</span>
                         </td>
                       </tr>
                     }
@@ -398,10 +400,14 @@ interface StatCard {
     .badge--amber { background: rgba(245,158,11,0.12); color: #f59e0b; }
 
     /* Compliance table */
-    .compliance-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .compliance-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; min-width: 360px; }
-    .compliance-table th { text-align: left; font-weight: 600; color: var(--text-muted); padding: 4px 6px; border-bottom: 1px solid var(--border); }
-    .compliance-table td { padding: 6px 6px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+    .compliance-table-wrap { overflow-x: hidden; }
+    .compliance-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; table-layout: fixed; }
+    .compliance-table th { text-align: left; font-weight: 600; color: var(--text-muted); padding: 4px 4px; border-bottom: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .compliance-table td { padding: 5px 4px; border-bottom: 1px solid var(--border); color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .compliance-table col.col-reg  { width: 38%; }
+    .compliance-table col.col-type { width: 28%; }
+    .compliance-table col.col-exp  { width: 22%; }
+    .compliance-table col.col-days { width: 12%; }
     .compliance-row--expired td { background: var(--row-danger-bg); }
     .compliance-row--expired td:first-child { border-left: 3px solid #ef4444; }
     .compliance-row--due_soon td { background: var(--row-warn-bg); }
@@ -571,6 +577,16 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly checkCircleIcon = CheckCircle;
   readonly usersIcon = Users;
   readonly refreshIcon = RefreshCw;
+
+  private readonly complianceTypeLabels: Record<string, string> = {
+    inspection:   $localize`:@@COMMON.TYPE.inspection:Inspection`,
+    insurance:    $localize`:@@COMMON.TYPE.insurance:Insurance`,
+    registration: $localize`:@@COMMON.TYPE.registration:Registration`,
+  };
+
+  complianceTypeLabel(type: string): string {
+    return this.complianceTypeLabels[type.toLowerCase()] ?? type;
+  }
 
   expiredCount = signal(0);
   dueSoonCount = signal(0);

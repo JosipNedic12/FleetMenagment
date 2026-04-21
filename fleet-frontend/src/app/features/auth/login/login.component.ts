@@ -260,17 +260,17 @@ import { AuthService } from '../../../core/auth/auth.service';
       border: 1.5px solid #e2e8f0;
       border-radius: 10px;
       background: #f8fafc;
-      transition: all 0.2s ease;
+      transition: border-color 0.2s ease, background 0.2s ease;
       overflow: hidden;
+      isolation: isolate;
+      box-shadow: none !important;
     }
     .input-wrapper.focused {
       border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
       background: white;
     }
     .input-wrapper.error:not(.focused) {
       border-color: #ef4444;
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
     }
     .input-icon {
       flex-shrink: 0;
@@ -289,6 +289,7 @@ import { AuthService } from '../../../core/auth/auth.service';
       color: #0f172a;
       background: transparent;
       outline: none;
+      box-shadow: none;
       min-width: 0;
       line-height: 1.5;
     }

@@ -542,7 +542,7 @@ public class FleetDbContext : DbContext
             entity.Property(e => e.EntityType).HasColumnName("entity_type").HasMaxLength(100);
             entity.Property(e => e.EntityId).HasColumnName("entity_id");
             entity.Property(e => e.Description).HasColumnName("description").HasMaxLength(500);
-            entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("now()").ValueGeneratedOnAdd();
 
             entity.HasIndex(e => e.UserId).HasDatabaseName("ix_user_activity_log_user_id");
         });

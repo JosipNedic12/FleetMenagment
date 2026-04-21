@@ -31,10 +31,10 @@ public class SearchController : ControllerBase
             .Include(v => v.Make)
             .Include(v => v.Model)
             .Where(v => !v.IsDeleted && (
+                (v.Make.Name + " " + v.Model.Name + " " + v.RegistrationNumber).ToLower().Contains(term) ||
+                (v.Make.Name + " " + v.Model.Name).ToLower().Contains(term) ||
                 v.RegistrationNumber.ToLower().Contains(term) ||
-                v.Vin.ToLower().Contains(term) ||
-                v.Make.Name.ToLower().Contains(term) ||
-                v.Model.Name.ToLower().Contains(term)))
+                v.Vin.ToLower().Contains(term)))
             .Take(10)
             .Select(v => new SearchResultDto(
                 "Vehicle",
@@ -48,6 +48,7 @@ public class SearchController : ControllerBase
             .Include(d => d.Employee)
             .Where(d => !d.IsDeleted && (
                 (d.Employee.FirstName + " " + d.Employee.LastName).ToLower().Contains(term) ||
+                (d.Employee.LastName + " " + d.Employee.FirstName).ToLower().Contains(term) ||
                 d.LicenseNumber.ToLower().Contains(term)))
             .Take(10)
             .Select(d => new SearchResultDto(
@@ -63,12 +64,14 @@ public class SearchController : ControllerBase
                 .ThenInclude(v => v.Make)
             .Include(m => m.Vehicle)
                 .ThenInclude(v => v.Model)
-            .Where(m => m.Description != null && m.Description.ToLower().Contains(term))
+            .Where(m =>
+                (m.Description != null && m.Description.ToLower().Contains(term)) ||
+                (m.Vehicle.Make.Name + " " + m.Vehicle.Model.Name + " " + m.Vehicle.RegistrationNumber).ToLower().Contains(term))
             .Take(10)
             .Select(m => new SearchResultDto(
                 "Maintenance",
                 m.OrderId,
-                m.Description!,
+                m.Description ?? (m.Vehicle.Make.Name + " " + m.Vehicle.Model.Name),
                 $"{m.Vehicle.RegistrationNumber} — {m.Status}",
                 "/maintenance"))
             .ToListAsync();

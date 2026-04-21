@@ -1510,12 +1510,28 @@
           <context context-type="linenumber">117,119</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="dashboard.daysCell" datatype="html">
-        <source><x id="INTERPOLATION" equiv-text="{{ item.daysLeft &lt; 0 ? (item.daysLeft * -1) + &apos;d ago&apos; : item.daysLeft + &apos;d&apos; }}"/></source>
-        <target><x id="INTERPOLATION" equiv-text="{{ item.daysLeft &lt; 0 ? (item.daysLeft * -1) + &apos;d ago&apos; : item.daysLeft + &apos;d&apos; }}"/></target>
+      <trans-unit id="COMMON.TYPE.inspection" datatype="html">
+        <source>Inspection</source>
+        <target>Tehnički pregled</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/dashboard/dashboard.component.ts</context>
-          <context context-type="linenumber">130,131</context>
+          <context context-type="linenumber">575</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="COMMON.TYPE.insurance" datatype="html">
+        <source>Insurance</source>
+        <target>Osiguranje</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard.component.ts</context>
+          <context context-type="linenumber">576</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="COMMON.TYPE.registration" datatype="html">
+        <source>Registration</source>
+        <target>Registracija</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard.component.ts</context>
+          <context context-type="linenumber">577</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.vehicleAssignmentsTitle" datatype="html">
@@ -4382,12 +4398,20 @@
           <context context-type="linenumber">83</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="insurance.list.formTitle" datatype="html">
-        <source><x id="INTERPOLATION" equiv-text="{{ editId ? 'Edit Policy' : 'New Insurance Policy' }}"/></source>
-        <target><x id="INTERPOLATION" equiv-text="{{ editId ? 'Edit Policy' : 'New Insurance Policy' }}"/></target>
+      <trans-unit id="insurance.list.editTitle" datatype="html">
+        <source>Edit Policy</source>
+        <target>Uredi policu</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/insurance/list/insurance-list.component.ts</context>
-          <context context-type="linenumber">97,99</context>
+          <context context-type="linenumber">214</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="insurance.list.newTitle" datatype="html">
+        <source>New Insurance Policy</source>
+        <target>Nova polica osiguranja</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/insurance/list/insurance-list.component.ts</context>
+          <context context-type="linenumber">215</context>
         </context-group>
       </trans-unit>
       <trans-unit id="insurance.list.fieldVehicle" datatype="html">
@@ -4478,12 +4502,28 @@
           <context context-type="linenumber">142,143</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="insurance.list.saveButton" datatype="html">
-        <source> <x id="INTERPOLATION" equiv-text="{{ saving() ? 'Saving…' : editId ? 'Update' : 'Create' }}"/> </source>
-        <target> <x id="INTERPOLATION" equiv-text="{{ saving() ? 'Saving…' : editId ? 'Update' : 'Create' }}"/> </target>
+      <trans-unit id="COMMON.FORM.saving" datatype="html">
+        <source>Saving…</source>
+        <target>Spremanje…</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/insurance/list/insurance-list.component.ts</context>
-          <context context-type="linenumber">144,145</context>
+          <context context-type="linenumber">216</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="COMMON.FORM.update" datatype="html">
+        <source>Update</source>
+        <target>Ažuriraj</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/insurance/list/insurance-list.component.ts</context>
+          <context context-type="linenumber">217</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="COMMON.FORM.create" datatype="html">
+        <source>Create</source>
+        <target>Kreiraj</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/insurance/list/insurance-list.component.ts</context>
+          <context context-type="linenumber">218</context>
         </context-group>
       </trans-unit>
       <trans-unit id="insurance.list.deleteTitle" datatype="html">
@@ -8757,6 +8797,44 @@
       <trans-unit id="fuel.filter.fuelType" datatype="html">
         <source>Fuel Type</source>
         <target>Gorivo</target>
+      </trans-unit>
+
+      <!-- Common form messages -->
+      <trans-unit id="COMMON.FORM.fillRequired" datatype="html">
+        <source>Please fill in all required fields.</source>
+        <target>Ispunite sva obavezna polja.</target>
+      </trans-unit>
+      <trans-unit id="COMMON.FORM.saveFailed" datatype="html">
+        <source>Save failed.</source>
+        <target>Spremanje nije uspjelo.</target>
+      </trans-unit>
+
+      <!-- Fuel card -->
+      <trans-unit id="fuel.cardNumberRequired" datatype="html">
+        <source>Card number is required.</source>
+        <target>Broj kartice je obavezan.</target>
+      </trans-unit>
+
+      <!-- Global HTTP error messages -->
+      <trans-unit id="ERROR.network" datatype="html">
+        <source>Unable to connect to the server.</source>
+        <target>Nije moguće spojiti se na poslužitelj.</target>
+      </trans-unit>
+      <trans-unit id="ERROR.unexpected" datatype="html">
+        <source>An unexpected error occurred.</source>
+        <target>Došlo je do neočekivane pogreške.</target>
+      </trans-unit>
+      <trans-unit id="ERROR.conflict" datatype="html">
+        <source>The request could not be processed.</source>
+        <target>Zahtjev nije moguće obraditi.</target>
+      </trans-unit>
+      <trans-unit id="ERROR.forbidden" datatype="html">
+        <source>You do not have permission for this action.</source>
+        <target>Nemate ovlasti za ovu radnju.</target>
+      </trans-unit>
+      <trans-unit id="ERROR.notFound" datatype="html">
+        <source>Record not found.</source>
+        <target>Zapis nije pronađen.</target>
       </trans-unit>
     </body>
   </file>

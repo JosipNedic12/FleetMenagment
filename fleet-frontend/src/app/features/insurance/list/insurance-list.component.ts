@@ -117,7 +117,7 @@ import { downloadBlob } from '../../../shared/utils/download';
     @if (showForm) {
       <div class="modal-overlay" (click)="closeForm()">
         <div class="modal-box" (click)="$event.stopPropagation()">
-          <h2 class="modal-title" i18n="@@insurance.list.formTitle">{{ editId ? 'Edit Policy' : 'New Insurance Policy' }}</h2>
+          <h2 class="modal-title">{{ editId ? labelEditTitle : labelNewTitle }}</h2>
 
           <div class="form-grid">
             <div class="form-group">
@@ -163,8 +163,8 @@ import { downloadBlob } from '../../../shared/utils/download';
 
           <div class="modal-actions">
             <button class="btn btn-secondary" (click)="closeForm()" i18n="@@insurance.list.cancelButton">Cancel</button>
-            <button class="btn btn-primary" [disabled]="saving()" (click)="save()" i18n="@@insurance.list.saveButton">
-              {{ saving() ? 'Saving…' : editId ? 'Update' : 'Create' }}
+            <button class="btn btn-primary" [disabled]="saving()" (click)="save()">
+              {{ saving() ? labelSaving : editId ? labelUpdate : labelCreate }}
             </button>
           </div>
         </div>
@@ -213,6 +213,11 @@ export class InsuranceListComponent implements OnInit, OnDestroy {
   readonly icons = { Eye, Pencil, Trash2, Paperclip };
   activeLabel  = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
   expiredLabel = $localize`:@@COMMON.CHIPS.EXPIRED:Expired`;
+  readonly labelEditTitle = $localize`:@@insurance.list.editTitle:Edit Policy`;
+  readonly labelNewTitle  = $localize`:@@insurance.list.newTitle:New Insurance Policy`;
+  readonly labelSaving    = $localize`:@@COMMON.FORM.saving:Saving…`;
+  readonly labelUpdate    = $localize`:@@COMMON.FORM.update:Update`;
+  readonly labelCreate    = $localize`:@@COMMON.FORM.create:Create`;
   readonly vehicleDisplayFn = (v: Vehicle) => `${v.make} ${v.model} – ${v.registrationNumber}`;
   @ViewChild('docList') docList!: DocumentListComponent;
   docsTarget: InsurancePolicy | null = null;
@@ -336,7 +341,8 @@ export class InsuranceListComponent implements OnInit, OnDestroy {
 
   save(): void {
     if (!this.form.vehicleId || !this.form.policyNumber || !this.form.insurer || !this.form.validFrom || !this.form.validTo) {
-      this.formError.set('Please fill all required fields.'); return;
+      this.formError.set($localize`:@@COMMON.FORM.fillRequired:Ispunite sva obavezna polja.`);
+      return;
     }
     this.saving.set(true);
     this.formError.set('');
@@ -347,7 +353,7 @@ export class InsuranceListComponent implements OnInit, OnDestroy {
 
     obs.subscribe({
       next: () => { this.loadPage(); this.closeForm(); this.saving.set(false); },
-      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? 'Save failed.'); }
+      error: (e) => { this.saving.set(false); this.formError.set(e.error?.message ?? $localize`:@@COMMON.FORM.saveFailed:Spremanje nije uspjelo.`); }
     });
   }
 

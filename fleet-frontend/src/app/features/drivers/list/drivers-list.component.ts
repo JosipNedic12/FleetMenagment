@@ -154,7 +154,7 @@ import { downloadBlob } from '../../../shared/utils/download';
                     <input type="checkbox"
                       [checked]="createForm.licenseCategoryIds.includes(cat.licenseCategoryId)"
                       (change)="toggleCreateCategory(cat.licenseCategoryId, $event)" />
-                    {{ cat.code }}{{ cat.description ? ' – ' + cat.description : '' }}
+                    {{ cat.code }}
                   </label>
                 }
               </div>
@@ -197,7 +197,7 @@ import { downloadBlob } from '../../../shared/utils/download';
                     <input type="checkbox"
                       [checked]="editForm.licenseCategoryIds?.includes(cat.licenseCategoryId)"
                       (change)="toggleEditCategory(cat.licenseCategoryId, $event)" />
-                    {{ cat.code }}{{ cat.description ? ' – ' + cat.description : '' }}
+                    {{ cat.code }}
                   </label>
                 }
               </div>

@@ -22,6 +22,9 @@ public static class ErrorMessageKeys
     public const string RegistrationNoCurrentRecord       = "error.registration.noCurrent";
     public const string RegistrationRecordOverlap         = "error.registration.overlap";
 
+    // ── VehicleAssignment ────────────────────────────────────
+    public const string VehicleAssignmentActiveConflict   = "error.assignment.activeConflict";
+
     // ── FuelCard ─────────────────────────────────────────────
     public const string FuelCardNotFound                  = "error.fuelCard.notFound";
     public const string FuelCardNumberDuplicate           = "error.fuelCard.cardNumberDuplicate";
