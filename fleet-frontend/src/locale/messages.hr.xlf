@@ -3486,6 +3486,30 @@
           <context context-type="linenumber">295,296</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="fuel.docs.title" datatype="html">
+        <source>Documents</source>
+        <target>Dokumenti</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/fuel/detail/fuel-detail.component.ts</context>
+          <context context-type="linenumber">1</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="fuel.docs.close" datatype="html">
+        <source>Close</source>
+        <target>Zatvori</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/fuel/list/fuel-list.component.ts</context>
+          <context context-type="linenumber">1</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="fuel.actionDocuments" datatype="html">
+        <source>Documents</source>
+        <target>Dokumenti</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/fuel/list/fuel-list.component.ts</context>
+          <context context-type="linenumber">1</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="fuel.badge.suspicious" datatype="html">
         <source>Suspicious</source>
         <target>Sumnjivo</target>
@@ -8835,6 +8859,90 @@
       <trans-unit id="ERROR.notFound" datatype="html">
         <source>Record not found.</source>
         <target>Zapis nije pronađen.</target>
+      </trans-unit>
+      <trans-unit id="COMMON.STATUS.active" datatype="html">
+        <source>Active</source>
+        <target>Aktivno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.STATUS.in_shop" datatype="html">
+        <source>In Shop</source>
+        <target>U servisu</target>
+      </trans-unit>
+      <trans-unit id="COMMON.STATUS.retired" datatype="html">
+        <source>Retired</source>
+        <target>Povučeno</target>
+      </trans-unit>
+      <trans-unit id="COMMON.STATUS.sold" datatype="html">
+        <source>Sold</source>
+        <target>Prodano</target>
+      </trans-unit>
+      <trans-unit id="COMMON.STATUS.ok" datatype="html">
+        <source>OK</source>
+        <target>U redu</target>
+      </trans-unit>
+      <trans-unit id="COMMON.STATUS.soon" datatype="html">
+        <source>Soon</source>
+        <target>Uskoro</target>
+      </trans-unit>
+      <trans-unit id="COMMON.STATUS.expired" datatype="html">
+        <source>Expired</source>
+        <target>Isteklo</target>
+      </trans-unit>
+      <trans-unit id="export.col.registration" datatype="html">
+        <source>Registration</source>
+        <target>Registracija</target>
+      </trans-unit>
+      <trans-unit id="export.col.vehicle" datatype="html">
+        <source>Vehicle</source>
+        <target>Vozilo</target>
+      </trans-unit>
+      <trans-unit id="export.col.status" datatype="html">
+        <source>Status</source>
+        <target>Status</target>
+      </trans-unit>
+      <trans-unit id="export.col.type" datatype="html">
+        <source>Type</source>
+        <target>Vrsta</target>
+      </trans-unit>
+      <trans-unit id="export.col.expires" datatype="html">
+        <source>Expires</source>
+        <target>Istječe</target>
+      </trans-unit>
+      <trans-unit id="export.col.daysLeft" datatype="html">
+        <source>Days Left</source>
+        <target>Dana preostalo</target>
+      </trans-unit>
+      <trans-unit id="export.col.kmThisMonth" datatype="html">
+        <source>KM This Month</source>
+        <target>KM ovaj mjesec</target>
+      </trans-unit>
+      <trans-unit id="export.col.totalOdometer" datatype="html">
+        <source>Total Odometer (km)</source>
+        <target>Ukupna kilometraža (km)</target>
+      </trans-unit>
+      <trans-unit id="export.col.lastLogDate" datatype="html">
+        <source>Last Log Date</source>
+        <target>Datum zadnjeg unosa</target>
+      </trans-unit>
+      <trans-unit id="export.title.fuel" datatype="html">
+        <source>Fuel Cost Report</source>
+        <target>Troškovi goriva</target>
+      </trans-unit>
+      <trans-unit id="export.title.maintenance" datatype="html">
+        <source>Maintenance Spend Report</source>
+        <target>Troškovi održavanja</target>
+      </trans-unit>
+      <trans-unit id="export.title.compliance" datatype="html">
+        <source>Compliance Expiry Report</source>
+        <target>Izvješće o isteku dokumenata</target>
+      </trans-unit>
+      <trans-unit id="export.title.utilization" datatype="html">
+        <source>Fleet Utilization Report</source>
+        <target>Izvješće o iskorištenosti voznog parka</target>
+      </trans-unit>
+      <trans-unit id="export.generated" datatype="html">
+        <source>Generated</source>
+        <target>Generirano</target>
       </trans-unit>
     </body>
   </file>

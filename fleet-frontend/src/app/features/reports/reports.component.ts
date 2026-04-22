@@ -15,6 +15,19 @@ import {
 } from '../../core/auth/feature-api.services';
 import { Vehicle, FuelTransaction, MaintenanceOrder, OdometerLog, InsurancePolicy, RegistrationRecord, Inspection } from '../../core/models/models';
 import { exportXlsx, exportPdf, CsvColumn } from '../../shared/utils/csv-export';
+import { TranslateService } from '../../core/services/translate.service';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+
+const EXPORT_NAMES = {
+  fuel:        'troskovi-goriva',
+  maintenance: 'troskovi-odrzavanja',
+  utilization: 'iskoristenost-voznog-parka',
+  compliance:  'izvjestaj-uskladenosti',
+} as const;
+
+function exportDate(): string {
+  return new Date().toISOString().slice(0, 10).replace(/-/g, '');
+}
 
 type Tab = 'fuel' | 'maintenance' | 'utilization' | 'compliance';
 
@@ -25,7 +38,7 @@ interface FuelRow {
   totalCost: number;
   totalLiters: number;
   txCount: number;
-  months: Record<string, number>; // 'YYYY-MM' -> cost
+  months: Record<string, number>; // 'MM/YYYY' -> cost
 }
 
 interface MaintenanceRow {
@@ -62,7 +75,7 @@ interface ComplianceRow {
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, ExportButtonComponent],
+  imports: [CommonModule, LucideAngularModule, ExportButtonComponent, PaginationComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -127,7 +140,7 @@ interface ComplianceRow {
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of fuelRows(); track row.vehicleId) {
+                  @for (row of pagedFuelRows(); track row.vehicleId) {
                     <tr>
                       <td>
                         <div class="cell-primary">{{ row.reg }}</div>
@@ -145,6 +158,14 @@ interface ComplianceRow {
                 </tbody>
               </table>
             </div>
+            <app-pagination
+              [page]="pageFuel()"
+              [pageSize]="pageSizeFuel()"
+              [totalCount]="fuelRows().length"
+              [totalPages]="totalPagesFuel()"
+              (pageChange)="pageFuel.set($event)"
+              (pageSizeChange)="onPageSizeFuel($event)"
+            />
           </div>
         }
 
@@ -186,7 +207,7 @@ interface ComplianceRow {
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of maintenanceRows(); track row.vehicleId) {
+                  @for (row of pagedMaintenanceRows(); track row.vehicleId) {
                     <tr>
                       <td>
                         <div class="cell-primary">{{ row.reg }}</div>
@@ -202,6 +223,14 @@ interface ComplianceRow {
                 </tbody>
               </table>
             </div>
+            <app-pagination
+              [page]="pageMaintenance()"
+              [pageSize]="pageSizeMaintenance()"
+              [totalCount]="maintenanceRows().length"
+              [totalPages]="totalPagesMaintenance()"
+              (pageChange)="pageMaintenance.set($event)"
+              (pageSizeChange)="onPageSizeMaintenance($event)"
+            />
           </div>
         }
 
@@ -238,13 +267,13 @@ interface ComplianceRow {
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of utilizationRows(); track row.vehicleId) {
+                  @for (row of pagedUtilizationRows(); track row.vehicleId) {
                     <tr>
                       <td>
                         <div class="cell-primary">{{ row.reg }}</div>
                         <div class="cell-sub">{{ row.makeModel }}</div>
                       </td>
-                      <td><span class="badge badge-{{ row.status }}">{{ row.status === 'in_shop' ? 'In Shop' : row.status }}</span></td>
+                      <td><span class="badge badge-{{ row.status }}">{{ statusLabel(row.status) }}</span></td>
                       <td class="num bold">{{ row.kmThisMonth | number:'1.0-0' }}</td>
                       <td class="num">{{ row.kmTotal | number:'1.0-0' }}</td>
                       <td class="muted">{{ row.lastLogDate ? (row.lastLogDate | date:'dd.MM.yyyy') : '—' }}</td>
@@ -253,6 +282,14 @@ interface ComplianceRow {
                 </tbody>
               </table>
             </div>
+            <app-pagination
+              [page]="pageUtilization()"
+              [pageSize]="pageSizeUtilization()"
+              [totalCount]="utilizationRows().length"
+              [totalPages]="totalPagesUtilization()"
+              (pageChange)="pageUtilization.set($event)"
+              (pageSizeChange)="onPageSizeUtilization($event)"
+            />
           </div>
         }
 
@@ -289,21 +326,29 @@ interface ComplianceRow {
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of complianceRows(); track row.vehicleId + row.type) {
+                  @for (row of pagedComplianceRows(); track row.vehicleId + row.type) {
                     <tr [class.row-expired]="row.status === 'expired'" [class.row-soon]="row.status === 'soon'">
                       <td>
                         <div class="cell-primary">{{ row.reg }}</div>
                         <div class="cell-sub">{{ row.makeModel }}</div>
                       </td>
-                      <td>{{ row.type }}</td>
+                      <td>{{ typeLabel(row.type) }}</td>
                       <td>{{ row.expiresAt | date:'dd.MM.yyyy' }}</td>
                       <td class="num">{{ row.daysLeft }}</td>
-                      <td><span class="badge badge-{{ row.status }}">{{ row.status === 'ok' ? 'OK' : row.status }}</span></td>
+                      <td><span class="badge badge-{{ row.status }}">{{ complianceStatusLabel(row.status) }}</span></td>
                     </tr>
                   }
                 </tbody>
               </table>
             </div>
+            <app-pagination
+              [page]="pageCompliance()"
+              [pageSize]="pageSizeCompliance()"
+              [totalCount]="complianceRows().length"
+              [totalPages]="totalPagesCompliance()"
+              (pageChange)="pageCompliance.set($event)"
+              (pageSizeChange)="onPageSizeCompliance($event)"
+            />
           </div>
         }
 
@@ -384,6 +429,37 @@ export class ReportsComponent implements OnInit {
   private registrations = signal<RegistrationRecord[]>([]);
   private inspections = signal<Inspection[]>([]);
 
+  private readonly typeLabels: Record<string, string> = {
+    inspection:   $localize`:@@COMMON.TYPE.inspection:Inspection`,
+    insurance:    $localize`:@@COMMON.TYPE.insurance:Insurance`,
+    registration: $localize`:@@COMMON.TYPE.registration:Registration`,
+  };
+
+  private readonly statusLabels: Record<string, string> = {
+    active:  $localize`:@@COMMON.STATUS.active:Active`,
+    in_shop: $localize`:@@COMMON.STATUS.in_shop:In Shop`,
+    retired: $localize`:@@COMMON.STATUS.retired:Retired`,
+    sold:    $localize`:@@COMMON.STATUS.sold:Sold`,
+  };
+
+  private readonly complianceStatusLabels: Record<string, string> = {
+    ok:      $localize`:@@COMMON.STATUS.ok:OK`,
+    soon:    $localize`:@@COMMON.STATUS.soon:Soon`,
+    expired: $localize`:@@COMMON.STATUS.expired:Expired`,
+  };
+
+  typeLabel(type: string): string {
+    return this.typeLabels[type.toLowerCase()] ?? type;
+  }
+
+  statusLabel(status: string): string {
+    return this.statusLabels[status] ?? status;
+  }
+
+  complianceStatusLabel(status: string): string {
+    return this.complianceStatusLabels[status] ?? status;
+  }
+
   constructor(
     private vehicleApi: VehicleApiService,
     private fuelApi: FuelTransactionApiService,
@@ -392,6 +468,7 @@ export class ReportsComponent implements OnInit {
     private insuranceApi: InsurancePolicyApiService,
     private registrationApi: RegistrationApiService,
     private inspectionApi: InspectionApiService,
+    private ts: TranslateService,
   ) {}
 
   ngOnInit(): void {
@@ -420,14 +497,30 @@ export class ReportsComponent implements OnInit {
 
   setTab(tab: Tab): void { this.activeTab.set(tab); }
 
+  // ─── Pagination state ──────────────────────────────────────────────────────
+
+  pageFuel = signal(1);
+  pageSizeFuel = signal(10);
+  pageMaintenance = signal(1);
+  pageSizeMaintenance = signal(10);
+  pageUtilization = signal(1);
+  pageSizeUtilization = signal(10);
+  pageCompliance = signal(1);
+  pageSizeCompliance = signal(10);
+
   // ─── Fuel report ───────────────────────────────────────────────────────────
 
+  private toMonthKey(iso: string): string {
+    const [y, m] = iso.slice(0, 7).split('-');
+    return `${m}/${y}`;
+  }
+
   fuelMonths = computed<string[]>(() => {
-    const months = new Set<string>();
+    const isoSet = new Set<string>();
     for (const t of this.fuelTx()) {
-      months.add(t.postedAt.slice(0, 7));
+      isoSet.add(t.postedAt.slice(0, 7));
     }
-    return [...months].sort();
+    return [...isoSet].sort().map(iso => this.toMonthKey(iso));
   });
 
   fuelRows = computed<FuelRow[]>(() => {
@@ -451,7 +544,7 @@ export class ReportsComponent implements OnInit {
       row.totalCost += t.totalCost ?? 0;
       row.totalLiters += t.liters ?? 0;
       row.txCount++;
-      const month = t.postedAt.slice(0, 7);
+      const month = this.toMonthKey(t.postedAt);
       row.months[month] = (row.months[month] ?? 0) + (t.totalCost ?? 0);
     }
 
@@ -461,6 +554,13 @@ export class ReportsComponent implements OnInit {
   totalFuelCost = computed(() => this.fuelRows().reduce((s, r) => s + r.totalCost, 0));
   totalFuelLiters = computed(() => this.fuelRows().reduce((s, r) => s + r.totalLiters, 0));
   avgCostPerLiter = computed(() => this.totalFuelLiters() > 0 ? this.totalFuelCost() / this.totalFuelLiters() : 0);
+
+  totalPagesFuel = computed(() => Math.max(1, Math.ceil(this.fuelRows().length / this.pageSizeFuel())));
+  pagedFuelRows = computed(() => {
+    const start = (this.pageFuel() - 1) * this.pageSizeFuel();
+    return this.fuelRows().slice(start, start + this.pageSizeFuel());
+  });
+  onPageSizeFuel(size: number): void { this.pageSizeFuel.set(size); this.pageFuel.set(1); }
 
   onExportFuel(format: 'xlsx' | 'pdf'): void {
     const months = this.fuelMonths();
@@ -473,8 +573,10 @@ export class ReportsComponent implements OnInit {
       { header: 'Avg per Fill (€)', value: r => (r.txCount > 0 ? r.totalCost / r.txCount : 0).toFixed(2) },
       ...months.map(m => ({ header: m, value: (r: FuelRow) => (r.months[m] ?? 0).toFixed(2) })),
     ];
-    if (format === 'xlsx') exportXlsx('fuel-report.xlsx', this.fuelRows(), cols);
-    else exportPdf('fuel-report.pdf', 'Fuel Cost Report', `Generated ${new Date().toLocaleDateString()}`, this.fuelRows(), cols);
+    const date = exportDate();
+    const base = EXPORT_NAMES.fuel;
+    if (format === 'xlsx') exportXlsx(`${base}-${date}.xlsx`, this.fuelRows(), cols);
+    else exportPdf(`${base}-${date}.pdf`, this.ts.exportTitleFuel, `${this.ts.exportGenerated} ${new Date().toLocaleDateString()}`, this.fuelRows(), cols);
   }
 
   // ─── Maintenance report ────────────────────────────────────────────────────
@@ -516,6 +618,13 @@ export class ReportsComponent implements OnInit {
   totalMaintPartsCost = computed(() => this.maintenanceRows().reduce((s, r) => s + r.partsCost, 0));
   totalMaintLaborCost = computed(() => this.maintenanceRows().reduce((s, r) => s + r.laborCost, 0));
 
+  totalPagesMaintenance = computed(() => Math.max(1, Math.ceil(this.maintenanceRows().length / this.pageSizeMaintenance())));
+  pagedMaintenanceRows = computed(() => {
+    const start = (this.pageMaintenance() - 1) * this.pageSizeMaintenance();
+    return this.maintenanceRows().slice(start, start + this.pageSizeMaintenance());
+  });
+  onPageSizeMaintenance(size: number): void { this.pageSizeMaintenance.set(size); this.pageMaintenance.set(1); }
+
   onExportMaintenance(format: 'xlsx' | 'pdf'): void {
     const cols: CsvColumn<MaintenanceRow>[] = [
       { header: 'Registration', value: r => r.reg },
@@ -526,8 +635,10 @@ export class ReportsComponent implements OnInit {
       { header: 'Total (€)', value: r => r.totalCost.toFixed(2) },
       { header: 'Avg per Order (€)', value: r => (r.orderCount > 0 ? r.totalCost / r.orderCount : 0).toFixed(2) },
     ];
-    if (format === 'xlsx') exportXlsx('maintenance-report.xlsx', this.maintenanceRows(), cols);
-    else exportPdf('maintenance-report.pdf', 'Maintenance Spend Report', `Generated ${new Date().toLocaleDateString()}`, this.maintenanceRows(), cols);
+    const date = exportDate();
+    const base = EXPORT_NAMES.maintenance;
+    if (format === 'xlsx') exportXlsx(`${base}-${date}.xlsx`, this.maintenanceRows(), cols);
+    else exportPdf(`${base}-${date}.pdf`, this.ts.exportTitleMaintenance, `${this.ts.exportGenerated} ${new Date().toLocaleDateString()}`, this.maintenanceRows(), cols);
   }
 
   // ─── Utilization report ────────────────────────────────────────────────────
@@ -579,17 +690,26 @@ export class ReportsComponent implements OnInit {
     return active.length > 0 ? this.totalKmThisMonth() / active.length : 0;
   });
 
+  totalPagesUtilization = computed(() => Math.max(1, Math.ceil(this.utilizationRows().length / this.pageSizeUtilization())));
+  pagedUtilizationRows = computed(() => {
+    const start = (this.pageUtilization() - 1) * this.pageSizeUtilization();
+    return this.utilizationRows().slice(start, start + this.pageSizeUtilization());
+  });
+  onPageSizeUtilization(size: number): void { this.pageSizeUtilization.set(size); this.pageUtilization.set(1); }
+
   onExportUtilization(format: 'xlsx' | 'pdf'): void {
     const cols: CsvColumn<UtilizationRow>[] = [
-      { header: 'Registration', value: r => r.reg },
-      { header: 'Vehicle', value: r => r.makeModel },
-      { header: 'Status', value: r => r.status },
-      { header: 'KM This Month', value: r => r.kmThisMonth.toFixed(0) },
-      { header: 'Total Odometer (km)', value: r => r.kmTotal.toFixed(0) },
-      { header: 'Last Log Date', value: r => r.lastLogDate ?? '' },
+      { header: this.ts.exportColRegistration, value: r => r.reg },
+      { header: this.ts.exportColVehicle, value: r => r.makeModel },
+      { header: this.ts.exportColStatus, value: r => this.statusLabel(r.status) },
+      { header: this.ts.exportColKmThisMonth, value: r => r.kmThisMonth.toFixed(0) },
+      { header: this.ts.exportColTotalOdometer, value: r => r.kmTotal.toFixed(0) },
+      { header: this.ts.exportColLastLogDate, value: r => r.lastLogDate ?? '' },
     ];
-    if (format === 'xlsx') exportXlsx('utilization-report.xlsx', this.utilizationRows(), cols);
-    else exportPdf('utilization-report.pdf', 'Fleet Utilization Report', `Generated ${new Date().toLocaleDateString()}`, this.utilizationRows(), cols);
+    const date = exportDate();
+    const base = EXPORT_NAMES.utilization;
+    if (format === 'xlsx') exportXlsx(`${base}-${date}.xlsx`, this.utilizationRows(), cols);
+    else exportPdf(`${base}-${date}.pdf`, this.ts.exportTitleUtilization, `${this.ts.exportGenerated} ${new Date().toLocaleDateString()}`, this.utilizationRows(), cols);
   }
 
   // ─── Compliance expiry ─────────────────────────────────────────────────────
@@ -631,16 +751,25 @@ export class ReportsComponent implements OnInit {
   expiringCount = computed(() => this.complianceRows().filter(r => r.status === 'soon').length);
   okCount = computed(() => this.complianceRows().filter(r => r.status === 'ok').length);
 
+  totalPagesCompliance = computed(() => Math.max(1, Math.ceil(this.complianceRows().length / this.pageSizeCompliance())));
+  pagedComplianceRows = computed(() => {
+    const start = (this.pageCompliance() - 1) * this.pageSizeCompliance();
+    return this.complianceRows().slice(start, start + this.pageSizeCompliance());
+  });
+  onPageSizeCompliance(size: number): void { this.pageSizeCompliance.set(size); this.pageCompliance.set(1); }
+
   onExportCompliance(format: 'xlsx' | 'pdf'): void {
     const cols: CsvColumn<ComplianceRow>[] = [
-      { header: 'Registration', value: r => r.reg },
-      { header: 'Vehicle', value: r => r.makeModel },
-      { header: 'Type', value: r => r.type },
-      { header: 'Expires', value: r => r.expiresAt },
-      { header: 'Days Left', value: r => r.daysLeft },
-      { header: 'Status', value: r => r.status },
+      { header: this.ts.exportColRegistration, value: r => r.reg },
+      { header: this.ts.exportColVehicle, value: r => r.makeModel },
+      { header: this.ts.exportColType, value: r => this.typeLabel(r.type) },
+      { header: this.ts.exportColExpires, value: r => r.expiresAt },
+      { header: this.ts.exportColDaysLeft, value: r => r.daysLeft },
+      { header: this.ts.exportColStatus, value: r => this.complianceStatusLabel(r.status) },
     ];
-    if (format === 'xlsx') exportXlsx('compliance-report.xlsx', this.complianceRows(), cols);
-    else exportPdf('compliance-report.pdf', 'Compliance Expiry Report', `Generated ${new Date().toLocaleDateString()}`, this.complianceRows(), cols);
+    const date = exportDate();
+    const base = EXPORT_NAMES.compliance;
+    if (format === 'xlsx') exportXlsx(`${base}-${date}.xlsx`, this.complianceRows(), cols);
+    else exportPdf(`${base}-${date}.pdf`, this.ts.exportTitleCompliance, `${this.ts.exportGenerated} ${new Date().toLocaleDateString()}`, this.complianceRows(), cols);
   }
 }

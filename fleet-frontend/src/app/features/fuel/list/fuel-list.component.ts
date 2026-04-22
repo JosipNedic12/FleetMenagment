@@ -1,11 +1,11 @@
-import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { FuelCardApiService, FuelTransactionApiService, VehicleApiService, LookupApiService } from '../../../core/auth/feature-api.services';
-import { LucideAngularModule, Eye, Pencil, Trash2, TriangleAlert } from 'lucide-angular';
+import { LucideAngularModule, Eye, Pencil, Trash2, TriangleAlert, Paperclip } from 'lucide-angular';
 import {
   FuelCard, CreateFuelCardDto, UpdateFuelCardDto,
   FuelTransaction, CreateFuelTransactionDto,
@@ -21,12 +21,14 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
 import { FilterPanelComponent, FilterField } from '../../../shared/components/filter-panel/filter-panel.component';
+import { FileUploadComponent } from '../../../shared/components/file-upload/file-upload.component';
+import { DocumentListComponent } from '../../../shared/components/document-list/document-list.component';
 import { downloadBlob } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-fuel-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent],
+  imports: [CommonModule, FormsModule, RouterModule, BadgeComponent, ConfirmModalComponent, HasRoleDirective, LucideAngularModule, SearchSelectComponent, VehicleLabelComponent, EuNumberPipe, PaginationComponent, ExportButtonComponent, FilterPanelComponent, FileUploadComponent, DocumentListComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -137,6 +139,7 @@ import { downloadBlob } from '../../../shared/utils/download';
                     <td><strong>{{ row.totalCost | euNumber:'1.2-2' }} €</strong></td>
                     <td>{{ row.stationName ?? '—' }}</td>
                     <td class="actions">
+                      <button class="btn-icon" title="Documents" i18n-title="@@fuel.actionDocuments" (click)="openDocs(row)"><lucide-icon [img]="icons.Paperclip" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                       @if (!row.isSuspicious) {
                         <button *hasRole="['Admin','FleetManager']" class="btn-icon warning-btn" title="Mark suspicious" i18n-title="@@fuel.markSuspiciousTitle" (click)="markSuspicious(row)"><lucide-icon [img]="icons.TriangleAlert" [size]="15" [strokeWidth]="2"></lucide-icon></button>
                       } @else {
@@ -327,6 +330,28 @@ import { downloadBlob } from '../../../shared/utils/download';
       (confirmed)="doDeleteTx()"
       (cancelled)="deleteTxTarget = null"
     />
+
+    <!-- Documents modal -->
+    @if (docsTarget()) {
+      <div class="modal-overlay" (click)="docsTarget.set(null)">
+        <div class="modal-box modal-box--wide" (click)="$event.stopPropagation()">
+          <h2 class="modal-title" i18n="@@fuel.docs.title">Documents — #{{ docsTarget()!.transactionId }}</h2>
+          <app-file-upload
+            entityType="FuelTransaction"
+            [entityId]="docsTarget()!.transactionId"
+            (uploaded)="txDocList.loadDocuments()"
+          />
+          <app-document-list
+            #txDocList
+            entityType="FuelTransaction"
+            [entityId]="docsTarget()!.transactionId"
+          />
+          <div class="modal-actions">
+            <button class="btn btn-secondary" (click)="docsTarget.set(null)" i18n="@@fuel.docs.close">Close</button>
+          </div>
+        </div>
+      </div>
+    }
   `,
   styles: [`
     .tab-row { display:flex; gap:2px; margin-bottom:16px; }
@@ -338,10 +363,20 @@ import { downloadBlob } from '../../../shared/utils/download';
     .name-link { color: inherit; text-decoration: none; }
     .name-link:hover { color: var(--brand); }
     .name-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
+    .modal-box { background:var(--card-bg); border-radius:14px; padding:28px 32px; width:min(520px,95vw); box-shadow:0 12px 40px rgba(0,0,0,.18); }
+    .modal-box--wide { width:min(720px,95vw); }
+    .modal-title { font-size:17px; font-weight:700; margin:0 0 20px; color:var(--text-primary); }
+    .modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+    .btn { display:inline-flex; align-items:center; gap:6px; padding:7px 16px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; border:1.5px solid transparent; font-family:inherit; transition:all .15s; }
+    .btn-secondary { background:var(--card-bg); border-color:var(--border); color:var(--text-secondary); }
+    .btn-secondary:hover { border-color:#cbd5e1; color:var(--text-primary); }
   `]
 })
 export class FuelListComponent implements OnInit, OnDestroy {
-  readonly icons = { Eye, Pencil, Trash2, TriangleAlert };
+  readonly icons = { Eye, Pencil, Trash2, TriangleAlert, Paperclip };
+  @ViewChild('txDocList') txDocList!: DocumentListComponent;
+  docsTarget = signal<FuelTransaction | null>(null);
   activeLabel     = $localize`:@@COMMON.CHIPS.ACTIVE:Active`;
   inactiveLabel   = $localize`:@@COMMON.CHIPS.INACTIVE:Inactive`;
   suspiciousLabel = $localize`:@@COMMON.CHIPS.SUSPICIOUS:Suspicious`;
@@ -518,6 +553,8 @@ export class FuelListComponent implements OnInit, OnDestroy {
   markSuspicious(row: FuelTransaction): void {
     this.txApi.markSuspicious(row.transactionId).subscribe({ next: () => this.loadTx(), error: () => {} });
   }
+
+  openDocs(row: FuelTransaction): void { this.docsTarget.set(row); }
 
   goToDetail(row: FuelTransaction): void { this.router.navigate(['/fuel', row.transactionId]); }
 

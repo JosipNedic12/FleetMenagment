@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 using FleetManagement.Application.Common;
 using FleetManagement.Application.Common.Filters;
 using FleetManagement.Application.DTOs;
@@ -52,12 +53,10 @@ public class VehicleService
         // -- Global text search --
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var term = request.Search.Trim().ToLower();
+            var term = Regex.Replace(request.Search.Trim().ToLower(), @"\s+", " ");
             query = query.Where(v =>
-                v.RegistrationNumber.ToLower().Contains(term) ||
-                v.Vin.ToLower().Contains(term) ||
-                v.Make.Name.ToLower().Contains(term) ||
-                v.Model.Name.ToLower().Contains(term));
+                (v.Make.Name + " " + v.Model.Name + " " + v.RegistrationNumber).ToLower().Contains(term) ||
+                v.Vin.ToLower().Contains(term));
         }
 
         // -- Entity-specific filters --
@@ -192,12 +191,10 @@ public class VehicleService
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim().ToLower();
+            var term = Regex.Replace(search.Trim().ToLower(), @"\s+", " ");
             query = query.Where(v =>
-                v.RegistrationNumber.ToLower().Contains(term) ||
-                v.Vin.ToLower().Contains(term) ||
-                v.Make.Name.ToLower().Contains(term) ||
-                v.Model.Name.ToLower().Contains(term));
+                (v.Make.Name + " " + v.Model.Name + " " + v.RegistrationNumber).ToLower().Contains(term) ||
+                v.Vin.ToLower().Contains(term));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Status))

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -9,11 +9,13 @@ import { UpdateFuelTransactionDto } from '../../../core/models/fuel.models';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
 import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
+import { FileUploadComponent } from '../../../shared/components/file-upload/file-upload.component';
+import { DocumentListComponent } from '../../../shared/components/document-list/document-list.component';
 
 @Component({
   selector: 'app-fuel-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, BadgeComponent, LucideAngularModule, HasRoleDirective, EuNumberPipe],
+  imports: [CommonModule, RouterModule, FormsModule, BadgeComponent, LucideAngularModule, HasRoleDirective, EuNumberPipe, FileUploadComponent, DocumentListComponent],
   template: `
     <div class="page">
 
@@ -144,6 +146,23 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
                 <span class="kv-label" i18n="@@fuel.kvNotes">Notes</span>
                 <span class="kv-value">{{ tx()!.notes || '—' }}</span>
               </div>
+            </div>
+          </div>
+
+          <!-- Documents -->
+          <div class="info-group info-group--full">
+            <div class="info-group-title" i18n="@@fuel.docs.title">Documents</div>
+            <div style="padding: 16px;">
+              <app-file-upload
+                entityType="FuelTransaction"
+                [entityId]="tx()!.transactionId"
+                (uploaded)="docList.loadDocuments()"
+              />
+              <app-document-list
+                #docList
+                entityType="FuelTransaction"
+                [entityId]="tx()!.transactionId"
+              />
             </div>
           </div>
 
@@ -285,6 +304,8 @@ export class FuelDetailComponent implements OnInit {
   readonly suspiciousLabel = 'Sumnjivo';
   readonly yesLabel        = 'Da';
   readonly noLabel         = 'Ne';
+
+  @ViewChild('docList') docList!: DocumentListComponent;
 
   tx      = signal<FuelTransaction | null>(null);
   loading = signal(true);

@@ -82,6 +82,22 @@ export class TranslateService {
   readonly chipScheduled  = $localize`:@@common.chip.scheduled:Scheduled`;
   readonly chipDraft      = $localize`:@@common.chip.draft:Draft`;
 
+  // ── Export Column Headers & Titles ───────────────────────
+  readonly exportColRegistration  = $localize`:@@export.col.registration:Registration`;
+  readonly exportColVehicle       = $localize`:@@export.col.vehicle:Vehicle`;
+  readonly exportColStatus        = $localize`:@@export.col.status:Status`;
+  readonly exportColType          = $localize`:@@export.col.type:Type`;
+  readonly exportColExpires       = $localize`:@@export.col.expires:Expires`;
+  readonly exportColDaysLeft      = $localize`:@@export.col.daysLeft:Days Left`;
+  readonly exportColKmThisMonth   = $localize`:@@export.col.kmThisMonth:KM This Month`;
+  readonly exportColTotalOdometer = $localize`:@@export.col.totalOdometer:Total Odometer (km)`;
+  readonly exportColLastLogDate   = $localize`:@@export.col.lastLogDate:Last Log Date`;
+  readonly exportTitleFuel        = $localize`:@@export.title.fuel:Fuel Cost Report`;
+  readonly exportTitleMaintenance = $localize`:@@export.title.maintenance:Maintenance Spend Report`;
+  readonly exportTitleCompliance  = $localize`:@@export.title.compliance:Compliance Expiry Report`;
+  readonly exportTitleUtilization = $localize`:@@export.title.utilization:Fleet Utilization Report`;
+  readonly exportGenerated        = $localize`:@@export.generated:Generated`;
+
   // ── Profile Page ──────────────────────────────────────────
   readonly profileTitle           = $localize`:@@profile.title:Profile`;
   readonly profileFirstName       = $localize`:@@profile.firstName:First Name`;
