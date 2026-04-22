@@ -42,6 +42,15 @@ public class FleetDbContext : DbContext
     {
         modelBuilder.HasDefaultSchema("fleet");
 
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?))
+                    property.SetColumnType("timestamp with time zone");
+            }
+        }
+
         modelBuilder.Entity<Vehicle>(entity =>
         {
             entity.ToTable("vehicle");
@@ -515,7 +524,7 @@ public class FleetDbContext : DbContext
 
         modelBuilder.Entity<Notification>(entity =>
         {
-            entity.ToTable("notification");
+            entity.ToTable("notification", "fleet");
             entity.HasKey(e => e.NotificationId);
             entity.Property(e => e.NotificationId).HasColumnName("notification_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
