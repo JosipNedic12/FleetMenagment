@@ -160,8 +160,8 @@ body {
   background: var(--card-bg);
   border-radius: 12px;
   border: 1.5px solid var(--border);
+  overflow: clip;
   overflow-x: auto;
-  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
   position: relative;
 }
@@ -242,7 +242,8 @@ body {
 .table {
   width: 100%;
   min-width: 560px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 13.5px;
 }
 
@@ -300,14 +301,14 @@ body {
 .table td.actions {
   white-space: nowrap;
   position: sticky;
-  right: 0;
+  right: -1px;
   background: var(--card-bg);
   z-index: 1;
 }
 .table tbody tr:hover td.actions { background: var(--hover-bg); }
 .table th:last-child {
   position: sticky;
-  right: 0;
+  right: -1px;
   background: var(--page-bg);
   z-index: 11;
 }
@@ -560,6 +561,35 @@ body {
 
 .table tbody tr.row-link { cursor: pointer; }
 .table tbody tr.row-link:hover td { background: var(--brand-subtle); }
+
+/* ─── Wide document modal ─────────────────────────────────────────────────── */
+.modal-box--wide {
+  width: min(860px, 95vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.modal-box--wide > * { flex-shrink: 0; }
+.modal-box--wide app-document-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.modal-box--wide ::-webkit-scrollbar { width: 8px; }
+.modal-box--wide ::-webkit-scrollbar-track { background: transparent; }
+.modal-box--wide ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.modal-box--wide ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.modal-box--wide * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+@media (max-width: 640px) {
+  .modal-box--wide {
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+}
 
 /* File upload drag enhancements (augment component inline styles) */
 .drop-zone.drag-over {

@@ -203,7 +203,6 @@ import { downloadBlob } from '../../../shared/utils/download';
     }
   `,
   styles: [`
-    .modal-box--wide { width: min(720px, 95vw); }
     .name-link { color: inherit; text-decoration: none; }
     .name-link:hover { color: var(--brand); }
     .name-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }

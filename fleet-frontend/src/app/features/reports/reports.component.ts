@@ -1,9 +1,11 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { Fuel, Wrench, MapPin, CalendarDays } from 'lucide-angular';
 import { ExportButtonComponent } from '../../shared/components/export-button/export-button.component';
-import { forkJoin } from 'rxjs';
+import { Subject, forkJoin } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import {
   VehicleApiService,
   FuelTransactionApiService,
@@ -75,13 +77,18 @@ interface ComplianceRow {
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, ExportButtonComponent, PaginationComponent],
+  imports: [CommonModule, FormsModule, LucideAngularModule, ExportButtonComponent, PaginationComponent],
   template: `
     <div class="page">
       <div class="page-header">
         <div>
           <h1 class="page-title" i18n="@@reports.title">Reports</h1>
           <p class="page-subtitle" i18n="@@reports.subtitle">Fleet analytics and compliance overview</p>
+        </div>
+        <div class="header-actions">
+          <input class="search-input" [ngModel]="search()" (ngModelChange)="searchSubject.next($event)"
+            placeholder="Traži marku, model, registraciju, VIN…"
+            i18n-placeholder="@@reports.searchPlaceholder" />
         </div>
       </div>
 
@@ -140,7 +147,7 @@ interface ComplianceRow {
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of pagedFuelRows(); track row.vehicleId) {
+                  @for (row of pagedFilteredFuelRows(); track row.vehicleId) {
                     <tr>
                       <td>
                         <div class="cell-primary">{{ row.reg }}</div>
@@ -161,7 +168,7 @@ interface ComplianceRow {
             <app-pagination
               [page]="pageFuel()"
               [pageSize]="pageSizeFuel()"
-              [totalCount]="fuelRows().length"
+              [totalCount]="filteredFuelRows().length"
               [totalPages]="totalPagesFuel()"
               (pageChange)="pageFuel.set($event)"
               (pageSizeChange)="onPageSizeFuel($event)"
@@ -207,7 +214,7 @@ interface ComplianceRow {
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of pagedMaintenanceRows(); track row.vehicleId) {
+                  @for (row of pagedFilteredMaintenanceRows(); track row.vehicleId) {
                     <tr>
                       <td>
                         <div class="cell-primary">{{ row.reg }}</div>
@@ -226,7 +233,7 @@ interface ComplianceRow {
             <app-pagination
               [page]="pageMaintenance()"
               [pageSize]="pageSizeMaintenance()"
-              [totalCount]="maintenanceRows().length"
+              [totalCount]="filteredMaintenanceRows().length"
               [totalPages]="totalPagesMaintenance()"
               (pageChange)="pageMaintenance.set($event)"
               (pageSizeChange)="onPageSizeMaintenance($event)"
@@ -267,7 +274,7 @@ interface ComplianceRow {
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of pagedUtilizationRows(); track row.vehicleId) {
+                  @for (row of pagedFilteredUtilizationRows(); track row.vehicleId) {
                     <tr>
                       <td>
                         <div class="cell-primary">{{ row.reg }}</div>
@@ -285,7 +292,7 @@ interface ComplianceRow {
             <app-pagination
               [page]="pageUtilization()"
               [pageSize]="pageSizeUtilization()"
-              [totalCount]="utilizationRows().length"
+              [totalCount]="filteredUtilizationRows().length"
               [totalPages]="totalPagesUtilization()"
               (pageChange)="pageUtilization.set($event)"
               (pageSizeChange)="onPageSizeUtilization($event)"
@@ -326,7 +333,7 @@ interface ComplianceRow {
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of pagedComplianceRows(); track row.vehicleId + row.type) {
+                  @for (row of pagedFilteredComplianceRows(); track row.vehicleId + row.type) {
                     <tr [class.row-expired]="row.status === 'expired'" [class.row-soon]="row.status === 'soon'">
                       <td>
                         <div class="cell-primary">{{ row.reg }}</div>
@@ -344,7 +351,7 @@ interface ComplianceRow {
             <app-pagination
               [page]="pageCompliance()"
               [pageSize]="pageSizeCompliance()"
-              [totalCount]="complianceRows().length"
+              [totalCount]="filteredComplianceRows().length"
               [totalPages]="totalPagesCompliance()"
               (pageChange)="pageCompliance.set($event)"
               (pageSizeChange)="onPageSizeCompliance($event)"
@@ -416,9 +423,11 @@ interface ComplianceRow {
     }
   `]
 })
-export class ReportsComponent implements OnInit {
+export class ReportsComponent implements OnInit, OnDestroy {
   readonly icons = { Fuel, Wrench, MapPin, CalendarDays };
   loading = signal(true);
+  search = signal('');
+  readonly searchSubject = new Subject<string>();
   activeTab = signal<Tab>('fuel');
 
   private vehicles = signal<Vehicle[]>([]);
@@ -469,7 +478,20 @@ export class ReportsComponent implements OnInit {
     private registrationApi: RegistrationApiService,
     private inspectionApi: InspectionApiService,
     private ts: TranslateService,
-  ) {}
+  ) {
+    this.searchSubject.pipe(debounceTime(300), distinctUntilChanged())
+      .subscribe(term => this.search.set(term));
+
+    effect(() => {
+      this.search();
+      this.pageFuel.set(1);
+      this.pageMaintenance.set(1);
+      this.pageUtilization.set(1);
+      this.pageCompliance.set(1);
+    });
+  }
+
+  ngOnDestroy(): void { this.searchSubject.complete(); }
 
   ngOnInit(): void {
     forkJoin({
@@ -496,6 +518,18 @@ export class ReportsComponent implements OnInit {
   }
 
   setTab(tab: Tab): void { this.activeTab.set(tab); }
+
+  // ─── Search helpers ────────────────────────────────────────────────────────
+
+  private vehicleMap = computed(() => new Map(this.vehicles().map(v => [v.vehicleId, v])));
+
+  private matchesSearch(vehicleId: number, reg: string, makeModel: string): boolean {
+    const term = this.search().trim().toLowerCase();
+    if (!term) return true;
+    const v = this.vehicleMap().get(vehicleId);
+    const haystack = `${makeModel} ${reg} ${v?.vin ?? ''}`.toLowerCase();
+    return haystack.includes(term);
+  }
 
   // ─── Pagination state ──────────────────────────────────────────────────────
 
@@ -551,14 +585,17 @@ export class ReportsComponent implements OnInit {
     return [...rowMap.values()].sort((a, b) => b.totalCost - a.totalCost);
   });
 
-  totalFuelCost = computed(() => this.fuelRows().reduce((s, r) => s + r.totalCost, 0));
-  totalFuelLiters = computed(() => this.fuelRows().reduce((s, r) => s + r.totalLiters, 0));
+  filteredFuelRows = computed(() =>
+    this.fuelRows().filter(r => this.matchesSearch(r.vehicleId, r.reg, r.makeModel)));
+
+  totalFuelCost = computed(() => this.filteredFuelRows().reduce((s, r) => s + r.totalCost, 0));
+  totalFuelLiters = computed(() => this.filteredFuelRows().reduce((s, r) => s + r.totalLiters, 0));
   avgCostPerLiter = computed(() => this.totalFuelLiters() > 0 ? this.totalFuelCost() / this.totalFuelLiters() : 0);
 
-  totalPagesFuel = computed(() => Math.max(1, Math.ceil(this.fuelRows().length / this.pageSizeFuel())));
-  pagedFuelRows = computed(() => {
+  totalPagesFuel = computed(() => Math.max(1, Math.ceil(this.filteredFuelRows().length / this.pageSizeFuel())));
+  pagedFilteredFuelRows = computed(() => {
     const start = (this.pageFuel() - 1) * this.pageSizeFuel();
-    return this.fuelRows().slice(start, start + this.pageSizeFuel());
+    return this.filteredFuelRows().slice(start, start + this.pageSizeFuel());
   });
   onPageSizeFuel(size: number): void { this.pageSizeFuel.set(size); this.pageFuel.set(1); }
 
@@ -575,8 +612,8 @@ export class ReportsComponent implements OnInit {
     ];
     const date = exportDate();
     const base = EXPORT_NAMES.fuel;
-    if (format === 'xlsx') exportXlsx(`${base}-${date}.xlsx`, this.fuelRows(), cols);
-    else exportPdf(`${base}-${date}.pdf`, this.ts.exportTitleFuel, `${this.ts.exportGenerated} ${new Date().toLocaleDateString()}`, this.fuelRows(), cols);
+    if (format === 'xlsx') exportXlsx(`${base}-${date}.xlsx`, this.filteredFuelRows(), cols);
+    else exportPdf(`${base}-${date}.pdf`, this.ts.exportTitleFuel, `${this.ts.exportGenerated} ${new Date().toLocaleDateString()}`, this.filteredFuelRows(), cols);
   }
 
   // ─── Maintenance report ────────────────────────────────────────────────────
@@ -613,15 +650,18 @@ export class ReportsComponent implements OnInit {
     return [...rowMap.values()].sort((a, b) => b.totalCost - a.totalCost);
   });
 
-  totalMaintCost = computed(() => this.maintenanceRows().reduce((s, r) => s + r.totalCost, 0));
-  totalMaintOrders = computed(() => this.maintenanceRows().reduce((s, r) => s + r.orderCount, 0));
-  totalMaintPartsCost = computed(() => this.maintenanceRows().reduce((s, r) => s + r.partsCost, 0));
-  totalMaintLaborCost = computed(() => this.maintenanceRows().reduce((s, r) => s + r.laborCost, 0));
+  filteredMaintenanceRows = computed(() =>
+    this.maintenanceRows().filter(r => this.matchesSearch(r.vehicleId, r.reg, r.makeModel)));
 
-  totalPagesMaintenance = computed(() => Math.max(1, Math.ceil(this.maintenanceRows().length / this.pageSizeMaintenance())));
-  pagedMaintenanceRows = computed(() => {
+  totalMaintCost = computed(() => this.filteredMaintenanceRows().reduce((s, r) => s + r.totalCost, 0));
+  totalMaintOrders = computed(() => this.filteredMaintenanceRows().reduce((s, r) => s + r.orderCount, 0));
+  totalMaintPartsCost = computed(() => this.filteredMaintenanceRows().reduce((s, r) => s + r.partsCost, 0));
+  totalMaintLaborCost = computed(() => this.filteredMaintenanceRows().reduce((s, r) => s + r.laborCost, 0));
+
+  totalPagesMaintenance = computed(() => Math.max(1, Math.ceil(this.filteredMaintenanceRows().length / this.pageSizeMaintenance())));
+  pagedFilteredMaintenanceRows = computed(() => {
     const start = (this.pageMaintenance() - 1) * this.pageSizeMaintenance();
-    return this.maintenanceRows().slice(start, start + this.pageSizeMaintenance());
+    return this.filteredMaintenanceRows().slice(start, start + this.pageSizeMaintenance());
   });
   onPageSizeMaintenance(size: number): void { this.pageSizeMaintenance.set(size); this.pageMaintenance.set(1); }
 
@@ -637,8 +677,8 @@ export class ReportsComponent implements OnInit {
     ];
     const date = exportDate();
     const base = EXPORT_NAMES.maintenance;
-    if (format === 'xlsx') exportXlsx(`${base}-${date}.xlsx`, this.maintenanceRows(), cols);
-    else exportPdf(`${base}-${date}.pdf`, this.ts.exportTitleMaintenance, `${this.ts.exportGenerated} ${new Date().toLocaleDateString()}`, this.maintenanceRows(), cols);
+    if (format === 'xlsx') exportXlsx(`${base}-${date}.xlsx`, this.filteredMaintenanceRows(), cols);
+    else exportPdf(`${base}-${date}.pdf`, this.ts.exportTitleMaintenance, `${this.ts.exportGenerated} ${new Date().toLocaleDateString()}`, this.filteredMaintenanceRows(), cols);
   }
 
   // ─── Utilization report ────────────────────────────────────────────────────
@@ -683,17 +723,20 @@ export class ReportsComponent implements OnInit {
     }).sort((a, b) => b.kmThisMonth - a.kmThisMonth);
   });
 
-  activeVehicleCount = computed(() => this.vehicles().filter(v => v.status === 'active').length);
-  totalKmThisMonth = computed(() => this.utilizationRows().reduce((s, r) => s + r.kmThisMonth, 0));
+  filteredUtilizationRows = computed(() =>
+    this.utilizationRows().filter(r => this.matchesSearch(r.vehicleId, r.reg, r.makeModel)));
+
+  activeVehicleCount = computed(() => this.filteredUtilizationRows().filter(r => r.status === 'active').length);
+  totalKmThisMonth = computed(() => this.filteredUtilizationRows().reduce((s, r) => s + r.kmThisMonth, 0));
   avgKmPerVehicle = computed(() => {
-    const active = this.utilizationRows().filter(r => r.status === 'active');
+    const active = this.filteredUtilizationRows().filter(r => r.status === 'active');
     return active.length > 0 ? this.totalKmThisMonth() / active.length : 0;
   });
 
-  totalPagesUtilization = computed(() => Math.max(1, Math.ceil(this.utilizationRows().length / this.pageSizeUtilization())));
-  pagedUtilizationRows = computed(() => {
+  totalPagesUtilization = computed(() => Math.max(1, Math.ceil(this.filteredUtilizationRows().length / this.pageSizeUtilization())));
+  pagedFilteredUtilizationRows = computed(() => {
     const start = (this.pageUtilization() - 1) * this.pageSizeUtilization();
-    return this.utilizationRows().slice(start, start + this.pageSizeUtilization());
+    return this.filteredUtilizationRows().slice(start, start + this.pageSizeUtilization());
   });
   onPageSizeUtilization(size: number): void { this.pageSizeUtilization.set(size); this.pageUtilization.set(1); }
 
@@ -708,8 +751,8 @@ export class ReportsComponent implements OnInit {
     ];
     const date = exportDate();
     const base = EXPORT_NAMES.utilization;
-    if (format === 'xlsx') exportXlsx(`${base}-${date}.xlsx`, this.utilizationRows(), cols);
-    else exportPdf(`${base}-${date}.pdf`, this.ts.exportTitleUtilization, `${this.ts.exportGenerated} ${new Date().toLocaleDateString()}`, this.utilizationRows(), cols);
+    if (format === 'xlsx') exportXlsx(`${base}-${date}.xlsx`, this.filteredUtilizationRows(), cols);
+    else exportPdf(`${base}-${date}.pdf`, this.ts.exportTitleUtilization, `${this.ts.exportGenerated} ${new Date().toLocaleDateString()}`, this.filteredUtilizationRows(), cols);
   }
 
   // ─── Compliance expiry ─────────────────────────────────────────────────────
@@ -747,14 +790,17 @@ export class ReportsComponent implements OnInit {
     return rows.sort((a, b) => a.daysLeft - b.daysLeft);
   });
 
-  expiredCount = computed(() => this.complianceRows().filter(r => r.status === 'expired').length);
-  expiringCount = computed(() => this.complianceRows().filter(r => r.status === 'soon').length);
-  okCount = computed(() => this.complianceRows().filter(r => r.status === 'ok').length);
+  filteredComplianceRows = computed(() =>
+    this.complianceRows().filter(r => this.matchesSearch(r.vehicleId, r.reg, r.makeModel)));
 
-  totalPagesCompliance = computed(() => Math.max(1, Math.ceil(this.complianceRows().length / this.pageSizeCompliance())));
-  pagedComplianceRows = computed(() => {
+  expiredCount = computed(() => this.filteredComplianceRows().filter(r => r.status === 'expired').length);
+  expiringCount = computed(() => this.filteredComplianceRows().filter(r => r.status === 'soon').length);
+  okCount = computed(() => this.filteredComplianceRows().filter(r => r.status === 'ok').length);
+
+  totalPagesCompliance = computed(() => Math.max(1, Math.ceil(this.filteredComplianceRows().length / this.pageSizeCompliance())));
+  pagedFilteredComplianceRows = computed(() => {
     const start = (this.pageCompliance() - 1) * this.pageSizeCompliance();
-    return this.complianceRows().slice(start, start + this.pageSizeCompliance());
+    return this.filteredComplianceRows().slice(start, start + this.pageSizeCompliance());
   });
   onPageSizeCompliance(size: number): void { this.pageSizeCompliance.set(size); this.pageCompliance.set(1); }
 
@@ -769,7 +815,7 @@ export class ReportsComponent implements OnInit {
     ];
     const date = exportDate();
     const base = EXPORT_NAMES.compliance;
-    if (format === 'xlsx') exportXlsx(`${base}-${date}.xlsx`, this.complianceRows(), cols);
-    else exportPdf(`${base}-${date}.pdf`, this.ts.exportTitleCompliance, `${this.ts.exportGenerated} ${new Date().toLocaleDateString()}`, this.complianceRows(), cols);
+    if (format === 'xlsx') exportXlsx(`${base}-${date}.xlsx`, this.filteredComplianceRows(), cols);
+    else exportPdf(`${base}-${date}.pdf`, this.ts.exportTitleCompliance, `${this.ts.exportGenerated} ${new Date().toLocaleDateString()}`, this.filteredComplianceRows(), cols);
   }
 }

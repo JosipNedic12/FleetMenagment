@@ -31,7 +31,7 @@ import { Document } from '../../../core/models/models';
             <th i18n="@@shared.documentList.colCategory">Category</th>
             <th i18n="@@shared.documentList.colSize">Size</th>
             <th i18n="@@shared.documentList.colUploaded">Uploaded</th>
-            <th i18n="@@shared.documentList.colActions">Actions</th>
+            <th class="col-actions" i18n="@@shared.documentList.colActions">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -52,7 +52,7 @@ import { Document } from '../../../core/models/models';
               </td>
               <td class="muted">{{ formatSize(doc.fileSize) }}</td>
               <td class="muted">{{ doc.uploadedAt | date:'dd.MM.yyyy' }}</td>
-              <td>
+              <td class="col-actions">
                 <div class="action-btns">
                   <button class="action-btn" [title]="downloadTitle" (click)="download(doc.documentId)">
                     <lucide-icon [img]="icons.Download" [size]="14" [strokeWidth]="2"></lucide-icon>
@@ -76,6 +76,27 @@ import { Document } from '../../../core/models/models';
       max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .muted { color: var(--text-muted); font-size: 13px; }
+
+    .col-actions {
+      position: sticky;
+      right: -1px;
+      background: var(--card-bg);
+      white-space: nowrap;
+      z-index: 1;
+    }
+    tr:hover .col-actions { background: var(--hover-bg); }
+    thead .col-actions {
+      background: var(--page-bg);
+      z-index: 2;
+    }
+    tbody .col-actions::before {
+      content: '';
+      position: absolute;
+      left: -16px; top: 0; bottom: 0; width: 16px;
+      background: linear-gradient(to right, transparent, var(--card-bg));
+      pointer-events: none;
+    }
+    tr:hover .col-actions::before { background: linear-gradient(to right, transparent, var(--hover-bg)); }
 
     .action-btns { display: flex; gap: 6px; }
     .action-btn {
