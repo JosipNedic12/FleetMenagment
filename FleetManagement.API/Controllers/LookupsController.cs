@@ -13,7 +13,7 @@ public class LookupsController : ControllerBase
     private readonly FleetDbContext _context;
     public LookupsController(FleetDbContext context) => _context = context;
 
-    // GET api/v1/makes
+    // GET api/makes
     [HttpGet("makes")]
     public async Task<ActionResult<IEnumerable<MakeDto>>> GetMakes()
     {
@@ -25,7 +25,7 @@ public class LookupsController : ControllerBase
         return Ok(makes);
     }
 
-    // GET api/v1/makes/1/models
+    // GET api/makes/1/models
     [HttpGet("makes/{makeId}/models")]
     public async Task<ActionResult<IEnumerable<ModelDto>>> GetModelsByMake(int makeId)
     {
@@ -37,7 +37,7 @@ public class LookupsController : ControllerBase
         return Ok(models);
     }
 
-    // GET api/v1/vehicle-categories
+    // GET api/vehicle-categories
     [HttpGet("vehicle-categories")]
     public async Task<ActionResult<IEnumerable<VehicleCategoryDto>>> GetVehicleCategories()
     {
@@ -54,7 +54,7 @@ public class LookupsController : ControllerBase
         return Ok(categories);
     }
 
-    // GET api/v1/fuel-types
+    // GET api/fuel-types
     [HttpGet("fuel-types")]
     [Authorize]
     public async Task<ActionResult<IEnumerable<FuelTypeDto>>> GetFuelTypes()
@@ -73,7 +73,7 @@ public class LookupsController : ControllerBase
         return Ok(fuelTypes);
     }
 
-    // GET api/v1/license-categories
+    // GET api/license-categories
     [HttpGet("license-categories")]
     public async Task<ActionResult<IEnumerable<LicenseCategoryDto>>> GetLicenseCategories()
     {
