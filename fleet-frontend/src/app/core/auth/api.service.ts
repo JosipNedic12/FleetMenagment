@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PagedRequest, PagedResponse } from '../models/paged.models';
@@ -60,10 +60,11 @@ export class ApiService {
     return this.http.get<T>(`${this.base}/${path}`, { params });
   }
 
-  downloadFile(path: string, params: HttpParams): Observable<Blob> {
+  downloadFile(path: string, params: HttpParams): Observable<HttpResponse<Blob>> {
     return this.http.get(`${this.base}/${path}`, {
       params,
-      responseType: 'blob'
+      responseType: 'blob',
+      observe: 'response'
     });
   }
 }

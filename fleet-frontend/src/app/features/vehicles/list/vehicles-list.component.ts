@@ -16,7 +16,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
 import { FilterPanelComponent, FilterField } from '../../../shared/components/filter-panel/filter-panel.component';
-import { downloadBlob } from '../../../shared/utils/download';
+import { downloadBlob, extractFilename } from '../../../shared/utils/download';
 
 type VehicleStatus = 'active' | 'service' | 'retired' | 'sold';
 
@@ -387,8 +387,9 @@ export class VehiclesListComponent implements OnInit, OnDestroy {
   onExport(format: 'xlsx' | 'pdf'): void {
     const filterObj: Record<string, any> = { ...this.appliedFilters() };
     if (this.filter() !== 'all') filterObj['status'] = this.filter();
-    this.api.export(format, this.search() || undefined, filterObj).subscribe(blob => {
-      downloadBlob(blob, `vehicles_${new Date().toISOString().slice(0,10)}.${format}`);
+    this.api.export(format, this.search() || undefined, filterObj).subscribe(res => {
+      const filename = extractFilename(res.headers.get('content-disposition'), `export.${format}`);
+      downloadBlob(res.body!, filename);
     });
   }
 

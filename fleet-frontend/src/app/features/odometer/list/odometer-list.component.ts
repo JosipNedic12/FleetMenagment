@@ -12,7 +12,7 @@ import { EuNumberPipe } from '../../../shared/pipes/eu-number.pipe';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { ExportButtonComponent } from '../../../shared/components/export-button/export-button.component';
 import { FilterPanelComponent, FilterField } from '../../../shared/components/filter-panel/filter-panel.component';
-import { downloadBlob } from '../../../shared/utils/download';
+import { downloadBlob, extractFilename } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-odometer-list',
@@ -218,8 +218,9 @@ export class OdometerListComponent implements OnInit {
   }
 
   onExport(format: 'xlsx' | 'pdf'): void {
-    this.api.export(format, undefined, { vehicleId: this.selectedVehicleId }).subscribe(blob => {
-      downloadBlob(blob, `odometer_${new Date().toISOString().slice(0,10)}.${format}`);
+    this.api.export(format, undefined, { vehicleId: this.selectedVehicleId }).subscribe(res => {
+      const filename = extractFilename(res.headers.get('content-disposition'), `export.${format}`);
+      downloadBlob(res.body!, filename);
     });
   }
 

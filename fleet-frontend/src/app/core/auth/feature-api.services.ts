@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { Notification } from '../models/notification.models';
@@ -101,7 +101,7 @@ export class VehicleApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`Vehicles/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -140,7 +140,7 @@ export class EmployeeApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`Employees/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -179,7 +179,7 @@ export class DriverApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`Drivers/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -227,7 +227,7 @@ export class VehicleAssignmentApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`VehicleAssignments/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -266,7 +266,7 @@ export class VendorApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`Vendors/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -323,7 +323,7 @@ export class MaintenanceOrderApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`MaintenanceOrders/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -365,7 +365,7 @@ export class FuelCardApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`FuelCards/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -410,7 +410,7 @@ export class FuelTransactionApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`FuelTransactions/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -449,7 +449,7 @@ export class OdometerLogApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`odometerlogs/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -494,7 +494,7 @@ export class InsurancePolicyApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`insurancepolicy/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -536,7 +536,7 @@ export class RegistrationApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`registrationrecord/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -578,7 +578,7 @@ export class InspectionApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`inspection/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -629,7 +629,7 @@ export class FineApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`fine/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {
@@ -674,7 +674,7 @@ export class AccidentApiService extends ApiService {
   deleteById(id: number): Observable<void> {
     return super.delete<void>(`accident/${id}`);
   }
-  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<Blob> {
+  export(format: 'xlsx' | 'pdf', search?: string, filter?: Record<string, any>): Observable<HttpResponse<Blob>> {
     let params = new HttpParams().set('format', format).set('lang', this.currentLang());
     if (search) params = params.set('search', search);
     if (filter) {

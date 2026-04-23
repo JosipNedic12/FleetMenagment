@@ -23,7 +23,7 @@ import { ExportButtonComponent } from '../../../shared/components/export-button/
 import { FilterPanelComponent, FilterField } from '../../../shared/components/filter-panel/filter-panel.component';
 import { FileUploadComponent } from '../../../shared/components/file-upload/file-upload.component';
 import { DocumentListComponent } from '../../../shared/components/document-list/document-list.component';
-import { downloadBlob } from '../../../shared/utils/download';
+import { downloadBlob, extractFilename } from '../../../shared/utils/download';
 
 @Component({
   selector: 'app-fuel-list',
@@ -499,14 +499,16 @@ export class FuelListComponent implements OnInit, OnDestroy {
   }
 
   onExportCards(format: 'xlsx' | 'pdf'): void {
-    this.cardApi.export(format, this.cardSearch() || undefined).subscribe(blob => {
-      downloadBlob(blob, `fuel_cards_${new Date().toISOString().slice(0,10)}.${format}`);
+    this.cardApi.export(format, this.cardSearch() || undefined).subscribe(res => {
+      const filename = extractFilename(res.headers.get('content-disposition'), `export.${format}`);
+      downloadBlob(res.body!, filename);
     });
   }
 
   onExportTx(format: 'xlsx' | 'pdf'): void {
-    this.txApi.export(format, this.txSearch() || undefined, this.txAppliedFilters()).subscribe(blob => {
-      downloadBlob(blob, `fuel_transactions_${new Date().toISOString().slice(0,10)}.${format}`);
+    this.txApi.export(format, this.txSearch() || undefined, this.txAppliedFilters()).subscribe(res => {
+      const filename = extractFilename(res.headers.get('content-disposition'), `export.${format}`);
+      downloadBlob(res.body!, filename);
     });
   }
 
